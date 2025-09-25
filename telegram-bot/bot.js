@@ -205,6 +205,24 @@ bot.catch((err, ctx) => {
   ctx.reply('Произошла ошибка. Попробуйте позже или обратитесь в поддержку.');
 });
 
+// HTTP сервер для Render (обязательно для web service)
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({
+    status: 'MubarakWay Bot is running',
+    timestamp: new Date().toISOString(),
+    webApp: WEB_APP_URL
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Запуск бота
 const startBot = async () => {
   try {
@@ -212,13 +230,25 @@ const startBot = async () => {
     console.log('🤖 MubarakWay Bot запущен успешно!');
     console.log('🕌 Готов служить умме...');
     console.log('📱 Web App URL:', WEB_APP_URL);
+
+    // Запуск HTTP сервера для Render
+    app.listen(PORT, () => {
+      console.log(`🌐 HTTP server запущен на порту ${PORT}`);
+      console.log('✅ Render может подключиться к боту');
+    });
   } catch (error) {
     console.error('Ошибка запуска бота:', error);
   }
 };
 
 // Graceful stop
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => {
+  bot.stop('SIGINT');
+  process.exit(0);
+});
+process.once('SIGTERM', () => {
+  bot.stop('SIGTERM');
+  process.exit(0);
+});
 
 startBot();
