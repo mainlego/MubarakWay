@@ -1,0 +1,39 @@
+services:
+  # Frontend Static Site
+  - type: web
+    name: mubarak-way
+    env: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: true
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: ALLOWALL
+      - path: /*
+        name: Content-Security-Policy
+        value: "frame-ancestors 'self' https://*.telegram.org https://telegram.org"
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+    envVars:
+      - key: NODE_VERSION
+        value: "20.17.0"
+      - key: VITE_APP_URL
+        value: https://mubarak-way.onrender.com
+
+  # Telegram Bot Service
+  - type: web
+    name: mubarak-way-bot
+    env: node
+    buildCommand: cd telegram-bot && npm install
+    startCommand: cd telegram-bot && npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20.17.0"
+      - key: BOT_TOKEN
+        value: "8257886464:AAHrJ525tcZV2WzbNWX-HWFc85T4OlJrgu0"
+      - key: WEB_APP_URL
+        value: https://mubarak-way.onrender.com
+      - key: BOT_USERNAME
+        value: "@mubarakway_bot"
