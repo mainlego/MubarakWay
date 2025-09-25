@@ -1,16 +1,15 @@
-services:
-  # Telegram Bot Service
-  - type: web
-    name: mubarak-way-bot
-    env: node
-    buildCommand: npm install
-    startCommand: npm start
-    envVars:
-      - key: NODE_VERSION
-        value: "20.17.0"
-      - key: BOT_TOKEN
-        value: "8257886464:AAHrJ525tcZV2WzbNWX-HWFc85T4OlJrgu0"
-      - key: WEB_APP_URL
-        value: https://mubarak-way.onrender.com
-      - key: BOT_USERNAME
-        value: "@mubarakway_bot"
+# Telegram Bot Service
+type: web
+env: node
+name: mubarak-way-bot
+buildCommand: npm install
+startCommand: npm start
+envVars:
+  - key: NODE_VERSION
+    value: "20.17.0"
+  - key: BOT_TOKEN
+    value: "8257886464:AAHrJ525tcZV2WzbNWX-HWFc85T4OlJrgu0"
+  - key: WEB_APP_URL
+    value: https://mubarak-way-frontend.onrender.com
+  - key: BOT_USERNAME
+    value: "@mubarakway_bot"
