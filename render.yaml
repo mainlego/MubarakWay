@@ -1,7 +1,8 @@
 services:
   # Frontend Static Site
-  - type: static
+  - type: web
     name: mubarak-way
+    env: static
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: true
