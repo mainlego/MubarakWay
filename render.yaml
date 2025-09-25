@@ -3,10 +3,8 @@ services:
   - type: web
     name: mubarak-way
     env: static
-    plan: starter
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
-    pullRequestPreviewsEnabled: false
     headers:
       - path: /*
         name: X-Frame-Options
@@ -27,7 +25,6 @@ services:
   - type: web
     name: mubarak-way-bot
     env: node
-    plan: starter
     rootDir: telegram-bot
     buildCommand: npm install
     startCommand: npm start
