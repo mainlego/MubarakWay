@@ -226,16 +226,17 @@ app.get('/health', (req, res) => {
 // Запуск бота
 const startBot = async () => {
   try {
-    await bot.launch();
-    console.log('🤖 MubarakWay Bot запущен успешно!');
-    console.log('🕌 Готов служить умме...');
-    console.log('📱 Web App URL:', WEB_APP_URL);
-
-    // Запуск HTTP сервера для Render
+    // ВАЖНО: Сначала запускаем HTTP сервер для Render
     app.listen(PORT, () => {
       console.log(`🌐 HTTP server запущен на порту ${PORT}`);
       console.log('✅ Render может подключиться к боту');
     });
+
+    // Затем запускаем Telegram бота
+    await bot.launch();
+    console.log('🤖 MubarakWay Bot запущен успешно!');
+    console.log('🕌 Готов служить умме...');
+    console.log('📱 Web App URL:', WEB_APP_URL);
   } catch (error) {
     console.error('Ошибка запуска бота:', error);
   }
