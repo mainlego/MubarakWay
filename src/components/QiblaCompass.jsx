@@ -149,9 +149,11 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const calculateQiblaDirection = () => {
     if (!userLocation) return 0;
 
-    // Mecca coordinates
+    // Mecca coordinates (точные координаты Каабы)
+    // Широта: 21°25'21" с. ш. = 21.4225°
+    // Долгота: 39°49'34" в. д. = 39.8261°
     const meccaLat = 21.4225;
-    const meccaLng = 39.8262;
+    const meccaLng = 39.8261;
 
     const { latitude: userLat, longitude: userLng } = userLocation;
 

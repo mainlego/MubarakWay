@@ -340,6 +340,23 @@ const Qibla = () => {
                         </div>
                       </div>
 
+                      {/* Мекка маркер (для справки) */}
+                      {userLocation && (
+                        <div
+                          className="absolute w-3 h-3 bg-green-600 rounded-full border-2 border-white shadow-lg"
+                          style={{
+                            // Простое приближенное позиционирование для демонстрации направления
+                            // В реальной карте используется проекция
+                            left: `${50 + Math.cos((qiblaDirection || 0) * Math.PI / 180) * 30}%`,
+                            top: `${50 - Math.sin((qiblaDirection || 0) * Math.PI / 180) * 30}%`,
+                            transform: 'translate(-50%, -50%)'
+                          }}
+                          title="Направление на Мекку"
+                        >
+                          <div className="absolute -top-1 -right-1 text-xs">🕋</div>
+                        </div>
+                      )}
+
                       {/* Map Info */}
                       <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg p-3">
                         <div className="text-white text-sm font-medium">
@@ -349,12 +366,21 @@ const Qibla = () => {
                           {qiblaDirection ? `${Math.round(qiblaDirection)}° от севера` : 'Вычисляется...'}
                         </div>
                         <div className="text-white/60 text-xs mt-1">
-                          Расстояние: ~{userLocation ? Math.round(
-                            Math.sqrt(
-                              Math.pow(userLocation.latitude - 21.4225, 2) +
-                              Math.pow(userLocation.longitude - 39.8262, 2)
-                            ) * 111
-                          ) : 0} км
+                          Расстояние: ~{userLocation ? (() => {
+                            // Формула гаверсинуса для точного расчета расстояния
+                            const R = 6371; // Радиус Земли в км
+                            const lat1 = userLocation.latitude * Math.PI / 180;
+                            const lat2 = 21.4225 * Math.PI / 180;
+                            const deltaLat = (21.4225 - userLocation.latitude) * Math.PI / 180;
+                            const deltaLng = (39.8261 - userLocation.longitude) * Math.PI / 180;
+
+                            const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                                      Math.cos(lat1) * Math.cos(lat2) *
+                                      Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+                            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+                            return Math.round(R * c);
+                          })() : 0} км
                         </div>
                       </div>
                     </div>
