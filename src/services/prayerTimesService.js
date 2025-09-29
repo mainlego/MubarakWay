@@ -154,8 +154,8 @@ class PrayerTimesService {
         throw new Error('Неверный метод расчета');
       }
 
-      // Создаем параметры расчета
-      const params = calculationMethod;
+      // Создаем копию параметров расчета для избежания мутации
+      const params = { ...calculationMethod };
 
       // Устанавливаем мазхаб
       if (sett.madhab === madhabs.HANAFI) {
@@ -202,7 +202,7 @@ class PrayerTimesService {
         date: date,
         location: loc,
         settings: sett,
-        qibla: Qibla(coordinates).direction
+        qibla: new Qibla(coordinates).direction
       };
 
       this.lastCalculatedDate = date;
@@ -302,7 +302,7 @@ class PrayerTimesService {
     if (!loc) return null;
 
     const coordinates = new Coordinates(loc.latitude, loc.longitude);
-    return Qibla(coordinates).direction;
+    return new Qibla(coordinates).direction;
   }
 
   // Сохранить настройки
