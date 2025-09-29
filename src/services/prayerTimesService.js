@@ -1,4 +1,4 @@
-import { adhan, Coordinates, CalculationMethod, HighLatitudeRule, Madhab } from 'adhan';
+import { Coordinates, CalculationMethod, HighLatitudeRule, Madhab, PrayerTimes, Qibla } from 'adhan';
 import { offlinePrayerTimes } from './offlineStorage';
 
 // Методы расчета
@@ -189,7 +189,7 @@ class PrayerTimesService {
       }
 
       // Рассчитываем время молитв
-      const prayerTimes = new adhan.PrayerTimes(coordinates, date, params);
+      const prayerTimes = new PrayerTimes(coordinates, date, params);
 
       // Форматируем результат
       const formattedTimes = {
@@ -202,7 +202,7 @@ class PrayerTimesService {
         date: date,
         location: loc,
         settings: sett,
-        qibla: adhan.Qibla(coordinates).direction
+        qibla: Qibla(coordinates).direction
       };
 
       this.lastCalculatedDate = date;
@@ -302,7 +302,7 @@ class PrayerTimesService {
     if (!loc) return null;
 
     const coordinates = new Coordinates(loc.latitude, loc.longitude);
-    return adhan.Qibla(coordinates).direction;
+    return Qibla(coordinates).direction;
   }
 
   // Сохранить настройки
