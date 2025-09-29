@@ -9,7 +9,7 @@ const mockNashids = [
     artist: "Fadil Muhammad",
     duration: "3:45",
     cover: "https://images.unsplash.com/photo-1465101162946-4377e57745c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    audioUrl: "/audio/nashid1.mp3",
+    audioUrl: "/src/assets/nasheeds/Nasheed_Azan_1.mp3",
     category: "spiritual"
   },
   {
@@ -19,7 +19,7 @@ const mockNashids = [
     artist: "Al-Baraah Group",
     duration: "4:20",
     cover: "https://images.unsplash.com/photo-1541963463532-d68292c34d19?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    audioUrl: "/audio/nashid2.mp3",
+    audioUrl: "/src/assets/nasheeds/Nasheed_Azan_1.mp3",
     category: "family"
   },
   {
@@ -29,7 +29,7 @@ const mockNashids = [
     artist: "Hamzah Adel",
     duration: "2:58",
     cover: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    audioUrl: "/audio/nashid3.mp3",
+    audioUrl: "/src/assets/nasheeds/Nasheed_Azan_1.mp3",
     category: "gratitude"
   },
   {
@@ -39,7 +39,7 @@ const mockNashids = [
     artist: "Zain",
     duration: "5:12",
     cover: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    audioUrl: "/audio/nashid4.mp3",
+    audioUrl: "/src/assets/nasheeds/Nasheed_Azan_1.mp3",
     category: "prophetic"
   },
   {
@@ -49,7 +49,7 @@ const mockNashids = [
     artist: "Abu Ali",
     duration: "4:15",
     cover: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    audioUrl: "/audio/nashid5.mp3",
+    audioUrl: "/src/assets/nasheeds/Nasheed_Azan_1.mp3",
     category: "spiritual"
   },
   {
@@ -59,7 +59,7 @@ const mockNashids = [
     artist: "Ahmad Nashid",
     duration: "3:30",
     cover: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    audioUrl: "/audio/nashid6.mp3",
+    audioUrl: "/src/assets/nasheeds/Nasheed_Azan_1.mp3",
     category: "tawhid"
   }
 ];
