@@ -299,7 +299,6 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
             ×
           </button>
         </div>
-        <audio ref={audioRef} src={nashid.audioUrl} preload="auto" />
       </div>
     );
   }
