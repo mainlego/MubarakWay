@@ -10,6 +10,79 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const [magneticDeclination, setMagneticDeclination] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCalibrated, setIsCalibrated] = useState(false);
+  const [permissionGranted, setPermissionGranted] = useState(false);
+  const [orientationSupported, setOrientationSupported] = useState(false);
+
+  // Фильтрация дрожания
+  const [smoothedOrientation, setSmoothedOrientation] = useState(0);
+  const orientationBuffer = useState([]).current;
+
+  // Функция фильтрации дрожания
+  const smoothOrientation = (newValue) => {
+    // Обработка перехода через 360°/0°
+    let adjustedValue = newValue;
+    if (orientationBuffer.length > 0) {
+      const lastValue = orientationBuffer[orientationBuffer.length - 1];
+      const diff = newValue - lastValue;
+
+      if (diff > 180) {
+        adjustedValue = newValue - 360;
+      } else if (diff < -180) {
+        adjustedValue = newValue + 360;
+      }
+    }
+
+    // Добавляем в буфер
+    orientationBuffer.push(adjustedValue);
+
+    // Ограничиваем размер буфера
+    if (orientationBuffer.length > 5) {
+      orientationBuffer.shift();
+    }
+
+    // Вычисляем среднее значение
+    const average = orientationBuffer.reduce((sum, val) => sum + val, 0) / orientationBuffer.length;
+
+    // Нормализуем к диапазону 0-360
+    let normalized = average;
+    while (normalized < 0) normalized += 360;
+    while (normalized >= 360) normalized -= 360;
+
+    return normalized;
+  };
+
+  // Запрос разрешений для iOS
+  const requestOrientationPermission = async () => {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS 13+
+      try {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        if (permission === 'granted') {
+          setPermissionGranted(true);
+          setOrientationSupported(true);
+          return true;
+        } else {
+          setPermissionGranted(false);
+          dispatch(setError('Необходимо разрешить доступ к компасу в настройках'));
+          return false;
+        }
+      } catch (error) {
+        console.error('Permission request failed:', error);
+        setPermissionGranted(false);
+        dispatch(setError('Ошибка запроса разрешения компаса'));
+        return false;
+      }
+    } else if (typeof DeviceOrientationEvent !== 'undefined') {
+      // Старые версии iOS и Android
+      setPermissionGranted(true);
+      setOrientationSupported(true);
+      return true;
+    } else {
+      setOrientationSupported(false);
+      setPermissionGranted(false);
+      return false;
+    }
+  };
 
   useEffect(() => {
     // Get user location
@@ -36,20 +109,41 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
       setCurrentTime(new Date());
     }, 1000);
 
-    // Device orientation (if supported)
-    if (window.DeviceOrientationEvent) {
-      const handleOrientation = (event) => {
-        setDeviceOrientation(event.alpha || 0);
-      };
+    // Проверяем поддержку ориентации
+    const initOrientation = async () => {
+      const hasPermission = await requestOrientationPermission();
 
-      window.addEventListener('deviceorientation', handleOrientation);
-      return () => {
-        window.removeEventListener('deviceorientation', handleOrientation);
-        clearInterval(timeInterval);
-      };
-    }
+      if (hasPermission) {
+        const handleOrientation = (event) => {
+          if (event.alpha !== null) {
+            const rawAlpha = event.alpha;
+            const smoothed = smoothOrientation(rawAlpha);
+            setDeviceOrientation(smoothed);
+            setSmoothedOrientation(smoothed);
 
-    return () => clearInterval(timeInterval);
+            // Калибровка после получения нескольких значений
+            if (orientationBuffer.length >= 3 && !isCalibrated) {
+              setIsCalibrated(true);
+            }
+          }
+        };
+
+        window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+
+        return () => {
+          window.removeEventListener('deviceorientation', handleOrientation);
+        };
+      }
+    };
+
+    const orientationCleanup = initOrientation();
+
+    return () => {
+      clearInterval(timeInterval);
+      if (orientationCleanup && typeof orientationCleanup === 'function') {
+        orientationCleanup();
+      }
+    };
   }, [dispatch]);
 
   const calculateQiblaDirection = () => {
@@ -78,9 +172,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   // Normalize angles to 0-360 range
   const normalizeAngle = (angle) => ((angle % 360) + 360) % 360;
 
-  // Calculate adjusted angles for display
-  const northDirection = normalizeAngle(-deviceOrientation);
-  const qiblaDirectionAdjusted = normalizeAngle(qiblaDegree - deviceOrientation);
+  // Calculate adjusted angles for display (используем сглаженные значения)
+  const northDirection = normalizeAngle(-smoothedOrientation);
+  const qiblaDirectionAdjusted = normalizeAngle(qiblaDegree - smoothedOrientation);
   const deviceDirectionAdjusted = 0; // Device always points "up" in our view
 
   if (loading) {
@@ -107,8 +201,28 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
   return (
     <div className="text-center">
+      {/* iOS Permission Request */}
+      {!orientationSupported && (
+        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-xl">
+          <p className="text-red-200 text-sm mb-2">Компас не поддерживается на этом устройстве</p>
+          <p className="text-red-200 text-xs">Попробуйте использовать другой браузер или устройство</p>
+        </div>
+      )}
+
+      {orientationSupported && !permissionGranted && (
+        <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-xl">
+          <p className="text-blue-200 text-sm mb-2">Для работы компаса нужно разрешение</p>
+          <button
+            onClick={requestOrientationPermission}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors touch-manipulation"
+          >
+            Разрешить доступ к компасу
+          </button>
+        </div>
+      )}
+
       {/* Calibration Status */}
-      {!isCalibrated && (
+      {permissionGranted && !isCalibrated && (
         <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-xl">
           <p className="text-yellow-200 text-sm">Поверните устройство восьмеркой для калибровки</p>
         </div>
@@ -119,11 +233,11 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
         {/* Outer Ring with Degrees */}
         <div
-          className={`absolute inset-0 rounded-full border-4 border-white/30 transition-transform duration-300 ${
+          className={`absolute inset-0 rounded-full border-4 border-white/30 compass-ring ${
             isAnimating ? 'animate-pulse' : ''
           }`}
           style={{
-            transform: `rotate(${-deviceOrientation}deg)`,
+            transform: `rotate(${-smoothedOrientation}deg)`,
             background: 'conic-gradient(from 0deg, rgba(34, 197, 94, 0.1) 0deg, rgba(34, 197, 94, 0.2) 45deg, rgba(34, 197, 94, 0.1) 90deg, rgba(34, 197, 94, 0.05) 180deg, rgba(34, 197, 94, 0.1) 270deg, rgba(34, 197, 94, 0.2) 315deg, rgba(34, 197, 94, 0.1) 360deg)'
           }}
         >
@@ -160,7 +274,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
                   transform: `translateX(-50%) rotate(${angle}deg) translateY(-50%)`
                 }}
               >
-                <span style={{ transform: `rotate(${-angle + deviceOrientation}deg)`, display: 'inline-block' }}>
+                <span style={{ transform: `rotate(${-angle + smoothedOrientation}deg)`, display: 'inline-block' }}>
                   {angle === 0 ? '0°' : angle}
                 </span>
               </div>
@@ -186,10 +300,10 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
                   left: '50%',
                   top: '8px',
                   transformOrigin: '50% 112px',
-                  transform: `translateX(-50%) rotate(${angle - deviceOrientation}deg)`
+                  transform: `translateX(-50%) rotate(${angle - smoothedOrientation}deg)`
                 }}
               >
-                <span style={{ transform: `rotate(${-(angle - deviceOrientation)}deg)`, display: 'inline-block' }}>
+                <span style={{ transform: `rotate(${-(angle - smoothedOrientation)}deg)`, display: 'inline-block' }} className="compass-smooth">
                   {dir}
                 </span>
               </div>
@@ -198,7 +312,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
           {/* Device Arrow (Red) */}
           <div
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center compass-arrow"
             style={{ transform: `rotate(${deviceDirectionAdjusted}deg)` }}
           >
             <div className="flex flex-col items-center">
@@ -211,7 +325,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
           {/* North Arrow (Blue) */}
           <div
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center compass-arrow"
             style={{ transform: `rotate(${northDirection}deg)` }}
           >
             <div className="flex flex-col items-center">
@@ -224,7 +338,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
           {/* Qibla Arrow (Green) */}
           <div
-            className={`absolute inset-0 flex items-center justify-center transition-transform duration-300 ${
+            className={`absolute inset-0 flex items-center justify-center compass-arrow ${
               isAnimating ? 'animate-bounce' : ''
             }`}
             style={{ transform: `rotate(${qiblaDirectionAdjusted}deg)` }}

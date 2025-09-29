@@ -192,6 +192,28 @@ select {
   scroll-snap-align: start;
 }
 
+/* Smooth compass animations */
+.compass-arrow {
+  transition: transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.compass-ring {
+  transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.compass-smooth {
+  transition: transform 0.3s ease-out;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .compass-arrow,
+  .compass-ring,
+  .compass-smooth {
+    transition: none;
+  }
+}
+
 /* Mobile optimizations */
 @media (max-width: 768px) {
   body {
