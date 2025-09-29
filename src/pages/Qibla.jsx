@@ -177,30 +177,52 @@ const Qibla = () => {
           </div>
         )}
 
-        {/* Tab Navigation */}
-        <div className="flex bg-white/20 backdrop-blur-sm rounded-xl p-1 mb-6">
-          {[
-            { id: 'compass', label: 'Компас', icon: Navigation },
-            { id: 'map', label: 'Карта', icon: Map },
-            { id: 'times', label: 'Время', icon: Clock },
-            { id: 'stats', label: 'Статистика', icon: Settings }
-          ].map((tab) => {
-            const IconComponent = tab.icon;
-            return (
-              <button
+        {/* Tab Navigation - Mobile Scrollable */}
+        <div className="mb-6">
+          <div className="overflow-x-auto scrollbar-hide mobile-tabs smooth-scroll">
+            <div className="flex bg-white/20 backdrop-blur-sm rounded-xl p-1 min-w-max">
+              {[
+                { id: 'compass', label: 'Компас', icon: Navigation },
+                { id: 'map', label: 'Карта', icon: Map },
+                { id: 'times', label: 'Время', icon: Clock },
+                { id: 'stats', label: 'Статистика', icon: Settings }
+              ].map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg transition-all whitespace-nowrap touch-manipulation ${
+                      activeTab === tab.id
+                        ? 'bg-white text-gray-900 shadow-md'
+                        : 'text-white hover:bg-white/10 active:bg-white/20'
+                    }`}
+                    style={{ minWidth: 'max-content' }}
+                  >
+                    <IconComponent className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm font-medium">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tab Indicators */}
+          <div className="flex justify-center mt-2 gap-1">
+            {[
+              { id: 'compass', label: 'Компас' },
+              { id: 'map', label: 'Карта' },
+              { id: 'times', label: 'Время' },
+              { id: 'stats', label: 'Статистика' }
+            ].map((tab) => (
+              <div
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-white text-gray-900'
-                    : 'text-white hover:bg-white/10'
+                className={`w-2 h-2 rounded-full transition-all ${
+                  activeTab === tab.id ? 'bg-white' : 'bg-white/30'
                 }`}
-              >
-                <IconComponent className="w-4 h-4" />
-                <span className="text-sm font-medium">{tab.label}</span>
-              </button>
-            );
-          })}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Content */}

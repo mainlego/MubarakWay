@@ -165,6 +165,33 @@ select {
   }
 }
 
+/* Hide scrollbar while maintaining scroll functionality */
+.scrollbar-hide {
+  /* Firefox */
+  scrollbar-width: none;
+  /* Safari and Chrome */
+  -webkit-overflow-scrolling: touch;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scrolling for tabs */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Mobile tab optimization */
+.mobile-tabs {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-tabs button {
+  scroll-snap-align: start;
+}
+
 /* Mobile optimizations */
 @media (max-width: 768px) {
   body {
