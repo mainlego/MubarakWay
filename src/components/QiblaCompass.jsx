@@ -17,39 +17,21 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
   // Фильтрация дрожания
   const [smoothedOrientation, setSmoothedOrientation] = useState(0);
-  const orientationBuffer = useState([]).current;
+  const [orientationBuffer, setOrientationBuffer] = useState([]);
 
-  // Функция фильтрации дрожания
+  // Упрощенная функция фильтрации
   const smoothOrientation = (newValue) => {
-    // Обработка перехода через 360°/0°
-    let adjustedValue = newValue;
-    if (orientationBuffer.length > 0) {
-      const lastValue = orientationBuffer[orientationBuffer.length - 1];
-      const diff = newValue - lastValue;
-
-      if (diff > 180) {
-        adjustedValue = newValue - 360;
-      } else if (diff < -180) {
-        adjustedValue = newValue + 360;
-      }
+    if (typeof newValue !== 'number' || isNaN(newValue)) {
+      console.warn('Invalid orientation value:', newValue);
+      return 0;
     }
-
-    // Добавляем в буфер
-    orientationBuffer.push(adjustedValue);
-
-    // Ограничиваем размер буфера
-    if (orientationBuffer.length > 5) {
-      orientationBuffer.shift();
-    }
-
-    // Вычисляем среднее значение
-    const average = orientationBuffer.reduce((sum, val) => sum + val, 0) / orientationBuffer.length;
 
     // Нормализуем к диапазону 0-360
-    let normalized = average;
+    let normalized = newValue;
     while (normalized < 0) normalized += 360;
     while (normalized >= 360) normalized -= 360;
 
+    console.log('Smoothed orientation:', normalized);
     return normalized;
   };
 
@@ -251,10 +233,10 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
     angle = (angle + 90 + 360) % 360; // Корректируем для компаса (север = 0°)
 
-    console.log('Manual rotation:', angle);
+    console.log('Manual rotation angle:', angle);
     setManualOrientation(angle);
-    const smoothed = smoothOrientation(angle);
-    setSmoothedOrientation(smoothed);
+    setSmoothedOrientation(angle); // Прямое обновление без сглаживания для ручного режима
+    console.log('Updated smoothedOrientation to:', angle);
   };
 
   const calculateQiblaDirection = () => {
