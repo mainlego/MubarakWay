@@ -12,6 +12,8 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const [isCalibrated, setIsCalibrated] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [orientationSupported, setOrientationSupported] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualOrientation, setManualOrientation] = useState(0);
 
   // Фильтрация дрожания
   const [smoothedOrientation, setSmoothedOrientation] = useState(0);
@@ -158,6 +160,8 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
         setPermissionGranted(true);
       } else {
         console.log('No valid compass data');
+        // В Telegram WebApp или устройствах без магнитометра
+        // компас может не работать - это нормально
       }
     };
 
@@ -203,12 +207,55 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
       setPermissionGranted(false);
     }
 
+    // Если через 3 секунды компас не заработал, включаем ручной режим
+    const fallbackTimer = setTimeout(() => {
+      if (!isCalibrated && !manualMode) {
+        console.log('Включаем ручной режим компаса');
+        setManualMode(true);
+        setOrientationSupported(true);
+        setPermissionGranted(true);
+      }
+    }, 3000);
+
     return () => {
       console.log('Очистка слушателей компаса');
+      clearTimeout(fallbackTimer);
       window.removeEventListener('deviceorientation', handleOrientation, true);
       window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
     };
-  }, []);
+  }, [isCalibrated, manualMode]);
+
+  // Функция для ручного поворота компаса
+  const handleManualRotation = (event) => {
+    if (!manualMode) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    let clientX, clientY;
+
+    if (event.touches && event.touches[0]) {
+      // Touch событие
+      clientX = event.touches[0].clientX;
+      clientY = event.touches[0].clientY;
+    } else {
+      // Mouse событие
+      clientX = event.clientX;
+      clientY = event.clientY;
+    }
+
+    const deltaX = clientX - centerX;
+    const deltaY = clientY - centerY;
+
+    let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+    angle = (angle + 90 + 360) % 360; // Корректируем для компаса (север = 0°)
+
+    console.log('Manual rotation:', angle);
+    setManualOrientation(angle);
+    const smoothed = smoothOrientation(angle);
+    setSmoothedOrientation(smoothed);
+  };
 
   const calculateQiblaDirection = () => {
     if (!userLocation || !userLocation.latitude || !userLocation.longitude) {
@@ -332,15 +379,28 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
         </div>
       )}
 
+      {/* Manual Mode Notification */}
+      {manualMode && (
+        <div className="mb-4 p-3 bg-orange-500/20 border border-orange-500/30 rounded-xl">
+          <p className="text-orange-200 text-sm mb-1">Ручной режим компаса</p>
+          <p className="text-orange-200 text-xs">Коснитесь и поверните компас пальцем для указания севера</p>
+        </div>
+      )}
+
       {/* Calibration Status */}
-      {permissionGranted && !isCalibrated && (
+      {permissionGranted && !isCalibrated && !manualMode && (
         <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-xl">
           <p className="text-yellow-200 text-sm">Поверните устройство восьмеркой для калибровки</p>
         </div>
       )}
 
       {/* Interactive Compass */}
-      <div className="relative mx-auto mb-6" style={{ width: '320px', height: '320px' }}>
+      <div
+        className={`relative mx-auto mb-6 ${manualMode ? 'cursor-pointer' : ''}`}
+        style={{ width: '320px', height: '320px' }}
+        onClick={manualMode ? handleManualRotation : undefined}
+        onTouchStart={manualMode ? handleManualRotation : undefined}
+      >
 
         {/* Outer Ring with Degrees */}
         <div
