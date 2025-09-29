@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Lock, Download, BookOpen } from 'lucide-react';
@@ -9,9 +9,32 @@ const BookCard = ({ book }) => {
   const navigate = useNavigate();
   const { favorites } = useSelector(state => state.books);
   const { subscription = 'free' } = useSelector(state => state.auth || {});
+  const [readingProgress, setReadingProgress] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const isFavorite = favorites.includes(book.id);
   const canAccess = !book.isPro || subscription === 'pro';
+
+  // Получаем прогресс чтения из localStorage
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(`readingProgress_${book.id}`);
+    const savedCurrentPage = localStorage.getItem(`currentPage_${book.id}`);
+
+    if (savedProgress) {
+      setReadingProgress(parseInt(savedProgress, 10));
+    }
+    if (savedCurrentPage) {
+      setCurrentPage(parseInt(savedCurrentPage, 10));
+    }
+
+    // Приблизительное количество страниц (можно добавить в данные книги)
+    if (book.content) {
+      const wordsCount = book.content.split(/\s+/).length;
+      const estimatedPages = Math.ceil(wordsCount / 800); // 800 слов на страницу
+      setTotalPages(estimatedPages);
+    }
+  }, [book.id, book.content]);
 
   const handleFavoriteClick = (e) => {
     e.stopPropagation();
@@ -64,7 +87,42 @@ const BookCard = ({ book }) => {
         {book.author && (
           <p className="text-xs sm:text-sm text-gray-600 mb-2">{book.author}</p>
         )}
-        <p className="text-xs text-gray-500 mb-3 sm:mb-4 line-clamp-2">{book.description}</p>
+        <p className="text-xs text-gray-500 mb-2 sm:mb-3 line-clamp-2">{book.description}</p>
+
+        {/* Прогресс чтения */}
+        {readingProgress > 0 && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-gray-600">
+                {readingProgress === 100 ? 'Прочитано' : 'Прогресс'}
+              </span>
+              <span className="text-xs font-medium flex items-center gap-1">
+                {readingProgress === 100 ? (
+                  <span className="text-green-600 flex items-center gap-1">
+                    <span>✓</span> 100%
+                  </span>
+                ) : (
+                  <span className="text-blue-600">{readingProgress}%</span>
+                )}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
+              <div
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  readingProgress === 100
+                    ? 'bg-gradient-to-r from-green-500 to-green-600'
+                    : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                }`}
+                style={{ width: `${readingProgress}%` }}
+              />
+            </div>
+            {currentPage > 1 && totalPages > 1 && (
+              <div className="text-xs text-gray-500">
+                Страница {currentPage} из {totalPages}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-2">
           <button
