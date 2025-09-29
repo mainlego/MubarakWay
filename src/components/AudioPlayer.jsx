@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Play,
@@ -7,7 +7,6 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
-  RotateCcw,
   Shuffle,
   Repeat,
   Repeat1,
@@ -35,45 +34,73 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   const [isLoading, setIsLoading] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isOfflineAvailable, setIsOfflineAvailable] = useState(false);
-  const [needsUserAction, setNeedsUserAction] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [audioError, setAudioError] = useState(null);
 
+  // Получаем правильный URL для аудио
+  const getAudioUrl = useCallback((nashidItem) => {
+    return nashidItem?.audio_url || nashidItem?.audioUrl || '';
+  }, []);
+
+  // Очистка всех других аудио элементов
+  const stopAllOtherAudio = useCallback(() => {
+    const allAudio = document.querySelectorAll('audio');
+    allAudio.forEach(audioElement => {
+      if (audioElement !== audioRef.current && !audioElement.paused) {
+        audioElement.pause();
+        audioElement.currentTime = 0;
+      }
+    });
+  }, []);
+
+  // Обработчики аудио событий
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handleDurationChange = () => setDuration(audio.duration);
-    const handleLoadStart = () => setIsLoading(true);
+    const handleDurationChange = () => setDuration(audio.duration || 0);
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      setAudioError(null);
+    };
+    const handleLoadedData = () => setIsLoading(false);
     const handleCanPlay = () => setIsLoading(false);
+    const handleWaiting = () => setIsLoading(true);
+    const handlePlaying = () => setIsLoading(false);
     const handleEnded = () => handleNext();
-    const handlePause = () => {
-      // Если плеер должен играть, но был поставлен на паузу не пользователем
-      if (isPlaying && !audio.ended) {
-        setTimeout(() => {
-          if (isPlaying) {
-            audio.play().catch(console.error);
-          }
-        }, 100);
-      }
+
+    const handleError = (e) => {
+      console.error('Audio error:', e);
+      setIsLoading(false);
+      setAudioError('Ошибка загрузки аудио');
+      dispatch(pauseNashid());
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('durationchange', handleDurationChange);
     audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('loadeddata', handleLoadedData);
     audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('playing', handlePlaying);
     audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('durationchange', handleDurationChange);
       audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('loadeddata', handleLoadedData);
       audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('playing', handlePlaying);
       audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('error', handleError);
     };
-  }, []);
+  }, [dispatch]);
 
+  // Проверка офлайн доступности
   useEffect(() => {
     const checkOfflineAvailability = async () => {
       if (nashid) {
@@ -84,92 +111,84 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     checkOfflineAvailability();
   }, [nashid, isNashidAvailableOffline]);
 
-  // Остановка других аудио элементов перед запуском нового
-  const stopAllOtherAudio = () => {
-    const allAudio = document.querySelectorAll('audio');
-    allAudio.forEach(audioElement => {
-      if (audioElement !== audioRef.current && !audioElement.paused) {
-        audioElement.pause();
-      }
-    });
-  };
-
-  // Основное управление воспроизведением - только при смене трека или по действию пользователя
+  // Основное управление воспроизведением
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio && nashid) {
-      if (isPlaying) {
-        // Останавливаем все другие аудио перед запуском
-        stopAllOtherAudio();
+    if (!audio || !nashid) return;
 
-        // Устанавливаем src если нужно
-        if (audio.src !== nashid.audio_url) {
-          audio.src = nashid.audio_url;
-        }
+    const audioUrl = getAudioUrl(nashid);
+    if (!audioUrl) {
+      setAudioError('URL аудио не найден');
+      return;
+    }
 
-        // Пытаемся воспроизвести с обработкой ошибок
-        audio.play().catch(error => {
-          console.error('Ошибка автовоспроизведения:', error);
+    // Устанавливаем источник только если он изменился
+    if (audio.src !== audioUrl) {
+      audio.src = audioUrl;
+      audio.load(); // Принудительная загрузка нового источника
+    }
 
-          // Если автовоспроизведение заблокировано, обновляем состояние
-          if (error.name === 'NotAllowedError') {
-            console.log('Автовоспроизведение заблокировано браузером');
-            // Не меняем состояние isPlaying, чтобы пользователь видел что нужно нажать play
-            setNeedsUserAction(true);
-          } else {
-            // При других ошибках ставим на паузу
+    if (isPlaying && hasUserInteracted) {
+      stopAllOtherAudio();
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setAudioError(null);
+          })
+          .catch(error => {
+            console.error('Ошибка воспроизведения:', error);
+            setAudioError('Не удалось воспроизвести аудио');
             dispatch(pauseNashid());
-          }
+          });
+      }
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying, nashid, hasUserInteracted, dispatch, stopAllOtherAudio, getAudioUrl]);
+
+  // Media Session API для фонового воспроизведения
+  useEffect(() => {
+    if ('mediaSession' in navigator && nashid) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: nashid.title,
+        artist: nashid.artist,
+        album: 'Islamic Nashids',
+        artwork: [
+          { src: nashid.cover, sizes: '512x512', type: 'image/jpeg' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', handlePlayPause);
+      navigator.mediaSession.setActionHandler('pause', handlePlayPause);
+      navigator.mediaSession.setActionHandler('previoustrack', handlePrevious);
+      navigator.mediaSession.setActionHandler('nexttrack', handleNext);
+
+      // Обновляем позицию воспроизведения
+      if (duration > 0) {
+        navigator.mediaSession.setPositionState({
+          duration: duration,
+          playbackRate: 1,
+          position: currentTime
         });
-      } else {
-        audio.pause();
+      }
+    }
+  }, [nashid, currentTime, duration]);
+
+  const handlePlayPause = useCallback(() => {
+    setHasUserInteracted(true);
+
+    if (isPlaying) {
+      dispatch(pauseNashid());
+    } else {
+      if (nashid) {
+        dispatch(playNashid(nashid));
       }
     }
   }, [isPlaying, nashid, dispatch]);
 
-  // Предотвращаем остановку при изменении состояния минимизации
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (audio && isPlaying) {
-      // Если должно играть, то пусть играет независимо от минимизации
-      setTimeout(() => {
-        if (!audio.paused) return; // Уже играет
-        audio.play().catch(console.error);
-      }, 50); // Небольшая задержка чтобы дать время на рендер
-    }
-  }, [isMinimized, isPlaying]);
-
-  const handlePlayPause = () => {
-    const audio = audioRef.current;
-
-    if (isPlaying && !audio.paused) {
-      // Если играет - ставим на паузу
-      dispatch(pauseNashid());
-      audio.pause();
-    } else {
-      // Если на паузе или заблокировано автовоспроизведение - запускаем
-      stopAllOtherAudio();
-
-      // Устанавливаем src если нужно
-      if (audio.src !== nashid.audio_url) {
-        audio.src = nashid.audio_url;
-      }
-
-      dispatch(playNashid(nashid));
-      setNeedsUserAction(false); // Сбрасываем флаг
-
-      audio.play().catch(error => {
-        console.error('Ошибка воспроизведения:', error);
-        if (error.name === 'NotAllowedError') {
-          setNeedsUserAction(true);
-        } else {
-          dispatch(pauseNashid());
-        }
-      });
-    }
-  };
-
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (playlist.length === 0) return;
 
     const currentIndex = playlist.findIndex(n => n.id === nashid.id);
@@ -184,39 +203,46 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     }
 
     const nextNashid = playlist[nextIndex];
-    dispatch(playNashid(nextNashid));
-  };
+    if (nextNashid) {
+      dispatch(playNashid(nextNashid));
+    }
+  }, [playlist, nashid, isShuffled, repeatMode, dispatch]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (playlist.length === 0) return;
 
     const currentIndex = playlist.findIndex(n => n.id === nashid.id);
     const prevIndex = currentIndex === 0 ? playlist.length - 1 : currentIndex - 1;
     const prevNashid = playlist[prevIndex];
-    dispatch(playNashid(prevNashid));
-  };
 
-  const handleSeek = (e) => {
+    if (prevNashid) {
+      dispatch(playNashid(prevNashid));
+    }
+  }, [playlist, nashid, dispatch]);
+
+  const handleSeek = useCallback((e) => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !duration) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     const newTime = percent * duration;
+
     audio.currentTime = newTime;
     setCurrentTime(newTime);
-  };
+  }, [duration]);
 
-  const handleVolumeChange = (e) => {
+  const handleVolumeChange = useCallback((e) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
     const audio = audioRef.current;
     if (audio) {
       audio.volume = newVolume;
+      setIsMuted(newVolume === 0);
     }
-  };
+  }, []);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -227,36 +253,42 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       audio.volume = 0;
       setIsMuted(true);
     }
-  };
+  }, [isMuted, volume]);
 
-  const toggleShuffle = () => {
+  const toggleShuffle = useCallback(() => {
     setIsShuffled(!isShuffled);
-  };
+  }, [isShuffled]);
 
-  const toggleRepeat = () => {
+  const toggleRepeat = useCallback(() => {
     const modes = ['none', 'all', 'one'];
     const currentIndex = modes.indexOf(repeatMode);
     const nextIndex = (currentIndex + 1) % modes.length;
     setRepeatMode(modes[nextIndex]);
-  };
+  }, [repeatMode]);
 
-  const handleFavorite = () => {
-    dispatch(toggleFavorite(nashid.id));
-  };
+  const handleFavorite = useCallback(() => {
+    if (nashid) {
+      dispatch(toggleFavorite(nashid.id));
+    }
+  }, [nashid, dispatch]);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
+    if (!nashid || isOfflineAvailable) return;
+
     try {
-      // Попытка скачать аудиофайл для офлайн прослушивания
-      const response = await fetch(nashid.audioUrl);
+      const audioUrl = getAudioUrl(nashid);
+      const response = await fetch(audioUrl);
       const audioBlob = await response.blob();
       await saveNashidOffline(nashid, audioBlob);
       setIsOfflineAvailable(true);
     } catch (error) {
       console.error('Error downloading nashid:', error);
     }
-  };
+  }, [nashid, isOfflineAvailable, getAudioUrl, saveNashidOffline]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
+    if (!nashid) return;
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -269,18 +301,18 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       }
     } else {
       navigator.clipboard.writeText(`${nashid.title} - ${nashid.artist}`);
-      alert('Информация о нашиде скопирована в буфер обмена');
+      // Можно добавить тост уведомление
     }
-  };
+  }, [nashid]);
 
-  const formatTime = (time) => {
+  const formatTime = useCallback((time) => {
     if (!time || isNaN(time)) return '0:00';
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
-  const getRepeatIcon = () => {
+  const getRepeatIcon = useCallback(() => {
     switch (repeatMode) {
       case 'one':
         return <Repeat1 className="w-5 h-5" />;
@@ -289,18 +321,29 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       default:
         return <Repeat className="w-5 h-5 opacity-50" />;
     }
-  };
+  }, [repeatMode]);
+
+  const handleClose = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    dispatch(stopNashid());
+    onClose();
+  }, [dispatch, onClose]);
 
   if (!nashid) return null;
 
   const isFavorite = favorites.includes(nashid.id);
 
+  // Мини-плеер
   if (isMinimized) {
     return (
       <div className="fixed bottom-20 right-4 z-50 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-lg max-w-sm">
         <div className="flex items-center space-x-3">
           <img
-            src={nashid.cover}
+            src={nashid.cover || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80"}
             alt={nashid.title}
             className="w-12 h-12 rounded-lg object-cover"
           />
@@ -309,54 +352,56 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
             <p className="text-sm text-gray-600 truncate">{nashid.artist}</p>
           </div>
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handlePlayPause();
-            }}
-            className={`p-2 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation ${
-              needsUserAction ? 'animate-pulse bg-red-600' : ''
+            onClick={handlePlayPause}
+            disabled={isLoading}
+            className={`p-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors touch-manipulation ${
+              audioError ? 'bg-red-600' : ''
             }`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            {(isPlaying && !needsUserAction) ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="w-5 h-5" />
+            ) : (
+              <Play className="w-5 h-5" />
+            )}
           </button>
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleMinimize();
-            }}
-            className="p-2 text-gray-600 hover:text-gray-900 active:text-black transition-colors touch-manipulation"
+            onClick={onToggleMinimize}
+            className="p-2 text-gray-600 hover:text-gray-900 transition-colors touch-manipulation"
             style={{ WebkitTapHighlightColor: 'transparent' }}
             title="Развернуть"
           >
             <Minimize2 className="w-4 h-4 rotate-180" />
           </button>
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // Останавливаем аудио перед закрытием
-              const audio = audioRef.current;
-              if (audio) {
-                audio.pause();
-                audio.currentTime = 0;
-              }
-              dispatch(stopNashid());
-              onClose();
-            }}
-            className="p-2 text-gray-600 hover:text-red-600 active:text-red-700 transition-colors touch-manipulation"
+            onClick={handleClose}
+            className="p-2 text-gray-600 hover:text-red-600 transition-colors touch-manipulation"
             style={{ WebkitTapHighlightColor: 'transparent' }}
             title="Закрыть"
           >
             ×
           </button>
         </div>
+
+        {/* Прогресс бар в мини плеере */}
+        <div className="mt-3">
+          <div
+            className="w-full h-1 bg-gray-200 rounded-full cursor-pointer"
+            onClick={handleSeek}
+          >
+            <div
+              className="h-full bg-green-500 rounded-full transition-all duration-100"
+              style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Полный плеер
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end">
       <div className="w-full bg-white rounded-t-3xl p-6 max-h-screen overflow-y-auto">
@@ -365,31 +410,16 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           <h2 className="text-xl font-bold text-gray-900">Аудиоплеер</h2>
           <div className="flex items-center space-x-2">
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggleMinimize();
-              }}
-              className="p-2 text-gray-600 hover:text-gray-900 active:text-black transition-colors touch-manipulation"
+              onClick={onToggleMinimize}
+              className="p-2 text-gray-600 hover:text-gray-900 transition-colors touch-manipulation"
               style={{ WebkitTapHighlightColor: 'transparent' }}
               title="Свернуть"
             >
               <Minimize2 className="w-5 h-5" />
             </button>
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                // Останавливаем аудио перед закрытием
-                const audio = audioRef.current;
-                if (audio) {
-                  audio.pause();
-                  audio.currentTime = 0;
-                }
-                dispatch(stopNashid());
-                onClose();
-              }}
-              className="p-2 text-gray-600 hover:text-gray-900 active:text-red-600 transition-colors touch-manipulation"
+              onClick={handleClose}
+              className="p-2 text-gray-600 hover:text-gray-900 transition-colors touch-manipulation"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               ✕
@@ -397,10 +427,17 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           </div>
         </div>
 
+        {/* Error Display */}
+        {audioError && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
+            {audioError}
+          </div>
+        )}
+
         {/* Album Art */}
         <div className="text-center mb-6">
           <img
-            src={nashid.cover}
+            src={nashid.cover || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"}
             alt={nashid.title}
             className="w-64 h-64 mx-auto rounded-2xl object-cover shadow-lg"
           />
@@ -456,20 +493,16 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           </button>
 
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handlePlayPause();
-            }}
+            onClick={handlePlayPause}
             disabled={isLoading}
-            className={`p-4 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50 touch-manipulation ${
-              needsUserAction ? 'animate-pulse bg-red-600' : ''
+            className={`p-4 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors disabled:opacity-50 touch-manipulation ${
+              audioError ? 'bg-red-600' : ''
             }`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {isLoading ? (
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (isPlaying && !needsUserAction) ? (
+            ) : isPlaying ? (
               <Pause className="w-6 h-6" />
             ) : (
               <Play className="w-6 h-6" />
@@ -569,7 +602,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           <div className="mt-6 border-t pt-6">
             <h4 className="font-semibold text-gray-900 mb-4">Плейлист</h4>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {playlist.map((item, index) => (
+              {playlist.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => dispatch(playNashid(item))}
@@ -580,7 +613,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
                   }`}
                 >
                   <img
-                    src={item.cover}
+                    src={item.cover || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80"}
                     alt={item.title}
                     className="w-12 h-12 rounded-lg object-cover"
                   />
@@ -595,7 +628,12 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           </div>
         )}
 
-        <audio ref={audioRef} src={nashid.audioUrl} preload="auto" />
+        <audio
+          ref={audioRef}
+          preload="auto"
+          playsInline
+          crossOrigin="anonymous"
+        />
       </div>
     </div>
   );
