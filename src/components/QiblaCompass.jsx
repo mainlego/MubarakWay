@@ -15,16 +15,17 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const [orientationSupported, setOrientationSupported] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [manualOrientation, setManualOrientation] = useState(0);
+  const [sensitivity, setSensitivity] = useState(2); // Порог чувствительности в градусах
 
   // Фильтрация дрожания
   const [smoothedOrientation, setSmoothedOrientation] = useState(0);
   const [orientationBuffer, setOrientationBuffer] = useState([]);
 
-  // Упрощенная функция фильтрации
+  // Улучшенная функция сглаживания с буфером
   const smoothOrientation = (newValue) => {
     if (typeof newValue !== 'number' || isNaN(newValue)) {
       console.warn('Invalid orientation value:', newValue);
-      return 0;
+      return smoothedOrientation;
     }
 
     // Нормализуем к диапазону 0-360
@@ -32,8 +33,73 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     while (normalized < 0) normalized += 360;
     while (normalized >= 360) normalized -= 360;
 
-    console.log('Smoothed orientation:', normalized);
-    return normalized;
+    setOrientationBuffer(currentBuffer => {
+      const buffer = [...currentBuffer];
+
+      // Обработка перехода через 360°/0°
+      let adjustedValue = normalized;
+      if (buffer.length > 0) {
+        const lastValue = buffer[buffer.length - 1];
+        const diff = normalized - lastValue;
+
+        // Если разница больше 180°, значит мы пересекли 0°/360°
+        if (diff > 180) {
+          adjustedValue = normalized - 360;
+        } else if (diff < -180) {
+          adjustedValue = normalized + 360;
+        }
+      }
+
+      // Добавляем в буфер с ограничением размера
+      buffer.push(adjustedValue);
+      if (buffer.length > 8) { // Увеличили буфер для лучшего сглаживания
+        buffer.shift();
+      }
+
+      // Вычисляем взвешенное среднее (последние значения важнее)
+      let weightedSum = 0;
+      let totalWeight = 0;
+
+      buffer.forEach((value, index) => {
+        const weight = index + 1; // Линейно возрастающие веса
+        weightedSum += value * weight;
+        totalWeight += weight;
+      });
+
+      const smoothedValue = weightedSum / totalWeight;
+
+      // Нормализуем результат
+      let finalValue = smoothedValue;
+      while (finalValue < 0) finalValue += 360;
+      while (finalValue >= 360) finalValue -= 360;
+
+      return buffer;
+    });
+
+    // Возвращаем текущее сглаженное значение для немедленного использования
+    const currentBuffer = [...orientationBuffer];
+    if (currentBuffer.length === 0) return normalized;
+
+    let adjustedValue = normalized;
+    if (currentBuffer.length > 0) {
+      const lastValue = currentBuffer[currentBuffer.length - 1];
+      const diff = normalized - lastValue;
+      if (diff > 180) {
+        adjustedValue = normalized - 360;
+      } else if (diff < -180) {
+        adjustedValue = normalized + 360;
+      }
+    }
+
+    currentBuffer.push(adjustedValue);
+
+    // Простое среднее для немедленного возврата
+    const average = currentBuffer.reduce((sum, val) => sum + val, 0) / currentBuffer.length;
+    let result = average;
+    while (result < 0) result += 360;
+    while (result >= 360) result -= 360;
+
+    return result;
   };
 
   // Запрос разрешений для iOS
@@ -122,14 +188,17 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
         console.log('GyroNorm создан, инициализируем...');
 
         gyroNorm.init({
-          frequency: 50,                // Частота обновлений (мс)
+          frequency: 100,               // Увеличили частоту для стабильности (мс)
           gravityNormalized: true,      // Нормализованная гравитация
           orientationBase: GyroNorm.WORLD, // Мировая система координат
-          decimalCount: 2,              // Количество знаков после запятой
+          decimalCount: 1,              // Меньше знаков для устойчивости
           logger: null,                 // Отключаем логирование
           screenAdjusted: false         // Не корректировать по ориентации экрана
         }).then(() => {
           console.log('GyroNorm успешно инициализирован');
+
+          // Переменная для отслеживания последнего значения
+          let lastSmoothedValue = null;
 
           // Слушаем изменения ориентации
           gyroNorm.start((data) => {
@@ -137,14 +206,20 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
             const compassHeading = data.do?.alpha;
 
             if (compassHeading !== null && compassHeading !== undefined && !isNaN(compassHeading)) {
-              console.log('GyroNorm compass heading:', compassHeading);
-
               const smoothed = smoothOrientation(compassHeading);
-              setDeviceOrientation(compassHeading);
-              setSmoothedOrientation(smoothed);
-              setIsCalibrated(true);
-              setOrientationSupported(true);
-              setPermissionGranted(true);
+
+              // Фильтруем малые изменения (динамическая чувствительность)
+              if (lastSmoothedValue === null || Math.abs(smoothed - lastSmoothedValue) > sensitivity) {
+                console.log('GyroNorm compass heading:', compassHeading.toFixed(1), '-> smoothed:', smoothed.toFixed(1));
+
+                setDeviceOrientation(compassHeading);
+                setSmoothedOrientation(smoothed);
+                lastSmoothedValue = smoothed;
+
+                setIsCalibrated(true);
+                setOrientationSupported(true);
+                setPermissionGranted(true);
+              }
             } else {
               console.log('GyroNorm: No valid compass data', data.do);
             }
@@ -409,7 +484,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
         {/* Outer Ring with Degrees */}
         <div
-          className={`absolute inset-0 rounded-full border-4 border-white/30 compass-ring ${
+          className={`absolute inset-0 rounded-full border-4 border-white/30 compass-stable ${
             isAnimating ? 'animate-pulse' : ''
           }`}
           style={{
@@ -563,6 +638,29 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
           <Compass className="w-4 h-4" />
           <span>Точность: ±{magneticDeclination ? '3' : '5'}°</span>
         </div>
+
+        {/* Sensitivity Control */}
+        {isCalibrated && !manualMode && (
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <span className="text-white/60 text-xs">Чувствительность:</span>
+            <button
+              onClick={() => setSensitivity(Math.max(1, sensitivity - 0.5))}
+              className="w-6 h-6 bg-white/20 hover:bg-white/30 rounded text-white text-xs transition-colors"
+              disabled={sensitivity <= 1}
+            >
+              −
+            </button>
+            <span className="text-white text-xs font-mono w-8 text-center">{sensitivity}°</span>
+            <button
+              onClick={() => setSensitivity(Math.min(5, sensitivity + 0.5))}
+              className="w-6 h-6 bg-white/20 hover:bg-white/30 rounded text-white text-xs transition-colors"
+              disabled={sensitivity >= 5}
+            >
+              +
+            </button>
+          </div>
+        )}
+
         {userLocation && (
           <div className="text-white/60 text-xs mt-1">
             {userLocation.latitude.toFixed(4)}°, {userLocation.longitude.toFixed(4)}°

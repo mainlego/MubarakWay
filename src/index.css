@@ -194,15 +194,20 @@ select {
 
 /* Smooth compass animations */
 .compass-arrow {
-  transition: transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .compass-ring {
-  transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .compass-smooth {
-  transition: transform 0.3s ease-out;
+  transition: transform 0.2s ease-out;
+}
+
+/* Stable compass mode - less sensitivity */
+.compass-stable {
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* Reduce motion for accessibility */
