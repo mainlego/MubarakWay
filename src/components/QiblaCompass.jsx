@@ -124,66 +124,53 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
       const hasPermission = await requestOrientationPermission();
 
       if (hasPermission) {
-        console.log('Разрешение получено, настраиваем слушатели');
+        console.log('Инициализируем компас...');
 
         const handleOrientation = (event) => {
-          console.log('Orientation event:', event.alpha, event.beta, event.gamma);
+          console.log('Orientation event:', event.alpha, event.beta, event.gamma, event.webkitCompassHeading);
 
-          // Проверяем все возможные значения ориентации
           let compassHeading = null;
 
-          if (event.alpha !== null && event.alpha !== undefined) {
+          // Проверяем alpha (основной способ)
+          if (typeof event.alpha === 'number' && !isNaN(event.alpha)) {
             compassHeading = event.alpha;
-          } else if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
-            // Webkit compass heading (используется в старых браузерах Safari)
+          }
+          // Проверяем webkitCompassHeading (Safari)
+          else if (typeof event.webkitCompassHeading === 'number' && !isNaN(event.webkitCompassHeading)) {
             compassHeading = 360 - event.webkitCompassHeading;
-          } else if (event.beta !== null && event.gamma !== null) {
-            // Fallback: вычисляем компас из beta и gamma
-            compassHeading = Math.atan2(event.gamma, event.beta) * (180 / Math.PI) + 180;
           }
 
           if (compassHeading !== null) {
-            console.log('Compass heading detected:', compassHeading);
+            console.log('Compass heading:', compassHeading);
             const smoothed = smoothOrientation(compassHeading);
-            setDeviceOrientation(smoothed);
+            setDeviceOrientation(compassHeading);
             setSmoothedOrientation(smoothed);
 
-            // Калибровка после получения нескольких значений
-            if (orientationBuffer.length >= 3 && !isCalibrated) {
-              console.log('Компас калиброван');
+            if (orientationBuffer.length >= 2 && !isCalibrated) {
+              console.log('Компас готов');
               setIsCalibrated(true);
             }
-          } else {
-            console.log('No valid compass data available');
           }
         };
 
-        // Тестируем сразу после установки слушателя
-        const testEvent = () => {
-          console.log('Тестируем DeviceOrientationEvent...');
-        };
+        // Простая установка слушателей без дополнительных проверок
+        window.addEventListener('deviceorientation', handleOrientation);
 
-        // Добавляем слушатель основного события
-        window.addEventListener('deviceorientation', handleOrientation, { passive: true });
-
-        // Добавляем слушатель для absolute ориентации (лучше работает на Android)
-        if ('DeviceOrientationAbsoluteEvent' in window) {
-          window.addEventListener('deviceorientationabsolute', handleOrientation, { passive: true });
-          console.log('Added absolute orientation listener');
+        // Пробуем absolute событие для лучшей поддержки Android
+        try {
+          window.addEventListener('deviceorientationabsolute', handleOrientation);
+        } catch (e) {
+          console.log('Absolute orientation not supported');
         }
 
-        // Добавляем тестовый вызов
-        setTimeout(testEvent, 1000);
-
         orientationCleanup = () => {
-          console.log('Очищаем слушатели ориентации');
           window.removeEventListener('deviceorientation', handleOrientation);
-          if ('DeviceOrientationAbsoluteEvent' in window) {
+          try {
             window.removeEventListener('deviceorientationabsolute', handleOrientation);
-          }
+          } catch (e) {}
         };
       } else {
-        console.log('Разрешение не получено или не поддерживается');
+        console.log('Нет разрешения на использование компаса');
       }
     };
 
@@ -199,15 +186,18 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   }, [dispatch]);
 
   const calculateQiblaDirection = () => {
-    if (!userLocation) return 0;
+    if (!userLocation || !userLocation.latitude || !userLocation.longitude) {
+      console.log('No user location available for qibla calculation');
+      return 0;
+    }
 
     // Mecca coordinates (точные координаты Каабы)
-    // Широта: 21°25'21" с. ш. = 21.4225°
-    // Долгота: 39°49'34" в. д. = 39.8261°
     const meccaLat = 21.4225;
     const meccaLng = 39.8261;
 
     const { latitude: userLat, longitude: userLng } = userLocation;
+
+    console.log('Calculating qibla for location:', { userLat, userLng });
 
     const latRad1 = (userLat * Math.PI) / 180;
     const latRad2 = (meccaLat * Math.PI) / 180;
@@ -218,10 +208,28 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
       Math.cos(latRad1) * Math.sin(latRad2) - Math.sin(latRad1) * Math.cos(latRad2) * Math.cos(deltaLng)
     );
 
-    return (bearing * 180) / Math.PI;
+    let bearingDegrees = (bearing * 180) / Math.PI;
+
+    // Нормализуем к диапазону 0-360
+    if (bearingDegrees < 0) {
+      bearingDegrees += 360;
+    }
+
+    console.log('Calculated qibla direction:', bearingDegrees);
+    return bearingDegrees;
   };
 
-  const qiblaDegree = direction || calculateQiblaDirection();
+  // Приоритет: пропс direction > Redux qiblaDirection > локальный расчет
+  let qiblaDegree = 0;
+  if (direction !== undefined && !isNaN(direction)) {
+    qiblaDegree = direction;
+  } else if (qiblaDirection !== undefined && qiblaDirection !== null && !isNaN(qiblaDirection)) {
+    qiblaDegree = qiblaDirection;
+  } else {
+    qiblaDegree = calculateQiblaDirection();
+  }
+
+  console.log('Final qibla degree:', qiblaDegree, { direction, qiblaDirection });
 
   // Normalize angles to 0-360 range
   const normalizeAngle = (angle) => ((angle % 360) + 360) % 360;
