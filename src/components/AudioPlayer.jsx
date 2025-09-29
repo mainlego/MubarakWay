@@ -71,9 +71,16 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     const handleEnded = () => handleNext();
 
     const handleError = (e) => {
-      console.error('Audio error:', e);
+      console.error('Audio error:', e.target.error);
+      console.error('Audio error details:', {
+        code: e.target.error?.code,
+        message: e.target.error?.message,
+        src: e.target.src,
+        networkState: e.target.networkState,
+        readyState: e.target.readyState
+      });
       setIsLoading(false);
-      setAudioError('Ошибка загрузки аудио');
+      setAudioError(`Ошибка загрузки аудио: ${e.target.error?.message || 'Неизвестная ошибка'}`);
       dispatch(pauseNashid());
     };
 
@@ -114,76 +121,112 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   // Основное управление воспроизведением
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !nashid) return;
+    if (!audio || !nashid) {
+      console.log('Audio or nashid not available:', { audio: !!audio, nashid: !!nashid });
+      return;
+    }
 
     const audioUrl = getAudioUrl(nashid);
+    console.log('Audio URL:', audioUrl);
+
     if (!audioUrl) {
+      console.error('No audio URL found for nashid:', nashid);
       setAudioError('URL аудио не найден');
       return;
     }
 
     // Устанавливаем источник только если он изменился
-    if (audio.src !== audioUrl) {
-      audio.src = audioUrl;
+    const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `${window.location.origin}${audioUrl}`;
+    console.log('Full audio URL:', fullAudioUrl);
+
+    if (audio.src !== fullAudioUrl) {
+      console.log('Setting new audio source:', fullAudioUrl);
+      audio.src = fullAudioUrl;
       audio.load(); // Принудительная загрузка нового источника
     }
 
+    console.log('Audio state:', {
+      isPlaying,
+      hasUserInteracted,
+      audioPaused: audio.paused,
+      audioReadyState: audio.readyState,
+      audioNetworkState: audio.networkState
+    });
+
     if (isPlaying && hasUserInteracted) {
+      console.log('Attempting to play audio...');
       stopAllOtherAudio();
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
+            console.log('Audio playback started successfully');
             setAudioError(null);
           })
           .catch(error => {
             console.error('Ошибка воспроизведения:', error);
-            setAudioError('Не удалось воспроизвести аудио');
+            setAudioError(`Не удалось воспроизвести аудио: ${error.message}`);
             dispatch(pauseNashid());
           });
       }
-    } else {
+    } else if (!isPlaying) {
+      console.log('Pausing audio...');
       audio.pause();
+    } else {
+      console.log('Audio play blocked - no user interaction yet');
     }
   }, [isPlaying, nashid, hasUserInteracted, dispatch, stopAllOtherAudio, getAudioUrl]);
 
   // Media Session API для фонового воспроизведения
   useEffect(() => {
     if ('mediaSession' in navigator && nashid) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: nashid.title,
-        artist: nashid.artist,
-        album: 'Islamic Nashids',
-        artwork: [
-          { src: nashid.cover, sizes: '512x512', type: 'image/jpeg' }
-        ]
-      });
-
-      navigator.mediaSession.setActionHandler('play', handlePlayPause);
-      navigator.mediaSession.setActionHandler('pause', handlePlayPause);
-      navigator.mediaSession.setActionHandler('previoustrack', handlePrevious);
-      navigator.mediaSession.setActionHandler('nexttrack', handleNext);
-
-      // Обновляем позицию воспроизведения
-      if (duration > 0) {
-        navigator.mediaSession.setPositionState({
-          duration: duration,
-          playbackRate: 1,
-          position: currentTime
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: nashid.title,
+          artist: nashid.artist,
+          album: 'Islamic Nashids',
+          artwork: nashid.cover ? [
+            { src: nashid.cover, sizes: '512x512', type: 'image/jpeg' }
+          ] : []
         });
+
+        navigator.mediaSession.setActionHandler('play', handlePlayPause);
+        navigator.mediaSession.setActionHandler('pause', handlePlayPause);
+        navigator.mediaSession.setActionHandler('previoustrack', playlist.length > 0 ? handlePrevious : null);
+        navigator.mediaSession.setActionHandler('nexttrack', playlist.length > 0 ? handleNext : null);
+
+        // Обновляем позицию воспроизведения только если есть duration
+        if (duration > 0 && currentTime >= 0) {
+          try {
+            navigator.mediaSession.setPositionState({
+              duration: duration,
+              playbackRate: 1,
+              position: Math.min(currentTime, duration)
+            });
+          } catch (error) {
+            console.warn('Failed to set position state:', error);
+          }
+        }
+      } catch (error) {
+        console.warn('Media Session API error:', error);
       }
     }
-  }, [nashid, currentTime, duration]);
+  }, [nashid, currentTime, duration, playlist.length]);
 
   const handlePlayPause = useCallback(() => {
+    console.log('handlePlayPause called:', { isPlaying, nashid: !!nashid });
     setHasUserInteracted(true);
 
     if (isPlaying) {
+      console.log('Dispatching pause...');
       dispatch(pauseNashid());
     } else {
       if (nashid) {
+        console.log('Dispatching play for nashid:', nashid.title);
         dispatch(playNashid(nashid));
+      } else {
+        console.error('No nashid to play');
       }
     }
   }, [isPlaying, nashid, dispatch]);
