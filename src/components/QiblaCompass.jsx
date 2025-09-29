@@ -396,6 +396,12 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
   // Приоритет: пропс direction > Redux qiblaDirection > локальный расчет
   let qiblaDegree = 0;
+  console.log('Qibla direction sources:', {
+    propDirection: direction,
+    reduxQiblaDirection: qiblaDirection,
+    userLocation: userLocation
+  });
+
   if (direction !== undefined && !isNaN(direction)) {
     qiblaDegree = direction;
     console.log('Using prop direction:', qiblaDegree);
@@ -403,6 +409,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     qiblaDegree = qiblaDirection;
     console.log('Using Redux qiblaDirection:', qiblaDegree);
   } else {
+    console.log('Calculating qibla direction locally...');
     qiblaDegree = calculateQiblaDirection();
     console.log('Using calculated direction:', qiblaDegree);
   }

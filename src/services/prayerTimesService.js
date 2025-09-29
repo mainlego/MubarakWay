@@ -154,8 +154,18 @@ class PrayerTimesService {
         throw new Error('Неверный метод расчета');
       }
 
-      // Создаем копию параметров без мутации оригинала
-      const params = { ...calculationMethod };
+      // Создаем новый объект параметров с явным копированием нужных свойств
+      const params = {
+        fajrAngle: calculationMethod.fajrAngle,
+        ishaAngle: calculationMethod.ishaAngle,
+        ishaInterval: calculationMethod.ishaInterval,
+        method: calculationMethod.method
+      };
+
+      // Копируем функции, если они есть
+      if (calculationMethod.nightPortions) {
+        params.nightPortions = calculationMethod.nightPortions;
+      }
 
       // Устанавливаем мазхаб
       if (sett.madhab === madhabs.HANAFI) {
@@ -310,20 +320,68 @@ class PrayerTimesService {
     try {
       console.log('Creating coordinates for qibla direction:', { lat: loc.latitude, lng: loc.longitude });
       const coordinates = new Coordinates(loc.latitude, loc.longitude);
-      const direction = new Qibla(coordinates).direction;
 
-      console.log('Raw qibla direction calculated:', direction);
+      // Проверим координаты
+      console.log('Created coordinates object:', coordinates);
 
+      const qibla = new Qibla(coordinates);
+      console.log('Created Qibla object:', qibla);
+
+      // Попробуем получить направление
+      const direction = qibla.direction;
+      console.log('Raw qibla direction calculated:', direction, typeof direction);
+
+      // Альтернативный способ расчета, если основной не работает
       if (isNaN(direction) || direction === null || direction === undefined) {
-        console.warn('Qibla direction calculation returned invalid value:', { direction, location: loc });
-        return null;
+        console.warn('Primary qibla calculation failed, trying manual calculation');
+
+        // Ручной расчет направления на Мекку
+        const meccaLat = 21.4225;
+        const meccaLng = 39.8261;
+
+        const lat1 = loc.latitude * Math.PI / 180;
+        const lat2 = meccaLat * Math.PI / 180;
+        const deltaLng = (meccaLng - loc.longitude) * Math.PI / 180;
+
+        const bearing = Math.atan2(
+          Math.sin(deltaLng) * Math.cos(lat2),
+          Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng)
+        );
+
+        let bearingDegrees = (bearing * 180 / Math.PI + 360) % 360;
+
+        console.log('Manual qibla calculation result:', bearingDegrees);
+        return bearingDegrees;
       }
 
       console.log('Valid qibla direction:', direction);
       return direction;
     } catch (error) {
       console.error('Error calculating qibla direction:', error);
-      return null;
+
+      // Если все остальное не работает, делаем ручной расчет
+      try {
+        console.log('Fallback to manual qibla calculation');
+        const meccaLat = 21.4225;
+        const meccaLng = 39.8261;
+
+        const lat1 = loc.latitude * Math.PI / 180;
+        const lat2 = meccaLat * Math.PI / 180;
+        const deltaLng = (meccaLng - loc.longitude) * Math.PI / 180;
+
+        const bearing = Math.atan2(
+          Math.sin(deltaLng) * Math.cos(lat2),
+          Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng)
+        );
+
+        let bearingDegrees = (bearing * 180 / Math.PI + 360) % 360;
+
+        console.log('Fallback qibla calculation result:', bearingDegrees);
+        return bearingDegrees;
+      } catch (fallbackError) {
+        console.error('Fallback qibla calculation also failed:', fallbackError);
+        return null;
+      }
     }
   }
 
