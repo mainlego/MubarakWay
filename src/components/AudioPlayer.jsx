@@ -35,7 +35,6 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   const [isLoading, setIsLoading] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isOfflineAvailable, setIsOfflineAvailable] = useState(false);
-  const [wasPlayingBeforeMinimize, setWasPlayingBeforeMinimize] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -46,12 +45,23 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     const handleLoadStart = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
     const handleEnded = () => handleNext();
+    const handlePause = () => {
+      // Если плеер должен играть, но был поставлен на паузу не пользователем
+      if (isPlaying && !audio.ended) {
+        setTimeout(() => {
+          if (isPlaying) {
+            audio.play().catch(console.error);
+          }
+        }, 100);
+      }
+    };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('durationchange', handleDurationChange);
     audio.addEventListener('loadstart', handleLoadStart);
     audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('pause', handlePause);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
@@ -59,6 +69,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       audio.removeEventListener('loadstart', handleLoadStart);
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('pause', handlePause);
     };
   }, []);
 
@@ -72,6 +83,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     checkOfflineAvailability();
   }, [nashid, isNashidAvailableOffline]);
 
+  // Основное управление воспроизведением - только при смене трека или по действию пользователя
   useEffect(() => {
     const audio = audioRef.current;
     if (audio && nashid) {
@@ -83,34 +95,32 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     }
   }, [isPlaying, nashid]);
 
-  // Сохраняем состояние воспроизведения при изменении состояния минимизации
+  // Предотвращаем остановку при изменении состояния минимизации
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isMinimized) {
-      // При сворачивании сохраняем текущее состояние
-      setWasPlayingBeforeMinimize(isPlaying);
-      // Не меняем состояние воспроизведения
-      if (isPlaying) {
+    if (audio && isPlaying) {
+      // Если должно играть, то пусть играет независимо от минимизации
+      setTimeout(() => {
+        if (!audio.paused) return; // Уже играет
         audio.play().catch(console.error);
-      }
-    } else {
-      // При разворачивании восстанавливаем состояние
-      if (wasPlayingBeforeMinimize || isPlaying) {
-        audio.play().catch(console.error);
-      }
+      }, 50); // Небольшая задержка чтобы дать время на рендер
     }
-  }, [isMinimized]);
+  }, [isMinimized, isPlaying]);
 
   const handlePlayPause = () => {
     const audio = audioRef.current;
     if (isPlaying) {
       dispatch(pauseNashid());
-      if (audio) audio.pause();
+      // Явно ставим на паузу
+      if (audio && !audio.paused) {
+        audio.pause();
+      }
     } else {
       dispatch(playNashid(nashid));
-      if (audio) audio.play().catch(console.error);
+      // Явно запускаем
+      if (audio && audio.paused) {
+        audio.play().catch(console.error);
+      }
     }
   };
 
@@ -254,14 +264,22 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
             <p className="text-sm text-gray-600 truncate">{nashid.artist}</p>
           </div>
           <button
-            onClick={handlePlayPause}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handlePlayPause();
+            }}
             className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
           </button>
           <button
-            onClick={onToggleMinimize}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleMinimize();
+            }}
             className="p-2 text-gray-600 hover:text-gray-900 active:text-black transition-colors touch-manipulation"
             style={{ WebkitTapHighlightColor: 'transparent' }}
             title="Развернуть"
@@ -269,7 +287,11 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
             <Minimize2 className="w-4 h-4 rotate-180" />
           </button>
           <button
-            onClick={onClose}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
             className="p-2 text-gray-600 hover:text-red-600 active:text-red-700 transition-colors touch-manipulation"
             style={{ WebkitTapHighlightColor: 'transparent' }}
             title="Закрыть"
@@ -290,15 +312,25 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           <h2 className="text-xl font-bold text-gray-900">Аудиоплеер</h2>
           <div className="flex items-center space-x-2">
             <button
-              onClick={onToggleMinimize}
-              className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleMinimize();
+              }}
+              className="p-2 text-gray-600 hover:text-gray-900 active:text-black transition-colors touch-manipulation"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
               title="Свернуть"
             >
               <Minimize2 className="w-5 h-5" />
             </button>
             <button
-              onClick={onClose}
-              className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+              }}
+              className="p-2 text-gray-600 hover:text-gray-900 active:text-red-600 transition-colors touch-manipulation"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               ✕
             </button>
@@ -364,7 +396,11 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           </button>
 
           <button
-            onClick={handlePlayPause}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handlePlayPause();
+            }}
             disabled={isLoading}
             className="p-4 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50 touch-manipulation"
             style={{ WebkitTapHighlightColor: 'transparent' }}
