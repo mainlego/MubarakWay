@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setUserLocation, setLoading, setError } from '../store/slices/qiblaSlice';
 import { Navigation, MapPin, Clock, Compass } from 'lucide-react';
+import GyroNorm from 'gyronorm';
 
 const QiblaCompass = ({ direction, isAnimating = false }) => {
   const dispatch = useDispatch();
@@ -108,86 +109,102 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     };
   }, [dispatch]);
 
-  // Отдельный useEffect для компаса
+  // GyroNorm компас инициализация
   useEffect(() => {
-    console.log('Инициализация компаса...');
+    console.log('Инициализация GyroNorm компаса...');
 
-    const handleOrientation = (event) => {
-      console.log('Orientation:', {
-        alpha: event.alpha,
-        beta: event.beta,
-        gamma: event.gamma,
-        webkitCompassHeading: event.webkitCompassHeading
-      });
+    let gyroNorm = null;
 
-      let compassHeading = null;
+    const initGyroNormCompass = () => {
+      try {
+        gyroNorm = new GyroNorm();
 
-      // Проверяем alpha
-      if (event.alpha !== null && event.alpha !== undefined && !isNaN(event.alpha)) {
-        compassHeading = event.alpha;
-        console.log('Using alpha:', compassHeading);
-      }
-      // Проверяем webkitCompassHeading
-      else if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null && !isNaN(event.webkitCompassHeading)) {
-        compassHeading = 360 - event.webkitCompassHeading;
-        console.log('Using webkitCompassHeading:', compassHeading);
-      }
+        console.log('GyroNorm создан, инициализируем...');
 
-      if (compassHeading !== null) {
-        const smoothed = smoothOrientation(compassHeading);
-        setDeviceOrientation(compassHeading);
-        setSmoothedOrientation(smoothed);
-        setIsCalibrated(true);
-        setOrientationSupported(true);
-        setPermissionGranted(true);
-      } else {
-        console.log('No valid compass data');
-        // В Telegram WebApp или устройствах без магнитометра
-        // компас может не работать - это нормально
+        gyroNorm.init({
+          frequency: 50,                // Частота обновлений (мс)
+          gravityNormalized: true,      // Нормализованная гравитация
+          orientationBase: GyroNorm.WORLD, // Мировая система координат
+          decimalCount: 2,              // Количество знаков после запятой
+          logger: null,                 // Отключаем логирование
+          screenAdjusted: false         // Не корректировать по ориентации экрана
+        }).then(() => {
+          console.log('GyroNorm успешно инициализирован');
+
+          // Слушаем изменения ориентации
+          gyroNorm.start((data) => {
+            // Получаем альфа (компас) из данных ориентации
+            const compassHeading = data.do?.alpha;
+
+            if (compassHeading !== null && compassHeading !== undefined && !isNaN(compassHeading)) {
+              console.log('GyroNorm compass heading:', compassHeading);
+
+              const smoothed = smoothOrientation(compassHeading);
+              setDeviceOrientation(compassHeading);
+              setSmoothedOrientation(smoothed);
+              setIsCalibrated(true);
+              setOrientationSupported(true);
+              setPermissionGranted(true);
+            } else {
+              console.log('GyroNorm: No valid compass data', data.do);
+            }
+          });
+        }).catch(error => {
+          console.error('GyroNorm ошибка инициализации:', error.message);
+
+          // Fallback на стандартный API
+          console.log('Переходим на стандартный DeviceOrientation API');
+          initStandardOrientation();
+        });
+
+      } catch (error) {
+        console.error('GyroNorm не поддерживается:', error.message);
+        console.log('Используем стандартный DeviceOrientation API');
+        initStandardOrientation();
       }
     };
 
-    // Проверяем поддержку
-    if (typeof DeviceOrientationEvent !== 'undefined') {
-      console.log('DeviceOrientationEvent поддерживается');
+    // Fallback на стандартный API
+    const initStandardOrientation = () => {
+      const handleOrientation = (event) => {
+        let compassHeading = null;
 
-      // Для iOS требуется разрешение
-      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-        console.log('Запрашиваем разрешение iOS...');
-        DeviceOrientationEvent.requestPermission()
-          .then(permission => {
-            console.log('iOS permission:', permission);
-            if (permission === 'granted') {
-              setPermissionGranted(true);
-              setOrientationSupported(true);
-              window.addEventListener('deviceorientation', handleOrientation, true);
-            } else {
-              setPermissionGranted(false);
-              setOrientationSupported(true);
-            }
-          })
-          .catch(err => {
-            console.error('Permission error:', err);
-            setPermissionGranted(false);
-            setOrientationSupported(false);
-          });
-      } else {
-        // Android и старые браузеры
-        console.log('Разрешение не требуется, добавляем слушатели');
-        setPermissionGranted(true);
-        setOrientationSupported(true);
-        window.addEventListener('deviceorientation', handleOrientation, true);
+        if (event.alpha !== null && !isNaN(event.alpha)) {
+          compassHeading = event.alpha;
+        } else if (event.webkitCompassHeading !== null && !isNaN(event.webkitCompassHeading)) {
+          compassHeading = 360 - event.webkitCompassHeading;
+        }
 
-        // Также пробуем absolute
-        if (window.DeviceOrientationEvent) {
-          window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        if (compassHeading !== null) {
+          const smoothed = smoothOrientation(compassHeading);
+          setDeviceOrientation(compassHeading);
+          setSmoothedOrientation(smoothed);
+          setIsCalibrated(true);
+          setOrientationSupported(true);
+          setPermissionGranted(true);
+        }
+      };
+
+      if (typeof DeviceOrientationEvent !== 'undefined') {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+          DeviceOrientationEvent.requestPermission()
+            .then(permission => {
+              if (permission === 'granted') {
+                setPermissionGranted(true);
+                setOrientationSupported(true);
+                window.addEventListener('deviceorientation', handleOrientation);
+              }
+            });
+        } else {
+          setPermissionGranted(true);
+          setOrientationSupported(true);
+          window.addEventListener('deviceorientation', handleOrientation);
         }
       }
-    } else {
-      console.log('DeviceOrientationEvent НЕ поддерживается');
-      setOrientationSupported(false);
-      setPermissionGranted(false);
-    }
+    };
+
+    // Запускаем инициализацию GyroNorm
+    initGyroNormCompass();
 
     // Если через 3 секунды компас не заработал, включаем ручной режим
     const fallbackTimer = setTimeout(() => {
@@ -200,10 +217,16 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     }, 3000);
 
     return () => {
-      console.log('Очистка слушателей компаса');
+      console.log('Очистка GyroNorm компаса');
+      if (gyroNorm) {
+        try {
+          gyroNorm.stop();
+        } catch (e) {
+          console.log('Ошибка при остановке GyroNorm:', e);
+        }
+      }
       clearTimeout(fallbackTimer);
-      window.removeEventListener('deviceorientation', handleOrientation, true);
-      window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
+      window.removeEventListener('deviceorientation', initStandardOrientation);
     };
   }, [isCalibrated, manualMode]);
 
