@@ -112,6 +112,51 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     checkOfflineAvailability();
   }, [nashid, isNashidAvailableOffline]);
 
+  // Определяем обработчики ПЕРЕД использованием в useEffect
+  const handlePlayPause = useCallback(() => {
+    hasUserInteracted.current = true;
+
+    if (isPlaying) {
+      dispatch(pauseNashid());
+    } else {
+      if (nashid) {
+        dispatch(playNashid(nashid));
+      }
+    }
+  }, [isPlaying, nashid, dispatch]);
+
+  const handleNext = useCallback(() => {
+    if (playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex(n => n.id === nashid?.id);
+    let nextIndex;
+
+    if (isShuffled) {
+      nextIndex = Math.floor(Math.random() * playlist.length);
+    } else if (repeatMode === 'one') {
+      nextIndex = currentIndex;
+    } else {
+      nextIndex = (currentIndex + 1) % playlist.length;
+    }
+
+    const nextNashid = playlist[nextIndex];
+    if (nextNashid) {
+      dispatch(playNashid(nextNashid));
+    }
+  }, [playlist, nashid?.id, isShuffled, repeatMode, dispatch]);
+
+  const handlePrevious = useCallback(() => {
+    if (playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex(n => n.id === nashid?.id);
+    const prevIndex = currentIndex === 0 ? playlist.length - 1 : currentIndex - 1;
+    const prevNashid = playlist[prevIndex];
+
+    if (prevNashid) {
+      dispatch(playNashid(prevNashid));
+    }
+  }, [playlist, nashid?.id, dispatch]);
+
   // Основное управление воспроизведением
   useEffect(() => {
     const audio = audioRef.current;
@@ -188,50 +233,6 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       }
     }
   }, [nashid, currentTime, duration, playlist.length, handlePlayPause, handlePrevious, handleNext]);
-
-  const handlePlayPause = useCallback(() => {
-    hasUserInteracted.current = true;
-
-    if (isPlaying) {
-      dispatch(pauseNashid());
-    } else {
-      if (nashid) {
-        dispatch(playNashid(nashid));
-      }
-    }
-  }, [isPlaying, nashid, dispatch]);
-
-  const handleNext = useCallback(() => {
-    if (playlist.length === 0) return;
-
-    const currentIndex = playlist.findIndex(n => n.id === nashid?.id);
-    let nextIndex;
-
-    if (isShuffled) {
-      nextIndex = Math.floor(Math.random() * playlist.length);
-    } else if (repeatMode === 'one') {
-      nextIndex = currentIndex;
-    } else {
-      nextIndex = (currentIndex + 1) % playlist.length;
-    }
-
-    const nextNashid = playlist[nextIndex];
-    if (nextNashid) {
-      dispatch(playNashid(nextNashid));
-    }
-  }, [playlist, nashid?.id, isShuffled, repeatMode, dispatch]);
-
-  const handlePrevious = useCallback(() => {
-    if (playlist.length === 0) return;
-
-    const currentIndex = playlist.findIndex(n => n.id === nashid?.id);
-    const prevIndex = currentIndex === 0 ? playlist.length - 1 : currentIndex - 1;
-    const prevNashid = playlist[prevIndex];
-
-    if (prevNashid) {
-      dispatch(playNashid(prevNashid));
-    }
-  }, [playlist, nashid?.id, dispatch]);
 
   const handleSeek = useCallback((e) => {
     const audio = audioRef.current;

@@ -15,7 +15,8 @@
       "Bash(npm start)",
       "Bash(npm install:*)",
       "Bash(npm i:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(curl -I http://localhost:5173/audio/Nasheed_Azan_1.mp3)"
     ],
     "deny": [],
     "ask": []

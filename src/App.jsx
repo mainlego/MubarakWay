@@ -16,11 +16,13 @@ import ScrollToTop from './components/ScrollToTop';
 function AppContent() {
   const { currentPlaying, nashids } = useSelector(state => state.nashids);
   const [showPlayer, setShowPlayer] = useState(false);
-  const [isPlayerMinimized, setIsPlayerMinimized] = useState(true);
+  const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
 
   useEffect(() => {
     if (currentPlaying) {
       setShowPlayer(true);
+      // Открываем полный плеер при выборе нового нашида
+      setIsPlayerMinimized(false);
     }
   }, [currentPlaying]);
 
