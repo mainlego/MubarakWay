@@ -6,7 +6,7 @@ import GyroNorm from 'gyronorm';
 
 const QiblaCompass = ({ direction, isAnimating = false }) => {
   const dispatch = useDispatch();
-  const { qiblaDirection, userLocation, prayerTimes, loading, error } = useSelector(state => state.qibla);
+  const { qiblaDirection, userLocation, prayerTimes, locationLoading, error } = useSelector(state => state.qibla);
   const [deviceOrientation, setDeviceOrientation] = useState(0);
   const [magneticDeclination, setMagneticDeclination] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -143,26 +143,49 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     }
   };
 
+  // Local loading state for geolocation to avoid conflicts
+  const [localLoading, setLocalLoading] = useState(true);
+
   useEffect(() => {
-    // Get user location
-    dispatch(setLoading(true));
+    // Get user location with local loading state
+    setLocalLoading(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          dispatch(setUserLocation({
+          console.log('Geolocation success:', position.coords);
+          const locationData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
-          }));
-          dispatch(setLoading(false));
+          };
+
+          // Validate location data before dispatching
+          if (typeof locationData.latitude === 'number' &&
+              typeof locationData.longitude === 'number' &&
+              !isNaN(locationData.latitude) &&
+              !isNaN(locationData.longitude)) {
+            dispatch(setUserLocation(locationData));
+            setLocalLoading(false);
+            console.log('Location dispatched successfully');
+          } else {
+            console.error('Invalid location data:', locationData);
+            dispatch(setError('Получены неверные координаты'));
+            setLocalLoading(false);
+          }
         },
         (error) => {
+          console.error('Geolocation error:', error);
           dispatch(setError('Не удалось получить геолокацию'));
-          dispatch(setLoading(false));
+          setLocalLoading(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
         }
       );
     } else {
       dispatch(setError('Геолокация не поддерживается'));
-      dispatch(setLoading(false));
+      setLocalLoading(false);
     }
 
     // Update time every second
@@ -415,10 +438,11 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     qiblaDirectionAdjusted
   });
 
-  if (loading) {
+  if (localLoading || locationLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <span className="ml-3 text-white">Определение местоположения...</span>
       </div>
     );
   }
