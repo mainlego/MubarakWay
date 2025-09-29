@@ -53,34 +53,42 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
   // Запрос разрешений для iOS
   const requestOrientationPermission = async () => {
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-      // iOS 13+
+    // Проверяем поддержку DeviceOrientationEvent
+    if (typeof DeviceOrientationEvent === 'undefined') {
+      console.log('DeviceOrientationEvent не поддерживается');
+      setOrientationSupported(false);
+      setPermissionGranted(false);
+      return false;
+    }
+
+    // iOS 13+ с обязательными разрешениями
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
         const permission = await DeviceOrientationEvent.requestPermission();
+        console.log('iOS permission result:', permission);
         if (permission === 'granted') {
           setPermissionGranted(true);
           setOrientationSupported(true);
           return true;
         } else {
           setPermissionGranted(false);
-          dispatch(setError('Необходимо разрешить доступ к компасу в настройках'));
+          setOrientationSupported(true); // Поддерживается, но нет разрешения
+          dispatch(setError('Необходимо разрешить доступ к компасу'));
           return false;
         }
       } catch (error) {
         console.error('Permission request failed:', error);
         setPermissionGranted(false);
+        setOrientationSupported(true);
         dispatch(setError('Ошибка запроса разрешения компаса'));
         return false;
       }
-    } else if (typeof DeviceOrientationEvent !== 'undefined') {
-      // Старые версии iOS и Android
+    } else {
+      // Старые браузеры без requestPermission - сразу разрешаем
+      console.log('Старый браузер - разрешение не требуется');
       setPermissionGranted(true);
       setOrientationSupported(true);
       return true;
-    } else {
-      setOrientationSupported(false);
-      setPermissionGranted(false);
-      return false;
     }
   };
 
@@ -110,11 +118,16 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     }, 1000);
 
     // Проверяем поддержку ориентации
+    let orientationCleanup = null;
+
     const initOrientation = async () => {
       const hasPermission = await requestOrientationPermission();
 
       if (hasPermission) {
+        console.log('Разрешение получено, настраиваем слушатели');
+
         const handleOrientation = (event) => {
+          console.log('Orientation event:', event.alpha, event.beta, event.gamma);
           if (event.alpha !== null) {
             const rawAlpha = event.alpha;
             const smoothed = smoothOrientation(rawAlpha);
@@ -123,24 +136,39 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
             // Калибровка после получения нескольких значений
             if (orientationBuffer.length >= 3 && !isCalibrated) {
+              console.log('Компас калиброван');
               setIsCalibrated(true);
             }
+          } else {
+            console.log('event.alpha is null');
           }
+        };
+
+        // Тестируем сразу после установки слушателя
+        const testEvent = () => {
+          console.log('Тестируем DeviceOrientationEvent...');
         };
 
         window.addEventListener('deviceorientation', handleOrientation, { passive: true });
 
-        return () => {
+        // Добавляем тестовый вызов
+        setTimeout(testEvent, 1000);
+
+        orientationCleanup = () => {
+          console.log('Очищаем слушатели ориентации');
           window.removeEventListener('deviceorientation', handleOrientation);
         };
+      } else {
+        console.log('Разрешение не получено или не поддерживается');
       }
     };
 
-    const orientationCleanup = initOrientation();
+    // Запускаем асинхронную инициализацию
+    initOrientation().catch(console.error);
 
     return () => {
       clearInterval(timeInterval);
-      if (orientationCleanup && typeof orientationCleanup === 'function') {
+      if (orientationCleanup) {
         orientationCleanup();
       }
     };
