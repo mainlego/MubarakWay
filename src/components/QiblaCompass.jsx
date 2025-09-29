@@ -614,7 +614,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
             Устройство
           </div>
-          <div className="text-white font-mono text-sm">0°</div>
+          <div className="text-white font-mono text-sm">{Math.round(deviceOrientation)}°</div>
         </div>
         <div className="bg-blue-500/20 backdrop-blur-sm rounded-lg p-2">
           <div className="flex items-center justify-center gap-1 text-blue-300 text-xs">
@@ -628,7 +628,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             Мекка
           </div>
-          <div className="text-white font-mono text-sm">{Math.round(qiblaDirectionAdjusted)}°</div>
+          <div className="text-white font-mono text-sm">{isNaN(qiblaDirectionAdjusted) ? '--' : Math.round(qiblaDirectionAdjusted)}°</div>
         </div>
       </div>
 

@@ -243,7 +243,7 @@ const Qibla = () => {
                       Поверните устройство для точного направления
                     </p>
                     <p className="text-white font-semibold">
-                      Направление: {Math.round(qiblaDirection)}°
+                      Направление: {qiblaDirection && !isNaN(qiblaDirection) ? Math.round(qiblaDirection) : '--'}°
                     </p>
                     {isAnimating && (
                       <div className="mt-2 p-2 bg-green-500/20 border border-green-500/30 rounded-lg">

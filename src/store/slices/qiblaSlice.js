@@ -94,7 +94,7 @@ const qiblaSlice = createSlice({
 
       // Calculate Qibla direction using the service
       const direction = prayerTimesService.getQiblaDirection(action.payload);
-      state.qiblaDirection = direction;
+      state.qiblaDirection = isNaN(direction) ? null : direction;
     },
 
     updateCurrentTime: (state) => {
@@ -144,7 +144,7 @@ const qiblaSlice = createSlice({
 
         // Calculate Qibla direction
         const direction = prayerTimesService.getQiblaDirection(action.payload);
-        state.qiblaDirection = direction;
+        state.qiblaDirection = isNaN(direction) ? null : direction;
       })
       .addCase(getCurrentLocation.rejected, (state, action) => {
         state.locationLoading = false;

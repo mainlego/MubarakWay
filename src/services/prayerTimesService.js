@@ -299,10 +299,25 @@ class PrayerTimesService {
   // Получить направление киблы
   getQiblaDirection(location = null) {
     const loc = location || this.currentLocation;
-    if (!loc) return null;
+    if (!loc || !loc.latitude || !loc.longitude) {
+      console.warn('No valid location for qibla calculation:', loc);
+      return null;
+    }
 
-    const coordinates = new Coordinates(loc.latitude, loc.longitude);
-    return new Qibla(coordinates).direction;
+    try {
+      const coordinates = new Coordinates(loc.latitude, loc.longitude);
+      const direction = new Qibla(coordinates).direction;
+
+      if (isNaN(direction)) {
+        console.warn('Qibla direction calculation returned NaN:', { location: loc });
+        return null;
+      }
+
+      return direction;
+    } catch (error) {
+      console.error('Error calculating qibla direction:', error);
+      return null;
+    }
   }
 
   // Сохранить настройки
