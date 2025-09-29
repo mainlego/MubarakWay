@@ -128,9 +128,23 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
         const handleOrientation = (event) => {
           console.log('Orientation event:', event.alpha, event.beta, event.gamma);
-          if (event.alpha !== null) {
-            const rawAlpha = event.alpha;
-            const smoothed = smoothOrientation(rawAlpha);
+
+          // Проверяем все возможные значения ориентации
+          let compassHeading = null;
+
+          if (event.alpha !== null && event.alpha !== undefined) {
+            compassHeading = event.alpha;
+          } else if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
+            // Webkit compass heading (используется в старых браузерах Safari)
+            compassHeading = 360 - event.webkitCompassHeading;
+          } else if (event.beta !== null && event.gamma !== null) {
+            // Fallback: вычисляем компас из beta и gamma
+            compassHeading = Math.atan2(event.gamma, event.beta) * (180 / Math.PI) + 180;
+          }
+
+          if (compassHeading !== null) {
+            console.log('Compass heading detected:', compassHeading);
+            const smoothed = smoothOrientation(compassHeading);
             setDeviceOrientation(smoothed);
             setSmoothedOrientation(smoothed);
 
@@ -140,7 +154,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
               setIsCalibrated(true);
             }
           } else {
-            console.log('event.alpha is null');
+            console.log('No valid compass data available');
           }
         };
 
@@ -149,7 +163,14 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
           console.log('Тестируем DeviceOrientationEvent...');
         };
 
+        // Добавляем слушатель основного события
         window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+
+        // Добавляем слушатель для absolute ориентации (лучше работает на Android)
+        if ('DeviceOrientationAbsoluteEvent' in window) {
+          window.addEventListener('deviceorientationabsolute', handleOrientation, { passive: true });
+          console.log('Added absolute orientation listener');
+        }
 
         // Добавляем тестовый вызов
         setTimeout(testEvent, 1000);
@@ -157,6 +178,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
         orientationCleanup = () => {
           console.log('Очищаем слушатели ориентации');
           window.removeEventListener('deviceorientation', handleOrientation);
+          if ('DeviceOrientationAbsoluteEvent' in window) {
+            window.removeEventListener('deviceorientationabsolute', handleOrientation);
+          }
         };
       } else {
         console.log('Разрешение не получено или не поддерживается');

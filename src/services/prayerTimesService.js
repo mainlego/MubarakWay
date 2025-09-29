@@ -154,8 +154,9 @@ class PrayerTimesService {
         throw new Error('Неверный метод расчета');
       }
 
-      // Используем оригинальный calculationMethod напрямую
-      const params = calculationMethod;
+      // Создаем новый объект параметров, копируя все свойства
+      const params = Object.create(Object.getPrototypeOf(calculationMethod));
+      Object.assign(params, calculationMethod);
 
       // Устанавливаем мазхаб
       if (sett.madhab === madhabs.HANAFI) {
