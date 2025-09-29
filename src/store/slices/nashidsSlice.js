@@ -8,7 +8,7 @@ const mockNashids = [
     titleTransliteration: "Ya Qalb Min Hadid",
     artist: "Fadil Muhammad",
     duration: "3:45",
-    cover: "/src/assets/images/nashid1.svg",
+    cover: "https://images.unsplash.com/photo-1465101162946-4377e57745c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     audioUrl: "/audio/nashid1.mp3",
     category: "spiritual"
   },
@@ -18,7 +18,7 @@ const mockNashids = [
     titleTransliteration: "Sauf A'ood Ya Ommi",
     artist: "Al-Baraah Group",
     duration: "4:20",
-    cover: "/src/assets/images/nashid2.svg",
+    cover: "https://images.unsplash.com/photo-1541963463532-d68292c34d19?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     audioUrl: "/audio/nashid2.mp3",
     category: "family"
   },
@@ -28,7 +28,7 @@ const mockNashids = [
     titleTransliteration: "Rahib Bidhihi An-Ni'mah",
     artist: "Hamzah Adel",
     duration: "2:58",
-    cover: "/src/assets/images/nashid3.jpg",
+    cover: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     audioUrl: "/audio/nashid3.mp3",
     category: "gratitude"
   },
@@ -38,9 +38,29 @@ const mockNashids = [
     titleTransliteration: "Tala'al Badru 'Alayna",
     artist: "Zain",
     duration: "5:12",
-    cover: "/src/assets/images/nashid4.jpg",
+    cover: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     audioUrl: "/audio/nashid4.mp3",
     category: "prophetic"
+  },
+  {
+    id: 5,
+    title: "الطريق إلى الجنة",
+    titleTransliteration: "At-Tariq ila al-Jannah",
+    artist: "Abu Ali",
+    duration: "4:15",
+    cover: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    audioUrl: "/audio/nashid5.mp3",
+    category: "spiritual"
+  },
+  {
+    id: 6,
+    title: "لا إله إلا الله",
+    titleTransliteration: "La Ilaha Illa Allah",
+    artist: "Ahmad Nashid",
+    duration: "3:30",
+    cover: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    audioUrl: "/audio/nashid6.mp3",
+    category: "tawhid"
   }
 ];
 

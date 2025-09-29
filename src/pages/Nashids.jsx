@@ -2,27 +2,52 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchNashids } from '../store/slices/nashidsSlice';
 import NashidCard from '../components/NashidCard';
-import { ArrowLeft, Folder, Mic, Moon } from 'lucide-react';
+import AudioPlayer from '../components/AudioPlayer';
+import { ArrowLeft, Folder, Mic, Moon, Play, Heart, Download } from 'lucide-react';
+import { getBackgroundWithOverlay } from '../utils/backgrounds';
+import { useOffline } from '../hooks/useOffline';
 
 const Nashids = () => {
   const dispatch = useDispatch();
-  const { nashids, loading } = useSelector(state => state.nashids);
+  const { nashids, loading, currentPlaying, favorites } = useSelector(state => state.nashids);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [backgroundStyle, setBackgroundStyle] = useState({});
+  const [showPlayer, setShowPlayer] = useState(false);
+  const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
+  const { isOnline } = useOffline();
 
   useEffect(() => {
     dispatch(fetchNashids());
+    setBackgroundStyle(getBackgroundWithOverlay('nashids', 0.4));
   }, [dispatch]);
 
   const categories = [
     { id: 'all', name: 'Все', icon: Folder },
-    { id: 'spiritual', name: 'По категориям', icon: Folder },
-    { id: 'family', name: 'По исполнителям', icon: Mic },
-    { id: 'gratitude', name: 'По тематике', icon: Moon }
+    { id: 'spiritual', name: 'Духовные', icon: Folder },
+    { id: 'family', name: 'Семейные', icon: Mic },
+    { id: 'gratitude', name: 'Благодарность', icon: Moon },
+    { id: 'prophetic', name: 'О Пророке ﷺ', icon: Moon }
   ];
 
   const filteredNashids = selectedCategory === 'all'
     ? nashids
     : nashids.filter(nashid => nashid.category === selectedCategory);
+
+  const favoriteNashids = nashids.filter(nashid => favorites.includes(nashid.id));
+
+  const handlePlayNashid = (nashid) => {
+    setShowPlayer(true);
+    setIsPlayerMinimized(false);
+  };
+
+  const handleClosePlayer = () => {
+    setShowPlayer(false);
+    setIsPlayerMinimized(false);
+  };
+
+  const handleToggleMinimize = () => {
+    setIsPlayerMinimized(!isPlayerMinimized);
+  };
 
   if (loading) {
     return (
@@ -38,9 +63,7 @@ const Nashids = () => {
   return (
     <div
       className="p-6 min-h-screen bg-cover bg-center bg-no-repeat"
-      style={{
-        backgroundImage: 'linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(/src/assets/images/background_nashidi_1.jpg)'
-      }}
+      style={backgroundStyle}
     >
       <div className="max-w-4xl mx-auto">
         {/* Header */}
@@ -59,8 +82,27 @@ const Nashids = () => {
           </button>
         </div>
 
+        {/* Статистика */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+            <Play className="w-6 h-6 text-white mx-auto mb-2" />
+            <p className="text-white font-semibold">{nashids.length}</p>
+            <p className="text-white/80 text-sm">Нашидов</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+            <Heart className="w-6 h-6 text-white mx-auto mb-2" />
+            <p className="text-white font-semibold">{favoriteNashids.length}</p>
+            <p className="text-white/80 text-sm">Избранных</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+            <Download className="w-6 h-6 text-white mx-auto mb-2" />
+            <p className="text-white font-semibold">0</p>
+            <p className="text-white/80 text-sm">Офлайн</p>
+          </div>
+        </div>
+
         {/* Categories */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
           {categories.map((category) => {
             const IconComponent = category.icon;
             return (
@@ -78,24 +120,73 @@ const Nashids = () => {
               </button>
             );
           })}
+
+          {/* Избранное */}
+          <button
+            onClick={() => setSelectedCategory('favorites')}
+            className={`flex items-center gap-3 p-4 rounded-xl transition-all ${
+              selectedCategory === 'favorites'
+                ? 'bg-white/30 backdrop-blur-sm border border-white/20'
+                : 'bg-white/10 backdrop-blur-sm hover:bg-white/20'
+            }`}
+          >
+            <Heart className="w-5 h-5 text-white" />
+            <span className="text-white font-medium">Избранное ({favoriteNashids.length})</span>
+          </button>
         </div>
 
         {/* Nashids List */}
         <div className="space-y-4">
-          {filteredNashids.map(nashid => (
-            <NashidCard key={nashid.id} nashid={nashid} />
-          ))}
+          {selectedCategory === 'favorites' ? (
+            favoriteNashids.length > 0 ? (
+              favoriteNashids.map(nashid => (
+                <NashidCard key={nashid.id} nashid={nashid} onPlay={handlePlayNashid} />
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <Heart className="w-16 h-16 text-white/50 mx-auto mb-4" />
+                <p className="text-white/80 text-lg">Нет избранных нашидов</p>
+                <p className="text-white/60 text-sm">Добавьте нашиды в избранное, нажав на сердечко</p>
+              </div>
+            )
+          ) : filteredNashids.length > 0 ? (
+            filteredNashids.map(nashid => (
+              <NashidCard key={nashid.id} nashid={nashid} onPlay={handlePlayNashid} />
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <Mic className="w-16 h-16 text-white/50 mx-auto mb-4" />
+              <p className="text-white/80 text-lg">Нашиды не найдены</p>
+            </div>
+          )}
         </div>
 
-        {/* Bottom Message */}
+        {/* Статус сети */}
         <div className="mt-8 p-4 bg-white/10 backdrop-blur-sm rounded-xl">
-          <p className="text-white text-sm text-center">
-            Я послушам заново тыко и подпокс
-            принимeslisъю сътова? эскую вистанник
-            и персональных уроки
-          </p>
+          <div className="flex items-center justify-center space-x-2">
+            <div className={`w-3 h-3 rounded-full ${
+              isOnline ? 'bg-green-500' : 'bg-red-500'
+            }`} />
+            <p className="text-white text-sm">
+              {isOnline
+                ? 'Подключено к интернету - стриминг доступен'
+                : 'Офлайн режим - доступны только скачанные нашиды'
+              }
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Аудиоплеер */}
+      {showPlayer && currentPlaying && (
+        <AudioPlayer
+          nashid={currentPlaying}
+          playlist={filteredNashids}
+          onClose={handleClosePlayer}
+          isMinimized={isPlayerMinimized}
+          onToggleMinimize={handleToggleMinimize}
+        />
+      )}
     </div>
   );
 };

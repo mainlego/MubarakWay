@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import Library from './pages/Library';
 import Nashids from './pages/Nashids';
 import Qibla from './pages/Qibla';
+import EnhancedBookReader from './components/EnhancedBookReader';
 import Navigation from './components/Navigation';
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/library" element={<Library />} />
+            <Route path="/book/:id" element={<EnhancedBookReader />} />
             <Route path="/nashids" element={<Nashids />} />
             <Route path="/qibla" element={<Qibla />} />
           </Routes>

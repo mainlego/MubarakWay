@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Music, Navigation2, Clock, Crown } from 'lucide-react';
+import { getBackgroundWithOverlay } from '../utils/backgrounds';
 
 const Home = () => {
+  const [backgroundStyle, setBackgroundStyle] = useState({});
+
+  useEffect(() => {
+    setBackgroundStyle(getBackgroundWithOverlay('home', 0.3));
+  }, []);
+
   const features = [
     {
       title: 'Библиотека книг',
@@ -29,13 +36,14 @@ const Home = () => {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 p-6"
+      className="min-h-screen bg-cover bg-center bg-no-repeat p-6"
+      style={backgroundStyle}
     >
       <div className="max-w-md mx-auto pt-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">MubarakWay</h1>
-          <p className="text-gray-600 text-lg">Ваш путь к исламскому знанию</p>
+          <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">MubarakWay</h1>
+          <p className="text-gray-100 text-lg drop-shadow">Ваш путь к исламскому знанию</p>
         </div>
 
         {/* Time Widget */}

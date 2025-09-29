@@ -1,17 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchBooks } from '../store/slices/booksSlice';
+import { useNavigate } from 'react-router-dom';
+import { fetchBooks, toggleFavorite } from '../store/slices/booksSlice';
 import BookCard from '../components/BookCard';
-import { Lock, Crown } from 'lucide-react';
+import { Book, Heart, Search, Filter, Star, Lock, BookOpen, Crown } from 'lucide-react';
+import { getBackgroundWithOverlay } from '../utils/backgrounds';
 
 const Library = () => {
   const dispatch = useDispatch();
-  const { books, loading } = useSelector(state => state.books);
-  const { subscription } = useSelector(state => state.auth);
-  const [filter, setFilter] = useState('all');
+  const navigate = useNavigate();
+  const { books, favorites, loading } = useSelector(state => state.books);
+  const { subscription = 'free' } = useSelector(state => state.auth || {});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [backgroundStyle, setBackgroundStyle] = useState({});
 
   useEffect(() => {
     dispatch(fetchBooks());
+    setBackgroundStyle(getBackgroundWithOverlay('library', 0.4));
   }, [dispatch]);
 
   const freeBooks = books.filter(book => !book.isPro);
@@ -31,9 +38,7 @@ const Library = () => {
   return (
     <div
       className="p-6 min-h-screen bg-cover bg-center bg-no-repeat"
-      style={{
-        backgroundImage: 'linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(/src/assets/images/background_library.jpg)'
-      }}
+      style={backgroundStyle}
     >
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold text-white mb-6">Библиотека</h1>

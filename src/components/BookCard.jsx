@@ -1,12 +1,14 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Heart, Lock, Download } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Heart, Lock, Download, BookOpen } from 'lucide-react';
 import { toggleFavorite } from '../store/slices/booksSlice';
 
 const BookCard = ({ book }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { favorites } = useSelector(state => state.books);
-  const { subscription } = useSelector(state => state.auth);
+  const { subscription = 'free' } = useSelector(state => state.auth || {});
 
   const isFavorite = favorites.includes(book.id);
   const canAccess = !book.isPro || subscription === 'pro';
@@ -16,8 +18,21 @@ const BookCard = ({ book }) => {
     dispatch(toggleFavorite(book.id));
   };
 
+  const handleReadClick = () => {
+    if (canAccess && book.content) {
+      navigate(`/book/${book.id}`);
+    }
+  };
+
+  const handleGuideClick = (e) => {
+    e.stopPropagation();
+    if (canAccess && book.content) {
+      navigate(`/book/${book.id}?guide=true`);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-transform hover:scale-105">
+    <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:bg-white">
       <div className="relative">
         <img
           src={book.cover}
@@ -51,15 +66,30 @@ const BookCard = ({ book }) => {
 
         <div className="flex gap-2">
           <button
-            disabled={!canAccess}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-              canAccess
-                ? 'bg-green-600 hover:bg-green-700 text-white'
+            onClick={handleReadClick}
+            disabled={!canAccess || !book.content}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+              canAccess && book.content
+                ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
+            <BookOpen className="w-4 h-4" />
             Читать
           </button>
+          {book.content && (
+            <button
+              onClick={handleGuideClick}
+              disabled={!canAccess}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                canAccess
+                  ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Гид
+            </button>
+          )}
           <button
             disabled={!canAccess}
             className={`p-2 rounded-lg transition-colors ${
