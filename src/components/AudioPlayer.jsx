@@ -83,11 +83,23 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     checkOfflineAvailability();
   }, [nashid, isNashidAvailableOffline]);
 
+  // Остановка других аудио элементов перед запуском нового
+  const stopAllOtherAudio = () => {
+    const allAudio = document.querySelectorAll('audio');
+    allAudio.forEach(audioElement => {
+      if (audioElement !== audioRef.current && !audioElement.paused) {
+        audioElement.pause();
+      }
+    });
+  };
+
   // Основное управление воспроизведением - только при смене трека или по действию пользователя
   useEffect(() => {
     const audio = audioRef.current;
     if (audio && nashid) {
       if (isPlaying) {
+        // Останавливаем все другие аудио перед запуском
+        stopAllOtherAudio();
         audio.play().catch(console.error);
       } else {
         audio.pause();
@@ -116,6 +128,8 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
         audio.pause();
       }
     } else {
+      // Останавливаем все другие аудио перед запуском
+      stopAllOtherAudio();
       dispatch(playNashid(nashid));
       // Явно запускаем
       if (audio && audio.paused) {
@@ -290,6 +304,13 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              // Останавливаем аудио перед закрытием
+              const audio = audioRef.current;
+              if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+              }
+              dispatch(stopNashid());
               onClose();
             }}
             className="p-2 text-gray-600 hover:text-red-600 active:text-red-700 transition-colors touch-manipulation"
@@ -326,6 +347,13 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                // Останавливаем аудио перед закрытием
+                const audio = audioRef.current;
+                if (audio) {
+                  audio.pause();
+                  audio.currentTime = 0;
+                }
+                dispatch(stopNashid());
                 onClose();
               }}
               className="p-2 text-gray-600 hover:text-gray-900 active:text-red-600 transition-colors touch-manipulation"

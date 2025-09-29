@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { fetchNashids, playNashid } from '../store/slices/nashidsSlice';
 import NashidCard from '../components/NashidCard';
 import { ArrowLeft, Folder, Mic, Moon, Play, Heart, Download } from 'lucide-react';
@@ -8,6 +9,7 @@ import { useOffline } from '../hooks/useOffline';
 
 const Nashids = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { nashids, loading, currentPlaying, favorites } = useSelector(state => state.nashids);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [backgroundStyle, setBackgroundStyle] = useState({});
@@ -56,7 +58,10 @@ const Nashids = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button className="p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-colors">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-colors"
+            >
               <ArrowLeft className="w-5 h-5 text-green-400" />
             </button>
             <h1 className="text-2xl font-bold text-white">Нашиды</h1>
