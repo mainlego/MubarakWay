@@ -40,7 +40,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
 
   // Получаем правильный URL для аудио
   const getAudioUrl = useCallback((nashidItem) => {
-    return nashidItem?.audio_url || nashidItem?.audioUrl || '';
+    return nashidItem?.audioUrl || nashidItem?.audio_url || '';
   }, []);
 
   // Очистка всех других аудио элементов
@@ -56,13 +56,8 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
 
   // Обработчики аудио событий - только после монтирования
   useEffect(() => {
-    // Небольшая задержка чтобы убедиться что DOM полностью готов
-    const timer = setTimeout(() => {
-      const audio = audioRef.current;
-      if (!audio) {
-        console.warn('Audio element still not available after timeout');
-        return;
-      }
+    const audio = audioRef.current;
+    if (!audio) return;
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleDurationChange = () => setDuration(audio.duration || 0);
@@ -78,46 +73,33 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
 
     const handleError = (e) => {
       console.error('Audio error:', e.target.error);
-      console.error('Audio error details:', {
-        code: e.target.error?.code,
-        message: e.target.error?.message,
-        src: e.target.src,
-        networkState: e.target.networkState,
-        readyState: e.target.readyState
-      });
       setIsLoading(false);
       setAudioError(`Ошибка загрузки аудио: ${e.target.error?.message || 'Неизвестная ошибка'}`);
       dispatch(pauseNashid());
     };
 
-      console.log('Setting up audio event listeners');
-      audio.addEventListener('timeupdate', handleTimeUpdate);
-      audio.addEventListener('durationchange', handleDurationChange);
-      audio.addEventListener('loadstart', handleLoadStart);
-      audio.addEventListener('loadeddata', handleLoadedData);
-      audio.addEventListener('canplay', handleCanPlay);
-      audio.addEventListener('waiting', handleWaiting);
-      audio.addEventListener('playing', handlePlaying);
-      audio.addEventListener('ended', handleEnded);
-      audio.addEventListener('error', handleError);
-    }, 100); // 100ms задержка
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('loadeddata', handleLoadedData);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
 
     return () => {
-      clearTimeout(timer);
-      const audio = audioRef.current;
-      if (audio) {
-        audio.removeEventListener('timeupdate', handleTimeUpdate);
-        audio.removeEventListener('durationchange', handleDurationChange);
-        audio.removeEventListener('loadstart', handleLoadStart);
-        audio.removeEventListener('loadeddata', handleLoadedData);
-        audio.removeEventListener('canplay', handleCanPlay);
-        audio.removeEventListener('waiting', handleWaiting);
-        audio.removeEventListener('playing', handlePlaying);
-        audio.removeEventListener('ended', handleEnded);
-        audio.removeEventListener('error', handleError);
-      }
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('playing', handlePlaying);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
     };
-  }, [dispatch]);
+  }, [dispatch, handleNext]);
 
   // Проверка офлайн доступности
   useEffect(() => {
@@ -133,50 +115,31 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   // Основное управление воспроизведением
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !nashid) {
-      console.log('Audio or nashid not available:', { audio: !!audio, nashid: !!nashid });
-      return;
-    }
+    if (!audio || !nashid) return;
 
     const audioUrl = getAudioUrl(nashid);
-    console.log('Audio URL:', audioUrl);
 
     if (!audioUrl) {
-      console.error('No audio URL found for nashid:', nashid);
       setAudioError('URL аудио не найден');
       return;
     }
 
     // Устанавливаем источник только если он изменился
     const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `${window.location.origin}${audioUrl}`;
-    console.log('Full audio URL:', fullAudioUrl);
-    console.log('Current audio src:', audio.src);
 
     if (audio.src !== fullAudioUrl) {
-      console.log('Setting new audio source:', fullAudioUrl);
       audio.src = fullAudioUrl;
-      audio.load(); // Принудительная загрузка нового источника
-    } else {
-      console.log('Audio source unchanged, skipping reload');
+      audio.load();
+      hasUserInteracted.current = true;
     }
 
-    console.log('Audio state:', {
-      isPlaying,
-      hasUserInteracted: hasUserInteracted.current,
-      audioPaused: audio.paused,
-      audioReadyState: audio.readyState,
-      audioNetworkState: audio.networkState
-    });
-
-    if (isPlaying && hasUserInteracted.current) {
-      console.log('Attempting to play audio...');
+    if (isPlaying) {
       stopAllOtherAudio();
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            console.log('Audio playback started successfully');
             setAudioError(null);
           })
           .catch(error => {
@@ -185,11 +148,8 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
             dispatch(pauseNashid());
           });
       }
-    } else if (!isPlaying) {
-      console.log('Pausing audio...');
-      audio.pause();
     } else {
-      console.log('Audio play blocked - no user interaction yet');
+      audio.pause();
     }
   }, [isPlaying, nashid, dispatch, stopAllOtherAudio, getAudioUrl]);
 
@@ -227,21 +187,16 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
         console.warn('Media Session API error:', error);
       }
     }
-  }, [nashid, currentTime, duration, playlist.length]);
+  }, [nashid, currentTime, duration, playlist.length, handlePlayPause, handlePrevious, handleNext]);
 
   const handlePlayPause = useCallback(() => {
-    console.log('handlePlayPause called:', { isPlaying, nashid: !!nashid });
     hasUserInteracted.current = true;
 
     if (isPlaying) {
-      console.log('Dispatching pause...');
       dispatch(pauseNashid());
     } else {
       if (nashid) {
-        console.log('Dispatching play for nashid:', nashid.title);
         dispatch(playNashid(nashid));
-      } else {
-        console.error('No nashid to play');
       }
     }
   }, [isPlaying, nashid, dispatch]);
@@ -249,7 +204,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   const handleNext = useCallback(() => {
     if (playlist.length === 0) return;
 
-    const currentIndex = playlist.findIndex(n => n.id === nashid.id);
+    const currentIndex = playlist.findIndex(n => n.id === nashid?.id);
     let nextIndex;
 
     if (isShuffled) {
@@ -264,19 +219,19 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     if (nextNashid) {
       dispatch(playNashid(nextNashid));
     }
-  }, [playlist, nashid, isShuffled, repeatMode, dispatch]);
+  }, [playlist, nashid?.id, isShuffled, repeatMode, dispatch]);
 
   const handlePrevious = useCallback(() => {
     if (playlist.length === 0) return;
 
-    const currentIndex = playlist.findIndex(n => n.id === nashid.id);
+    const currentIndex = playlist.findIndex(n => n.id === nashid?.id);
     const prevIndex = currentIndex === 0 ? playlist.length - 1 : currentIndex - 1;
     const prevNashid = playlist[prevIndex];
 
     if (prevNashid) {
       dispatch(playNashid(prevNashid));
     }
-  }, [playlist, nashid, dispatch]);
+  }, [playlist, nashid?.id, dispatch]);
 
   const handleSeek = useCallback((e) => {
     const audio = audioRef.current;
