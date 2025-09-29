@@ -398,11 +398,17 @@ const EnhancedBookReader = () => {
 
   const themeClasses = isDarkTheme
     ? 'bg-gray-900 text-gray-100'
-    : 'text-gray-800';
+    : 'bg-gradient-to-br from-gray-50 via-white to-gray-50 text-gray-800';
 
   const mainStyle = isDarkTheme
-    ? { backgroundColor: '#111827' }
-    : backgroundStyle;
+    ? {
+        background: 'linear-gradient(135deg, #1a1f2e 0%, #151820 100%)',
+        minHeight: '100vh'
+      }
+    : {
+        background: 'linear-gradient(135deg, #fdfbfb 0%, #f5f7fa 100%)',
+        minHeight: '100vh'
+      };
 
   return (
     <div
@@ -413,18 +419,18 @@ const EnhancedBookReader = () => {
       onTouchEnd={handleTouchEnd}
     >
       {/* Header */}
-      <header className={`sticky top-0 z-50 backdrop-blur-sm border-b transition-all duration-300 ${
+      <header className={`sticky top-0 z-50 backdrop-blur-md border-b transition-all duration-300 shadow-lg ${
         isDarkTheme
-          ? 'bg-gray-800/90 border-gray-700'
-          : 'bg-white/90 border-gray-200'
+          ? 'bg-gray-900/95 border-gray-700'
+          : 'bg-white/95 border-gray-300'
       }`}>
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate(-1)}
-              className={`p-2 rounded-full transition-all duration-200 ${
+              className={`p-2 rounded-xl transition-all duration-200 transform hover:scale-110 ${
                 isDarkTheme
-                  ? 'hover:bg-gray-700 text-gray-300'
+                  ? 'hover:bg-gray-800 text-gray-300'
                   : 'hover:bg-gray-100 text-gray-600'
               }`}
             >
@@ -529,52 +535,52 @@ const EnhancedBookReader = () => {
 
         {/* Page Navigation */}
         {isPageMode && (
-          <div className="flex items-center justify-between px-4 py-2">
+          <div className="flex items-center justify-between px-4 py-3">
             <button
               onClick={prevPage}
               disabled={currentPage === 1}
-              className={`flex items-center space-x-1 px-3 py-1 rounded-lg transition-all ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all transform hover:scale-105 ${
                 currentPage === 1
                   ? 'opacity-50 cursor-not-allowed'
                   : isDarkTheme
-                    ? 'hover:bg-gray-700 text-gray-300'
-                    : 'hover:bg-gray-100 text-gray-600'
+                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 shadow-md'
+                    : 'bg-white hover:bg-gray-50 text-gray-700 shadow-md'
               }`}
             >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm">Назад</span>
+              <ChevronLeft className="w-5 h-5" />
+              <span className="text-sm font-medium">Назад</span>
             </button>
 
-            <div className="flex items-center space-x-2">
-              <span className="text-sm">Страница</span>
+            <div className="flex items-center space-x-3 bg-gradient-to-r from-green-500/10 to-blue-500/10 px-4 py-2 rounded-xl">
+              <span className="text-sm font-medium">Страница</span>
               <input
                 type="number"
                 min="1"
                 max={totalPages}
                 value={currentPage}
                 onChange={(e) => goToPage(parseInt(e.target.value))}
-                className={`w-16 px-2 py-1 text-center rounded border ${
+                className={`w-20 px-3 py-1 text-center rounded-lg font-medium transition-all ${
                   isDarkTheme
-                    ? 'bg-gray-700 border-gray-600 text-gray-200'
-                    : 'bg-white border-gray-300'
+                    ? 'bg-gray-800 border-gray-600 text-gray-200 focus:ring-2 focus:ring-green-500'
+                    : 'bg-white border-gray-300 focus:ring-2 focus:ring-green-500'
                 }`}
               />
-              <span className="text-sm">из {totalPages}</span>
+              <span className="text-sm font-medium">из {totalPages}</span>
             </div>
 
             <button
               onClick={nextPage}
               disabled={currentPage === totalPages}
-              className={`flex items-center space-x-1 px-3 py-1 rounded-lg transition-all ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all transform hover:scale-105 ${
                 currentPage === totalPages
                   ? 'opacity-50 cursor-not-allowed'
                   : isDarkTheme
-                    ? 'hover:bg-gray-700 text-gray-300'
-                    : 'hover:bg-gray-100 text-gray-600'
+                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 shadow-md'
+                    : 'bg-white hover:bg-gray-50 text-gray-700 shadow-md'
               }`}
             >
-              <span className="text-sm">Вперед</span>
-              <ChevronRight className="w-4 h-4" />
+              <span className="text-sm font-medium">Вперед</span>
+              <ChevronRight className="w-5 h-5" />
             </button>
           </div>
         )}
@@ -582,10 +588,10 @@ const EnhancedBookReader = () => {
 
       {/* Settings panel */}
       {showSettings && (
-        <div className={`absolute top-20 right-4 z-40 p-6 rounded-2xl shadow-2xl border transition-all duration-300 ${
+        <div className={`absolute top-20 right-4 z-40 p-6 rounded-2xl shadow-2xl backdrop-blur-lg border transition-all duration-300 ${
           isDarkTheme
-            ? 'bg-gray-800 border-gray-700'
-            : 'bg-white border-gray-200'
+            ? 'bg-gray-900/95 border-gray-700'
+            : 'bg-white/95 border-gray-300'
         }`}>
           <div className="space-y-6 w-80">
             {/* Theme toggle */}
@@ -737,15 +743,23 @@ const EnhancedBookReader = () => {
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-6 py-8">
-        <div
-          ref={contentRef}
-          className={`prose prose-lg max-w-none transition-all duration-300 ${
-            isDarkTheme ? 'prose-invert' : ''
-          }`}
-          style={{
-            fontSize: `${fontSize}px`,
-            lineHeight: lineHeight
-          }}
+        <div className={`rounded-2xl p-8 shadow-xl transition-all duration-300 ${
+          isDarkTheme
+            ? 'bg-gray-800/50 backdrop-blur-sm border border-gray-700'
+            : 'bg-white/80 backdrop-blur-sm border border-gray-200'
+        }`}>
+          <div
+            ref={contentRef}
+            className={`prose prose-lg max-w-none transition-all duration-300 ${
+              isDarkTheme
+                ? 'prose-invert prose-p:text-gray-300 prose-headings:text-gray-100'
+                : 'prose-p:text-gray-700 prose-headings:text-gray-900'
+            }`}
+            style={{
+              fontSize: `${fontSize}px`,
+              lineHeight: lineHeight,
+              fontFamily: '"Inter", "Segoe UI", "Roboto", sans-serif'
+            }}
         >
           {isPageMode ? (
             <div
@@ -774,16 +788,17 @@ const EnhancedBookReader = () => {
               }}
             />
           )}
+          </div>
         </div>
       </main>
 
       {/* Floating controls */}
       <div className={`fixed bottom-6 right-6 flex flex-col space-y-2`}>
         {/* Reading progress indicator */}
-        <div className={`p-3 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 ${
+        <div className={`p-3 rounded-full shadow-lg backdrop-blur-md transition-all duration-300 ${
           isDarkTheme
-            ? 'bg-gray-800/90 border border-gray-700'
-            : 'bg-white/90 border border-gray-200'
+            ? 'bg-gray-900/95 border border-gray-700'
+            : 'bg-white/95 border border-gray-300'
         }`}>
           <div className="flex items-center space-x-2">
             <BookOpen className="w-4 h-4" />
@@ -794,10 +809,10 @@ const EnhancedBookReader = () => {
         {/* Reset reading position */}
         <button
           onClick={() => goToPage(1)}
-          className={`p-3 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 ${
+          className={`p-3 rounded-full shadow-lg backdrop-blur-md transition-all duration-300 ${
             isDarkTheme
-              ? 'bg-gray-800/90 border border-gray-700 hover:bg-gray-700'
-              : 'bg-white/90 border border-gray-200 hover:bg-gray-50'
+              ? 'bg-gray-900/95 border border-gray-700 hover:bg-gray-800'
+              : 'bg-white/95 border border-gray-300 hover:bg-gray-100'
           }`}
           title="Начать сначала"
         >
