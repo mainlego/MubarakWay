@@ -35,7 +35,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   const [isLoading, setIsLoading] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isOfflineAvailable, setIsOfflineAvailable] = useState(false);
-  const [localIsPlaying, setLocalIsPlaying] = useState(false);
+  const [wasPlayingBeforeMinimize, setWasPlayingBeforeMinimize] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -75,8 +75,6 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   useEffect(() => {
     const audio = audioRef.current;
     if (audio && nashid) {
-      // Сохраняем состояние воспроизведения локально
-      setLocalIsPlaying(isPlaying);
       if (isPlaying) {
         audio.play().catch(console.error);
       } else {
@@ -85,20 +83,34 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     }
   }, [isPlaying, nashid]);
 
-  // Не останавливаем аудио при сворачивании
+  // Сохраняем состояние воспроизведения при изменении состояния минимизации
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio && isMinimized && localIsPlaying) {
-      // Продолжаем воспроизведение в свернутом состоянии
-      audio.play().catch(console.error);
+    if (!audio) return;
+
+    if (isMinimized) {
+      // При сворачивании сохраняем текущее состояние
+      setWasPlayingBeforeMinimize(isPlaying);
+      // Не меняем состояние воспроизведения
+      if (isPlaying) {
+        audio.play().catch(console.error);
+      }
+    } else {
+      // При разворачивании восстанавливаем состояние
+      if (wasPlayingBeforeMinimize || isPlaying) {
+        audio.play().catch(console.error);
+      }
     }
-  }, [isMinimized, localIsPlaying]);
+  }, [isMinimized]);
 
   const handlePlayPause = () => {
+    const audio = audioRef.current;
     if (isPlaying) {
       dispatch(pauseNashid());
+      if (audio) audio.pause();
     } else {
       dispatch(playNashid(nashid));
+      if (audio) audio.play().catch(console.error);
     }
   };
 
@@ -265,7 +277,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
             ×
           </button>
         </div>
-        <audio ref={audioRef} src={nashid.audioUrl} />
+        <audio ref={audioRef} src={nashid.audioUrl} preload="auto" />
       </div>
     );
   }
@@ -485,7 +497,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           </div>
         )}
 
-        <audio ref={audioRef} src={nashid.audioUrl} />
+        <audio ref={audioRef} src={nashid.audioUrl} preload="auto" />
       </div>
     </div>
   );

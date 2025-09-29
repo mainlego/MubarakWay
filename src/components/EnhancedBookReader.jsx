@@ -252,6 +252,48 @@ const EnhancedBookReader = () => {
     }
   };
 
+  // Альтернативный метод для свайпов через pointer events
+  useEffect(() => {
+    let startX = 0;
+    let endX = 0;
+
+    const handlePointerDown = (e) => {
+      startX = e.clientX;
+    };
+
+    const handlePointerUp = (e) => {
+      endX = e.clientX;
+      handleSwipe();
+    };
+
+    const handleSwipe = () => {
+      const diffX = startX - endX;
+
+      if (Math.abs(diffX) > 50) { // минимальная дистанция для свайпа
+        if (diffX > 0 && currentPage < totalPages) {
+          // Свайп влево - следующая страница
+          nextPage();
+        } else if (diffX < 0 && currentPage > 1) {
+          // Свайп вправо - предыдущая страница
+          prevPage();
+        }
+      }
+    };
+
+    const element = document.getElementById('book-reader-content');
+    if (element && isPageMode) {
+      element.addEventListener('pointerdown', handlePointerDown);
+      element.addEventListener('pointerup', handlePointerUp);
+    }
+
+    return () => {
+      if (element) {
+        element.removeEventListener('pointerdown', handlePointerDown);
+        element.removeEventListener('pointerup', handlePointerUp);
+      }
+    };
+  }, [currentPage, totalPages, isPageMode]);
+
   const toggleTheme = () => {
     const newTheme = !isDarkTheme;
     setIsDarkTheme(newTheme);
@@ -862,7 +904,11 @@ const EnhancedBookReader = () => {
       )}
 
       {/* Content */}
-      <main className="max-w-4xl mx-auto px-3 py-4 sm:px-6 sm:py-8">
+      <main
+        id="book-reader-content"
+        className="max-w-4xl mx-auto px-3 py-4 sm:px-6 sm:py-8 touch-pan-y"
+        style={{ touchAction: 'pan-y' }}
+      >
         <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-lg sm:shadow-xl transition-all duration-300 ${
           isDarkTheme
             ? 'bg-gray-800/50 backdrop-blur-sm border border-gray-700'
@@ -912,8 +958,8 @@ const EnhancedBookReader = () => {
         </div>
       </main>
 
-      {/* Floating controls - mobile optimized */}
-      <div className={`fixed bottom-4 right-3 sm:bottom-6 sm:right-6 flex flex-col space-y-2`}>
+      {/* Floating controls - mobile optimized - поднято выше навигации */}
+      <div className={`fixed bottom-20 right-3 sm:bottom-6 sm:right-6 flex flex-col space-y-2 z-40`}>
         {/* Reading progress indicator */}
         <div className={`p-2 sm:p-3 rounded-full shadow-lg backdrop-blur-md transition-all duration-300 ${
           isDarkTheme
@@ -941,20 +987,20 @@ const EnhancedBookReader = () => {
       </div>
 
       {/* Mobile swipe indicator - показывается только на мобильных */}
-      <div className="sm:hidden fixed bottom-24 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none">
+      <div className="sm:hidden fixed bottom-28 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none">
         <div className={`flex items-center space-x-4 px-4 py-2 rounded-full text-xs backdrop-blur-sm transition-all duration-300 ${
           isDarkTheme
-            ? 'bg-gray-900/70 text-gray-300 border border-gray-700'
-            : 'bg-white/70 text-gray-600 border border-gray-300'
+            ? 'bg-gray-900/90 text-gray-200 border border-gray-600'
+            : 'bg-white/90 text-gray-700 border border-gray-300 shadow-lg'
         }`}>
-          <div className={`flex items-center space-x-1 ${
+          <div className={`flex items-center space-x-1 transition-opacity ${
             currentPage > 1 ? 'opacity-100' : 'opacity-30'
           }`}>
             <ChevronLeft className="w-4 h-4" />
             <span>Свайп</span>
           </div>
           <div className="w-px h-4 bg-gray-400" />
-          <div className={`flex items-center space-x-1 ${
+          <div className={`flex items-center space-x-1 transition-opacity ${
             currentPage < totalPages ? 'opacity-100' : 'opacity-30'
           }`}>
             <span>Свайп</span>
