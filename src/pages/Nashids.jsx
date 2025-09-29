@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchNashids } from '../store/slices/nashidsSlice';
+import { fetchNashids, playNashid } from '../store/slices/nashidsSlice';
 import NashidCard from '../components/NashidCard';
-import AudioPlayer from '../components/AudioPlayer';
 import { ArrowLeft, Folder, Mic, Moon, Play, Heart, Download } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
 import { useOffline } from '../hooks/useOffline';
@@ -12,8 +11,6 @@ const Nashids = () => {
   const { nashids, loading, currentPlaying, favorites } = useSelector(state => state.nashids);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [backgroundStyle, setBackgroundStyle] = useState({});
-  const [showPlayer, setShowPlayer] = useState(false);
-  const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
   const { isOnline } = useOffline();
 
   useEffect(() => {
@@ -36,17 +33,7 @@ const Nashids = () => {
   const favoriteNashids = nashids.filter(nashid => favorites.includes(nashid.id));
 
   const handlePlayNashid = (nashid) => {
-    setShowPlayer(true);
-    setIsPlayerMinimized(false);
-  };
-
-  const handleClosePlayer = () => {
-    setShowPlayer(false);
-    setIsPlayerMinimized(false);
-  };
-
-  const handleToggleMinimize = () => {
-    setIsPlayerMinimized(!isPlayerMinimized);
+    dispatch(playNashid(nashid));
   };
 
   if (loading) {
@@ -176,17 +163,6 @@ const Nashids = () => {
           </div>
         </div>
       </div>
-
-      {/* Аудиоплеер */}
-      {showPlayer && currentPlaying && (
-        <AudioPlayer
-          nashid={currentPlaying}
-          playlist={filteredNashids}
-          onClose={handleClosePlayer}
-          isMinimized={isPlayerMinimized}
-          onToggleMinimize={handleToggleMinimize}
-        />
-      )}
     </div>
   );
 };

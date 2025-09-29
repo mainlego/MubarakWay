@@ -35,6 +35,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   const [isLoading, setIsLoading] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isOfflineAvailable, setIsOfflineAvailable] = useState(false);
+  const [localIsPlaying, setLocalIsPlaying] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -73,7 +74,9 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio) {
+    if (audio && nashid) {
+      // Сохраняем состояние воспроизведения локально
+      setLocalIsPlaying(isPlaying);
       if (isPlaying) {
         audio.play().catch(console.error);
       } else {
@@ -81,6 +84,15 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       }
     }
   }, [isPlaying, nashid]);
+
+  // Не останавливаем аудио при сворачивании
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio && isMinimized && localIsPlaying) {
+      // Продолжаем воспроизведение в свернутом состоянии
+      audio.play().catch(console.error);
+    }
+  }, [isMinimized, localIsPlaying]);
 
   const handlePlayPause = () => {
     if (isPlaying) {
@@ -231,15 +243,26 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           </div>
           <button
             onClick={handlePlayPause}
-            className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors"
+            className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
           </button>
           <button
             onClick={onToggleMinimize}
-            className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="p-2 text-gray-600 hover:text-gray-900 active:text-black transition-colors touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            title="Развернуть"
           >
-            <Minimize2 className="w-4 h-4" />
+            <Minimize2 className="w-4 h-4 rotate-180" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-600 hover:text-red-600 active:text-red-700 transition-colors touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            title="Закрыть"
+          >
+            ×
           </button>
         </div>
         <audio ref={audioRef} src={nashid.audioUrl} />
@@ -331,7 +354,8 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
           <button
             onClick={handlePlayPause}
             disabled={isLoading}
-            className="p-4 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors disabled:opacity-50"
+            className="p-4 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50 touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {isLoading ? (
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />

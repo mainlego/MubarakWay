@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Provider } from 'react-redux';
+import { Provider, useSelector } from 'react-redux';
 import { store } from './store/store';
 import { telegram } from './utils/telegram';
 
@@ -10,6 +10,54 @@ import Nashids from './pages/Nashids';
 import Qibla from './pages/Qibla';
 import EnhancedBookReader from './components/EnhancedBookReader';
 import Navigation from './components/Navigation';
+import AudioPlayer from './components/AudioPlayer';
+import ScrollToTop from './components/ScrollToTop';
+
+function AppContent() {
+  const { currentPlaying, nashids } = useSelector(state => state.nashids);
+  const [showPlayer, setShowPlayer] = useState(false);
+  const [isPlayerMinimized, setIsPlayerMinimized] = useState(true);
+
+  useEffect(() => {
+    if (currentPlaying) {
+      setShowPlayer(true);
+    }
+  }, [currentPlaying]);
+
+  const handleClosePlayer = () => {
+    setShowPlayer(false);
+    setIsPlayerMinimized(false);
+  };
+
+  const handleToggleMinimize = () => {
+    setIsPlayerMinimized(!isPlayerMinimized);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/library" element={<Library />} />
+        <Route path="/book/:id" element={<EnhancedBookReader />} />
+        <Route path="/nashids" element={<Nashids />} />
+        <Route path="/qibla" element={<Qibla />} />
+      </Routes>
+      <Navigation />
+
+      {/* Глобальный аудиоплеер */}
+      {showPlayer && currentPlaying && (
+        <AudioPlayer
+          nashid={currentPlaying}
+          playlist={nashids}
+          onClose={handleClosePlayer}
+          isMinimized={isPlayerMinimized}
+          onToggleMinimize={handleToggleMinimize}
+        />
+      )}
+    </div>
+  );
+}
 
 function App() {
   useEffect(() => {
@@ -26,21 +74,15 @@ function App() {
     } else {
       console.log('Running in browser mode');
     }
+
+    // Скроллить к началу страницы при навигации
+    window.scrollTo(0, 0);
   }, []);
 
   return (
     <Provider store={store}>
       <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/library" element={<Library />} />
-            <Route path="/book/:id" element={<EnhancedBookReader />} />
-            <Route path="/nashids" element={<Nashids />} />
-            <Route path="/qibla" element={<Qibla />} />
-          </Routes>
-          <Navigation />
-        </div>
+        <AppContent />
       </Router>
     </Provider>
   );

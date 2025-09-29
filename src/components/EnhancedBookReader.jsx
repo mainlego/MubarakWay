@@ -428,11 +428,12 @@ const EnhancedBookReader = () => {
           <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
             <button
               onClick={() => navigate(-1)}
-              className={`p-2 rounded-xl transition-all duration-200 shrink-0 ${
+              className={`p-2 rounded-xl transition-all duration-200 shrink-0 touch-manipulation ${
                 isDarkTheme
-                  ? 'hover:bg-gray-800 text-gray-300'
-                  : 'hover:bg-gray-100 text-gray-600'
+                  ? 'hover:bg-gray-800 active:bg-gray-700 text-gray-300'
+                  : 'hover:bg-gray-100 active:bg-gray-200 text-gray-600'
               }`}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
@@ -461,23 +462,25 @@ const EnhancedBookReader = () => {
             <div className="flex items-center space-x-1 sm:hidden">
               <button
                 onClick={toggleBookmark}
-                className={`p-2 rounded-full transition-all duration-200 ${
+                className={`p-2 rounded-full transition-all duration-200 touch-manipulation ${
                   isBookmarked
-                    ? 'text-yellow-500 bg-yellow-100'
+                    ? 'text-yellow-500 bg-yellow-100 active:bg-yellow-200'
                     : isDarkTheme
-                      ? 'hover:bg-gray-700 text-gray-300'
-                      : 'hover:bg-gray-100 text-gray-600'
+                      ? 'hover:bg-gray-700 active:bg-gray-600 text-gray-300'
+                      : 'hover:bg-gray-100 active:bg-gray-200 text-gray-600'
                 }`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
               </button>
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className={`p-2 rounded-full transition-all duration-200 ${
+                className={`p-2 rounded-full transition-all duration-200 touch-manipulation ${
                   isDarkTheme
-                    ? 'hover:bg-gray-700 text-gray-300'
-                    : 'hover:bg-gray-100 text-gray-600'
+                    ? 'hover:bg-gray-700 active:bg-gray-600 text-gray-300'
+                    : 'hover:bg-gray-100 active:bg-gray-200 text-gray-600'
                 }`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -545,11 +548,12 @@ const EnhancedBookReader = () => {
               </button>
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className={`p-2 rounded-full transition-all duration-200 ${
+                className={`p-2 rounded-full transition-all duration-200 touch-manipulation ${
                   isDarkTheme
-                    ? 'hover:bg-gray-700 text-gray-300'
-                    : 'hover:bg-gray-100 text-gray-600'
+                    ? 'hover:bg-gray-700 active:bg-gray-600 text-gray-300'
+                    : 'hover:bg-gray-100 active:bg-gray-200 text-gray-600'
                 }`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <Settings className="w-5 h-5" />
               </button>
@@ -568,52 +572,14 @@ const EnhancedBookReader = () => {
         {/* Page Navigation */}
         {isPageMode && (
           <div className="px-3 py-2 sm:px-4 sm:py-3">
-            {/* Mobile navigation - simplified */}
-            <div className="sm:hidden flex items-center justify-between">
-              <button
-                onClick={prevPage}
-                disabled={currentPage === 1}
-                className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all ${
-                  currentPage === 1
-                    ? 'opacity-50 cursor-not-allowed'
-                    : isDarkTheme
-                      ? 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-                      : 'bg-white hover:bg-gray-50 text-gray-700 shadow-sm'
-                }`}
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span className="text-xs font-medium">Назад</span>
-              </button>
-
+            {/* Mobile navigation - only page indicator */}
+            <div className="sm:hidden flex items-center justify-center">
               <div className="flex items-center space-x-2 bg-gradient-to-r from-green-500/10 to-blue-500/10 px-3 py-2 rounded-lg">
-                <input
-                  type="number"
-                  min="1"
-                  max={totalPages}
-                  value={currentPage}
-                  onChange={(e) => goToPage(parseInt(e.target.value))}
-                  className={`w-12 px-1 py-1 text-center rounded text-xs font-medium border-0 bg-transparent focus:outline-none ${
-                    isDarkTheme ? 'text-gray-200' : 'text-gray-700'
-                  }`}
-                />
+                <span className="text-xs font-medium">Страница</span>
+                <span className="text-sm font-bold">{currentPage}</span>
                 <span className="text-xs text-gray-500">/</span>
-                <span className="text-xs font-medium">{totalPages}</span>
+                <span className="text-sm font-medium">{totalPages}</span>
               </div>
-
-              <button
-                onClick={nextPage}
-                disabled={currentPage === totalPages}
-                className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-all ${
-                  currentPage === totalPages
-                    ? 'opacity-50 cursor-not-allowed'
-                    : isDarkTheme
-                      ? 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-                      : 'bg-white hover:bg-gray-50 text-gray-700 shadow-sm'
-                }`}
-              >
-                <span className="text-xs font-medium">Вперед</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
             </div>
 
             {/* Desktop navigation - full featured */}
@@ -974,14 +940,26 @@ const EnhancedBookReader = () => {
         </button>
       </div>
 
-      {/* Mobile swipe hint - показывается только на мобильных */}
-      <div className="sm:hidden fixed bottom-20 left-1/2 transform -translate-x-1/2 z-10">
-        <div className={`px-3 py-1 rounded-full text-xs backdrop-blur-sm transition-all duration-300 ${
+      {/* Mobile swipe indicator - показывается только на мобильных */}
+      <div className="sm:hidden fixed bottom-24 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none">
+        <div className={`flex items-center space-x-4 px-4 py-2 rounded-full text-xs backdrop-blur-sm transition-all duration-300 ${
           isDarkTheme
             ? 'bg-gray-900/70 text-gray-300 border border-gray-700'
             : 'bg-white/70 text-gray-600 border border-gray-300'
         }`}>
-          ← Проведите для перелистывания →
+          <div className={`flex items-center space-x-1 ${
+            currentPage > 1 ? 'opacity-100' : 'opacity-30'
+          }`}>
+            <ChevronLeft className="w-4 h-4" />
+            <span>Свайп</span>
+          </div>
+          <div className="w-px h-4 bg-gray-400" />
+          <div className={`flex items-center space-x-1 ${
+            currentPage < totalPages ? 'opacity-100' : 'opacity-30'
+          }`}>
+            <span>Свайп</span>
+            <ChevronRight className="w-4 h-4" />
+          </div>
         </div>
       </div>
     </div>
