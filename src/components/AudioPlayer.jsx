@@ -35,6 +35,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   const [isLoading, setIsLoading] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isOfflineAvailable, setIsOfflineAvailable] = useState(false);
+  const [needsUserAction, setNeedsUserAction] = useState(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -100,12 +101,31 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       if (isPlaying) {
         // Останавливаем все другие аудио перед запуском
         stopAllOtherAudio();
-        audio.play().catch(console.error);
+
+        // Устанавливаем src если нужно
+        if (audio.src !== nashid.audio_url) {
+          audio.src = nashid.audio_url;
+        }
+
+        // Пытаемся воспроизвести с обработкой ошибок
+        audio.play().catch(error => {
+          console.error('Ошибка автовоспроизведения:', error);
+
+          // Если автовоспроизведение заблокировано, обновляем состояние
+          if (error.name === 'NotAllowedError') {
+            console.log('Автовоспроизведение заблокировано браузером');
+            // Не меняем состояние isPlaying, чтобы пользователь видел что нужно нажать play
+            setNeedsUserAction(true);
+          } else {
+            // При других ошибках ставим на паузу
+            dispatch(pauseNashid());
+          }
+        });
       } else {
         audio.pause();
       }
     }
-  }, [isPlaying, nashid]);
+  }, [isPlaying, nashid, dispatch]);
 
   // Предотвращаем остановку при изменении состояния минимизации
   useEffect(() => {
@@ -121,20 +141,31 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
 
   const handlePlayPause = () => {
     const audio = audioRef.current;
-    if (isPlaying) {
+
+    if (isPlaying && !audio.paused) {
+      // Если играет - ставим на паузу
       dispatch(pauseNashid());
-      // Явно ставим на паузу
-      if (audio && !audio.paused) {
-        audio.pause();
-      }
+      audio.pause();
     } else {
-      // Останавливаем все другие аудио перед запуском
+      // Если на паузе или заблокировано автовоспроизведение - запускаем
       stopAllOtherAudio();
-      dispatch(playNashid(nashid));
-      // Явно запускаем
-      if (audio && audio.paused) {
-        audio.play().catch(console.error);
+
+      // Устанавливаем src если нужно
+      if (audio.src !== nashid.audio_url) {
+        audio.src = nashid.audio_url;
       }
+
+      dispatch(playNashid(nashid));
+      setNeedsUserAction(false); // Сбрасываем флаг
+
+      audio.play().catch(error => {
+        console.error('Ошибка воспроизведения:', error);
+        if (error.name === 'NotAllowedError') {
+          setNeedsUserAction(true);
+        } else {
+          dispatch(pauseNashid());
+        }
+      });
     }
   };
 
@@ -283,10 +314,12 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
               e.stopPropagation();
               handlePlayPause();
             }}
-            className="p-2 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation"
+            className={`p-2 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors touch-manipulation ${
+              needsUserAction ? 'animate-pulse bg-red-600' : ''
+            }`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            {(isPlaying && !needsUserAction) ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
           </button>
           <button
             onClick={(e) => {
@@ -429,12 +462,14 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
               handlePlayPause();
             }}
             disabled={isLoading}
-            className="p-4 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50 touch-manipulation"
+            className={`p-4 bg-green-600 text-white rounded-full hover:bg-green-700 active:bg-green-800 transition-colors disabled:opacity-50 touch-manipulation ${
+              needsUserAction ? 'animate-pulse bg-red-600' : ''
+            }`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {isLoading ? (
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : isPlaying ? (
+            ) : (isPlaying && !needsUserAction) ? (
               <Pause className="w-6 h-6" />
             ) : (
               <Play className="w-6 h-6" />
