@@ -34,7 +34,8 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   const [isLoading, setIsLoading] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [isOfflineAvailable, setIsOfflineAvailable] = useState(false);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  // Используем useRef для hasUserInteracted чтобы не сбрасывался при ре-рендере
+  const hasUserInteracted = useRef(false);
   const [audioError, setAudioError] = useState(null);
 
   // Получаем правильный URL для аудио
@@ -53,10 +54,15 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     });
   }, []);
 
-  // Обработчики аудио событий
+  // Обработчики аудио событий - только после монтирования
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    // Небольшая задержка чтобы убедиться что DOM полностью готов
+    const timer = setTimeout(() => {
+      const audio = audioRef.current;
+      if (!audio) {
+        console.warn('Audio element still not available after timeout');
+        return;
+      }
 
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleDurationChange = () => setDuration(audio.duration || 0);
@@ -84,26 +90,32 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       dispatch(pauseNashid());
     };
 
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('durationchange', handleDurationChange);
-    audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('loadeddata', handleLoadedData);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('waiting', handleWaiting);
-    audio.addEventListener('playing', handlePlaying);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
+      console.log('Setting up audio event listeners');
+      audio.addEventListener('timeupdate', handleTimeUpdate);
+      audio.addEventListener('durationchange', handleDurationChange);
+      audio.addEventListener('loadstart', handleLoadStart);
+      audio.addEventListener('loadeddata', handleLoadedData);
+      audio.addEventListener('canplay', handleCanPlay);
+      audio.addEventListener('waiting', handleWaiting);
+      audio.addEventListener('playing', handlePlaying);
+      audio.addEventListener('ended', handleEnded);
+      audio.addEventListener('error', handleError);
+    }, 100); // 100ms задержка
 
     return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('durationchange', handleDurationChange);
-      audio.removeEventListener('loadstart', handleLoadStart);
-      audio.removeEventListener('loadeddata', handleLoadedData);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('waiting', handleWaiting);
-      audio.removeEventListener('playing', handlePlaying);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
+      clearTimeout(timer);
+      const audio = audioRef.current;
+      if (audio) {
+        audio.removeEventListener('timeupdate', handleTimeUpdate);
+        audio.removeEventListener('durationchange', handleDurationChange);
+        audio.removeEventListener('loadstart', handleLoadStart);
+        audio.removeEventListener('loadeddata', handleLoadedData);
+        audio.removeEventListener('canplay', handleCanPlay);
+        audio.removeEventListener('waiting', handleWaiting);
+        audio.removeEventListener('playing', handlePlaying);
+        audio.removeEventListener('ended', handleEnded);
+        audio.removeEventListener('error', handleError);
+      }
     };
   }, [dispatch]);
 
@@ -138,22 +150,25 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     // Устанавливаем источник только если он изменился
     const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `${window.location.origin}${audioUrl}`;
     console.log('Full audio URL:', fullAudioUrl);
+    console.log('Current audio src:', audio.src);
 
     if (audio.src !== fullAudioUrl) {
       console.log('Setting new audio source:', fullAudioUrl);
       audio.src = fullAudioUrl;
       audio.load(); // Принудительная загрузка нового источника
+    } else {
+      console.log('Audio source unchanged, skipping reload');
     }
 
     console.log('Audio state:', {
       isPlaying,
-      hasUserInteracted,
+      hasUserInteracted: hasUserInteracted.current,
       audioPaused: audio.paused,
       audioReadyState: audio.readyState,
       audioNetworkState: audio.networkState
     });
 
-    if (isPlaying && hasUserInteracted) {
+    if (isPlaying && hasUserInteracted.current) {
       console.log('Attempting to play audio...');
       stopAllOtherAudio();
 
@@ -176,7 +191,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     } else {
       console.log('Audio play blocked - no user interaction yet');
     }
-  }, [isPlaying, nashid, hasUserInteracted, dispatch, stopAllOtherAudio, getAudioUrl]);
+  }, [isPlaying, nashid, dispatch, stopAllOtherAudio, getAudioUrl]);
 
   // Media Session API для фонового воспроизведения
   useEffect(() => {
@@ -216,7 +231,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
 
   const handlePlayPause = useCallback(() => {
     console.log('handlePlayPause called:', { isPlaying, nashid: !!nashid });
-    setHasUserInteracted(true);
+    hasUserInteracted.current = true;
 
     if (isPlaying) {
       console.log('Dispatching pause...');
