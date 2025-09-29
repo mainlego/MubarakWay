@@ -21,8 +21,13 @@ function AppContent() {
   useEffect(() => {
     if (currentPlaying) {
       setShowPlayer(true);
-      // Открываем полный плеер при выборе нового нашида
-      setIsPlayerMinimized(false);
+      // Открываем полный плеер только при смене нашида, но не при изменении состояния play/pause
+      // Используем ID для отслеживания смены трека
+      const prevNashidId = sessionStorage.getItem('currentNashidId');
+      if (prevNashidId !== String(currentPlaying.id)) {
+        setIsPlayerMinimized(false);
+        sessionStorage.setItem('currentNashidId', String(currentPlaying.id));
+      }
     }
   }, [currentPlaying]);
 

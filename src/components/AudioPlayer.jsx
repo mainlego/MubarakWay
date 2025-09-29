@@ -104,13 +104,36 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handleDurationChange = () => setDuration(audio.duration || 0);
+    const handleTimeUpdate = () => {
+      if (audio.currentTime) {
+        setCurrentTime(audio.currentTime);
+      }
+    };
+
+    const handleDurationChange = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
     const handleLoadStart = () => {
       setIsLoading(true);
       setAudioError(null);
     };
-    const handleLoadedData = () => setIsLoading(false);
+
+    const handleLoadedData = () => {
+      setIsLoading(false);
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
     const handleCanPlay = () => setIsLoading(false);
     const handleWaiting = () => setIsLoading(true);
     const handlePlaying = () => setIsLoading(false);
@@ -125,6 +148,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('loadstart', handleLoadStart);
     audio.addEventListener('loadeddata', handleLoadedData);
     audio.addEventListener('canplay', handleCanPlay);
@@ -133,9 +157,18 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
+    // Инициализация при монтировании
+    if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+      setDuration(audio.duration);
+    }
+    if (audio.currentTime) {
+      setCurrentTime(audio.currentTime);
+    }
+
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('loadstart', handleLoadStart);
       audio.removeEventListener('loadeddata', handleLoadedData);
       audio.removeEventListener('canplay', handleCanPlay);
