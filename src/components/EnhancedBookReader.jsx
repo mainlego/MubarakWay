@@ -251,13 +251,17 @@ const EnhancedBookReader = () => {
       setNextPageContent(pages[currentPage] || ''); // currentPage потому что индекс с 0
       setPageTransition('flip-left');
 
+      // Сначала очищаем transition, затем меняем страницу
+      setTimeout(() => {
+        setPageTransition('');
+      }, 650);
+
       setTimeout(() => {
         const newPage = currentPage + 1;
         setCurrentPage(newPage);
         localStorage.setItem(`currentPage_${id}`, newPage.toString());
         updateProgress(newPage);
         window.scrollTo({ top: 0, behavior: 'instant' });
-        setPageTransition('');
         setIsFlipping(false);
       }, 700);
     }
@@ -270,13 +274,17 @@ const EnhancedBookReader = () => {
       setNextPageContent(pages[currentPage - 2] || ''); // -2 потому что индекс с 0 и идем назад
       setPageTransition('flip-right');
 
+      // Сначала очищаем transition, затем меняем страницу
+      setTimeout(() => {
+        setPageTransition('');
+      }, 650);
+
       setTimeout(() => {
         const newPage = currentPage - 1;
         setCurrentPage(newPage);
         localStorage.setItem(`currentPage_${id}`, newPage.toString());
         updateProgress(newPage);
         window.scrollTo({ top: 0, behavior: 'instant' });
-        setPageTransition('');
         setIsFlipping(false);
       }, 700);
     }
@@ -456,24 +464,31 @@ const EnhancedBookReader = () => {
     }
   };
 
-  const downloadBook = async () => {
+  const sendBookToBot = async () => {
     if (!book) return;
 
     try {
-      const element = document.createElement('a');
-      // Используем правильную кодировку UTF-8 с BOM для корректного отображения кириллицы
-      const BOM = '\uFEFF';
-      const content = BOM + book.content;
-      const file = new Blob([content], { type: 'text/plain;charset=utf-8' });
-      element.href = URL.createObjectURL(file);
-      element.download = `${book.title}.txt`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-      URL.revokeObjectURL(element.href);
+      // Используем Deep Link для отправки книги в бот
+      const botUsername = window.Telegram?.WebApp?.initDataUnsafe?.bot?.username || 'MubarakWayApp_bot';
+      const deepLink = `https://t.me/${botUsername}?start=download_book_${book.id}`;
+
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showConfirm(
+          `Отправить книгу "${book.title}" в чат с ботом?`,
+          (confirmed) => {
+            if (confirmed) {
+              window.Telegram.WebApp.HapticFeedback?.impactOccurred('light');
+              window.Telegram.WebApp.openLink(deepLink);
+            }
+          }
+        );
+      } else {
+        // Fallback для браузера
+        window.open(deepLink, '_blank');
+      }
     } catch (error) {
-      console.error('Error downloading book:', error);
-      alert('Ошибка при скачивании книги');
+      console.error('Error sending book to bot:', error);
+      alert('Ошибка при отправке книги в бот');
     }
   };
 
@@ -641,13 +656,13 @@ const EnhancedBookReader = () => {
                 <Share2 className="w-5 h-5" />
               </button>
               <button
-                onClick={downloadBook}
+                onClick={sendBookToBot}
                 className={`p-2 rounded-full transition-all duration-200 ${
                   isDarkTheme
                     ? 'hover:bg-gray-700 text-gray-300'
                     : 'hover:bg-gray-100 text-gray-600'
                 }`}
-                title="Скачать книгу"
+                title="Отправить в бот"
               >
                 <Download className="w-5 h-5" />
               </button>
@@ -933,7 +948,7 @@ const EnhancedBookReader = () => {
               </button>
 
               <button
-                onClick={downloadBook}
+                onClick={sendBookToBot}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
                   isDarkTheme
                     ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'

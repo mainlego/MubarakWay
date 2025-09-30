@@ -29,6 +29,71 @@ bot.start(async (ctx) => {
   console.log(`[/start] Received from user ${ctx.from.id} (${ctx.from.username || ctx.from.first_name})`);
   console.log(`[/start] Start payload:`, startPayload);
 
+  // Если это запрос на скачивание книги
+  if (startPayload && startPayload.startsWith('download_book_')) {
+    const bookId = parseInt(startPayload.replace('download_book_', ''));
+    console.log(`[/start] User ${ctx.from.id} requested book ${bookId}`);
+
+    // Моковые данные книг (в продакшене загружать из БД)
+    const mockBooks = [
+      {
+        id: 1,
+        title: "Священный Коран",
+        author: "Перевод смыслов",
+        content: "# Священный Коран\n\nПеревод смыслов Священного Корана...\n\n## Сура Аль-Фатиха\n\n1. Во имя Аллаха, Милостивого, Милосердного...",
+        description: "Полный перевод смыслов Священного Корана"
+      },
+      {
+        id: 2,
+        title: "40 хадисов Имама ан-Навави",
+        author: "Имам ан-Навави",
+        content: "# 40 хадисов Имама ан-Навави\n\nСборник важнейших хадисов...",
+        description: "Классический сборник хадисов"
+      },
+      {
+        id: 3,
+        title: "Рияд ас-Салихин",
+        author: "Имам ан-Навави",
+        content: "# Рияд ас-Салихин\n\nСады праведных...",
+        description: "Сборник хадисов о благих делах"
+      }
+    ];
+
+    const book = mockBooks.find(b => b.id === bookId);
+
+    if (book) {
+      try {
+        await ctx.reply('⏳ Отправляю книгу...');
+
+        // Создаем текстовый файл из контента книги
+        const bookContent = `${book.title}\n${'='.repeat(book.title.length)}\n\n${book.author ? `Автор: ${book.author}\n\n` : ''}${book.content}`;
+        const buffer = Buffer.from('\uFEFF' + bookContent, 'utf-8'); // UTF-8 BOM для корректной кодировки
+
+        // Отправляем документ пользователю
+        await ctx.replyWithDocument(
+          {
+            source: buffer,
+            filename: `${book.title}.txt`
+          },
+          {
+            caption: `📖 *${book.title}*${book.author ? `\n👤 ${book.author}` : ''}\n\n_Отправлено из MubarakWay_`,
+            parse_mode: 'Markdown'
+          }
+        );
+
+        await ctx.reply('✅ Книга сохранена в чате! Можете читать в любое время 📚');
+        return;
+      } catch (error) {
+        console.error('Error sending book:', error);
+        await ctx.reply('❌ Произошла ошибка при отправке книги. Попробуйте позже.');
+      }
+    } else {
+      await ctx.reply('❌ Книга не найдена. Попробуйте выбрать другую.');
+    }
+
+    return;
+  }
+
   // Если это запрос на скачивание нашида
   if (startPayload && startPayload.startsWith('download_')) {
     const nashidId = parseInt(startPayload.replace('download_', ''));
