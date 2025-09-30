@@ -1,8 +1,13 @@
 require('dotenv').config();
 const { Telegraf, Markup } = require('telegraf');
+const { Coordinates, CalculationMethod, PrayerTimes } = require('adhan');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const WEB_APP_URL = process.env.WEB_APP_URL;
+
+// Хранилище пользователей для уведомлений
+const userSubscriptions = new Map();
+const notifiedPrayers = new Set();
 
 // Вспомогательная функция для парсинга длительности (3:45 -> 225 секунд)
 function parseDuration(durationStr) {
@@ -23,6 +28,9 @@ bot.use((ctx, next) => {
 // Команда /start
 bot.start(async (ctx) => {
   const firstName = ctx.from.first_name || 'Друг';
+
+  // Автоматически подписываем пользователя на уведомления о молитвах
+  subscribeUser(ctx.from.id);
 
   // Проверяем, есть ли параметр start (Deep Link)
   const startPayload = ctx.startPayload;
@@ -447,12 +455,191 @@ const startBot = async () => {
       console.log('🕌 Готов служить умме...');
     }
 
+    // Запускаем систему уведомлений о времени молитв
+    console.log('⏰ Запуск системы уведомлений о времени молитв...');
+    // Проверяем каждую минуту
+    setInterval(checkPrayerTimes, 60000);
+    // Первая проверка сразу
+    checkPrayerTimes();
+
+    // Очищаем старые уведомления раз в день (в полночь)
+    setInterval(() => {
+      const now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 0) {
+        notifiedPrayers.clear();
+        console.log('🧹 Cleared old prayer notifications');
+      }
+    }, 60000);
+
+    console.log('✅ Система уведомлений о молитвах запущена');
+
   } catch (error) {
     console.error('💥 Критическая ошибка запуска бота:', error);
     console.error('Stack:', error.stack);
     // Не выходим из процесса, чтобы HTTP сервер продолжал работать для health checks
   }
 };
+
+// Функция для добавления пользователя в подписки
+function subscribeUser(userId, location = null) {
+  userSubscriptions.set(userId, {
+    userId,
+    location: location || { latitude: 55.7558, longitude: 37.6173 }, // По умолчанию Москва
+    subscribedAt: Date.now()
+  });
+  console.log(`✅ User ${userId} subscribed to prayer notifications`);
+}
+
+// Функция для расчета времени молитв
+function calculatePrayerTimes(location, date = new Date()) {
+  try {
+    const coordinates = new Coordinates(location.latitude, location.longitude);
+    const params = CalculationMethod.MuslimWorldLeague();
+    const prayerTimes = new PrayerTimes(coordinates, date, params);
+
+    return {
+      fajr: prayerTimes.fajr,
+      sunrise: prayerTimes.sunrise,
+      dhuhr: prayerTimes.dhuhr,
+      asr: prayerTimes.asr,
+      maghrib: prayerTimes.maghrib,
+      isha: prayerTimes.isha
+    };
+  } catch (error) {
+    console.error('Error calculating prayer times:', error);
+    return null;
+  }
+}
+
+// Получить текущую и следующую молитву
+function getCurrentAndNextPrayer(prayerTimes) {
+  const now = new Date();
+  const prayers = [
+    { name: 'Фаджр', time: prayerTimes.fajr, key: 'fajr' },
+    { name: 'Восход', time: prayerTimes.sunrise, key: 'sunrise', skipNotification: true },
+    { name: 'Зухр', time: prayerTimes.dhuhr, key: 'dhuhr' },
+    { name: 'Аср', time: prayerTimes.asr, key: 'asr' },
+    { name: 'Магриб', time: prayerTimes.maghrib, key: 'maghrib' },
+    { name: 'Иша', time: prayerTimes.isha, key: 'isha' }
+  ];
+
+  let currentPrayer = null;
+  let nextPrayer = null;
+
+  // Находим текущую и следующую молитву
+  for (let i = 0; i < prayers.length; i++) {
+    if (now < prayers[i].time) {
+      nextPrayer = prayers[i];
+      currentPrayer = i > 0 ? prayers[i - 1] : prayers[prayers.length - 1];
+      break;
+    }
+  }
+
+  // Если время после Иша, следующая молитва - Фаджр следующего дня
+  if (!nextPrayer) {
+    currentPrayer = prayers[prayers.length - 1];
+    nextPrayer = prayers[0];
+  }
+
+  return { currentPrayer, nextPrayer };
+}
+
+// Форматировать время
+function formatTime(date) {
+  return date.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Проверка времени молитв и отправка уведомлений
+async function checkPrayerTimes() {
+  try {
+    const now = new Date();
+
+    for (const [userId, subscription] of userSubscriptions) {
+      try {
+        const prayerTimes = calculatePrayerTimes(subscription.location);
+        if (!prayerTimes) continue;
+
+        const { currentPrayer, nextPrayer } = getCurrentAndNextPrayer(prayerTimes);
+        if (!nextPrayer) continue;
+
+        const timeUntilNext = nextPrayer.time - now;
+        const minutesUntilNext = Math.floor(timeUntilNext / (1000 * 60));
+
+        // Уведомление за 10 минут до молитвы
+        if (minutesUntilNext === 10) {
+          const warningKey = `${userId}_${nextPrayer.key}_10min_${nextPrayer.time.getTime()}`;
+          if (!notifiedPrayers.has(warningKey) && !nextPrayer.skipNotification) {
+            await bot.telegram.sendMessage(
+              userId,
+              `⏰ <b>Осталось 10 минут до молитвы ${nextPrayer.name}</b>\n\n` +
+              `🕌 Время: ${formatTime(nextPrayer.time)}\n\n` +
+              `Приготовьтесь к намазу.`,
+              { parse_mode: 'HTML' }
+            );
+            notifiedPrayers.add(warningKey);
+            console.log(`📢 Sent 10-min warning to user ${userId} for ${nextPrayer.name}`);
+          }
+        }
+
+        // Уведомление при наступлении времени молитвы
+        if (minutesUntilNext === 0) {
+          const prayerKey = `${userId}_${nextPrayer.key}_now_${nextPrayer.time.getTime()}`;
+          if (!notifiedPrayers.has(prayerKey) && !nextPrayer.skipNotification) {
+            await bot.telegram.sendMessage(
+              userId,
+              `🕌 <b>Наступило время молитвы ${nextPrayer.name}</b>\n\n` +
+              `🕐 ${formatTime(nextPrayer.time)}\n\n` +
+              `Не откладывайте намаз!`,
+              { parse_mode: 'HTML' }
+            );
+            notifiedPrayers.add(prayerKey);
+            console.log(`📢 Sent prayer notification to user ${userId} for ${nextPrayer.name}`);
+
+            // Отправляем информацию о следующей молитве через 1 минуту
+            setTimeout(async () => {
+              try {
+                const allPrayers = [
+                  { name: 'Фаджр', time: prayerTimes.fajr },
+                  { name: 'Зухр', time: prayerTimes.dhuhr },
+                  { name: 'Аср', time: prayerTimes.asr },
+                  { name: 'Магриб', time: prayerTimes.maghrib },
+                  { name: 'Иша', time: prayerTimes.isha }
+                ];
+
+                const currentTime = new Date();
+                const nextPrayerIndex = allPrayers.findIndex(p => p.time > currentTime);
+                const upcomingPrayer = nextPrayerIndex >= 0 ? allPrayers[nextPrayerIndex] : allPrayers[0];
+
+                const timeUntil = upcomingPrayer.time - currentTime;
+                const hoursUntil = Math.floor(timeUntil / (1000 * 60 * 60));
+                const minutesRemaining = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
+
+                await bot.telegram.sendMessage(
+                  userId,
+                  `📿 <b>Следующая молитва: ${upcomingPrayer.name}</b>\n\n` +
+                  `🕐 Время: ${formatTime(upcomingPrayer.time)}\n` +
+                  `⏳ Через: ${hoursUntil}ч ${minutesRemaining}м`,
+                  { parse_mode: 'HTML' }
+                );
+                console.log(`📢 Sent next prayer info to user ${userId}: ${upcomingPrayer.name}`);
+              } catch (error) {
+                console.error(`Error sending next prayer info to user ${userId}:`, error);
+              }
+            }, 60000); // Отправляем через 1 минуту после наступления времени молитвы
+          }
+        }
+
+      } catch (error) {
+        console.error(`Error sending notification to user ${userId}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error('Error in checkPrayerTimes:', error);
+  }
+}
 
 // Graceful stop
 const gracefulShutdown = async (signal) => {
