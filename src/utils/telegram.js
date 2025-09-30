@@ -177,7 +177,7 @@ export class TelegramWebApp {
   openChat() {
     if (!this.webApp) return;
     // Получаем bot username из параметров или используем дефолтный
-    const botUsername = this.webApp.initDataUnsafe?.bot?.username || 'MubarakWayBot';
+    const botUsername = this.webApp.initDataUnsafe?.bot?.username || 'MubarakWayApp_bot';
     this.openLink(`https://t.me/${botUsername}`);
   }
 
@@ -187,7 +187,7 @@ export class TelegramWebApp {
       console.log('[sendAudioToBot] Начало отправки нашида:', nashid);
 
       // Получаем username бота
-      const botUsername = this.webApp?.initDataUnsafe?.bot?.username || 'MubarakWayBot';
+      const botUsername = this.webApp?.initDataUnsafe?.bot?.username || 'MubarakWayApp_bot';
       console.log('[sendAudioToBot] Bot username:', botUsername);
 
       // Формируем Deep Link с командой start и параметром
