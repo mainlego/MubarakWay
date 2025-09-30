@@ -181,42 +181,39 @@ export class TelegramWebApp {
     this.openLink(`https://t.me/${botUsername}`);
   }
 
-  // Отправить аудиофайл в чат с ботом
+  // Отправить аудиофайл в чат с ботом через Deep Link
   async sendAudioToBot(nashid) {
-    if (!this.webApp) {
-      console.error('Telegram WebApp not available');
-      return false;
-    }
-
     try {
-      // Отправляем данные о нашиде боту
-      const data = {
-        action: 'download_audio',
-        nashid: {
-          id: nashid.id,
-          title: nashid.title,
-          artist: nashid.artist,
-          audioUrl: nashid.audioUrl || nashid.audio_url,
-          cover: nashid.cover,
-          duration: nashid.duration
-        }
-      };
+      // Получаем username бота
+      const botUsername = this.webApp?.initDataUnsafe?.bot?.username || 'MubarakWayBot';
 
-      this.sendData(data);
+      // Кодируем ID нашида в base64 для передачи в команде
+      const nashidData = btoa(JSON.stringify({
+        id: nashid.id,
+        title: nashid.title,
+        artist: nashid.artist
+      }));
 
-      // Показываем подтверждение
-      this.showPopup({
-        title: 'Аудиофайл отправлен',
-        message: 'Нашид отправлен в чат с ботом. Откройте чат для прослушивания.',
-        buttons: [
-          { id: 'open_chat', type: 'default', text: 'Открыть чат' },
-          { id: 'close', type: 'close', text: 'Закрыть' }
-        ]
-      }, (buttonId) => {
-        if (buttonId === 'open_chat') {
-          this.openChat();
-        }
-      });
+      // Формируем Deep Link с командой start и параметром
+      const deepLink = `https://t.me/${botUsername}?start=download_${nashid.id}`;
+
+      console.log('Opening bot with deep link:', deepLink);
+
+      // Показываем popup с подтверждением
+      if (this.webApp) {
+        this.showConfirm(
+          `Отправить нашид "${nashid.title}" в чат с ботом?`,
+          (confirmed) => {
+            if (confirmed) {
+              this.vibrate();
+              this.openLink(deepLink);
+            }
+          }
+        );
+      } else {
+        // В браузере просто открываем ссылку
+        window.open(deepLink, '_blank');
+      }
 
       return true;
     } catch (error) {

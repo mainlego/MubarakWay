@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Play, Pause, Heart, Download, HardDrive, CloudDownload } from 'lucide-react';
 import { playNashid, pauseNashid, toggleFavorite } from '../store/slices/nashidsSlice';
 import { useOfflineNashids } from '../hooks/useOffline';
+import { telegram } from '../utils/telegram';
 
 const NashidCard = ({ nashid, onPlay }) => {
   const dispatch = useDispatch();
@@ -40,18 +41,26 @@ const NashidCard = ({ nashid, onPlay }) => {
 
   const handleDownload = async (e) => {
     e.stopPropagation();
-    if (!isOfflineAvailable && !isDownloading) {
-      setIsDownloading(true);
-      try {
-        const response = await fetch(nashid.audioUrl);
-        const audioBlob = await response.blob();
-        await saveNashidOffline(nashid, audioBlob);
-        setIsOfflineAvailable(true);
-      } catch (error) {
-        console.error('Error downloading nashid:', error);
-        alert('Ошибка при скачивании нашида');
-      } finally {
-        setIsDownloading(false);
+
+    // Если в Telegram Mini App - отправляем в чат с ботом
+    if (telegram.isMiniApp()) {
+      await telegram.sendAudioToBot(nashid);
+    } else {
+      // В браузере - сохраняем офлайн
+      if (!isOfflineAvailable && !isDownloading) {
+        setIsDownloading(true);
+        try {
+          const response = await fetch(nashid.audioUrl);
+          const audioBlob = await response.blob();
+          await saveNashidOffline(nashid, audioBlob);
+          setIsOfflineAvailable(true);
+          alert('Нашид сохранён для офлайн прослушивания');
+        } catch (error) {
+          console.error('Error downloading nashid:', error);
+          alert('Ошибка при скачивании нашида');
+        } finally {
+          setIsDownloading(false);
+        }
       }
     }
   };
@@ -124,7 +133,9 @@ const NashidCard = ({ nashid, onPlay }) => {
                 : 'bg-white/20 hover:bg-white/30 text-white'
             }`}
             title={
-              isOfflineAvailable
+              telegram.isMiniApp()
+                ? 'Отправить в чат с ботом'
+                : isOfflineAvailable
                 ? 'Сохранено для офлайн'
                 : isDownloading
                 ? 'Скачивание...'

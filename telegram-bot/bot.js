@@ -4,6 +4,16 @@ const { Telegraf, Markup } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const WEB_APP_URL = process.env.WEB_APP_URL;
 
+// Вспомогательная функция для парсинга длительности (3:45 -> 225 секунд)
+function parseDuration(durationStr) {
+  if (!durationStr) return 0;
+  const parts = durationStr.split(':');
+  if (parts.length === 2) {
+    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+  }
+  return 0;
+}
+
 // Middleware для логирования
 bot.use((ctx, next) => {
   console.log(`${new Date().toISOString()} - ${ctx.updateType} from ${ctx.from?.username || ctx.from?.first_name}`);
@@ -11,9 +21,103 @@ bot.use((ctx, next) => {
 });
 
 // Команда /start
-bot.start((ctx) => {
+bot.start(async (ctx) => {
   const firstName = ctx.from.first_name || 'Друг';
 
+  // Проверяем, есть ли параметр start (Deep Link)
+  const startPayload = ctx.startPayload;
+
+  // Если это запрос на скачивание нашида
+  if (startPayload && startPayload.startsWith('download_')) {
+    const nashidId = parseInt(startPayload.replace('download_', ''));
+    console.log(`User ${ctx.from.id} requested nashid ${nashidId}`);
+
+    // Находим нашид по ID (здесь нужна база данных или API, но пока используем моковые данные)
+    const mockNashids = [
+      {
+        id: 1,
+        title: "يا قلب من حديد",
+        titleTransliteration: "Ya Qalb Min Hadid",
+        artist: "Fadil Muhammad",
+        duration: "3:45",
+        audioUrl: "/audio/Nasheed_Azan_1.mp3"
+      },
+      {
+        id: 2,
+        title: "سوف أعود يا أمي",
+        titleTransliteration: "Sauf A'ood Ya Ommi",
+        artist: "Al-Baraah Group",
+        duration: "4:20",
+        audioUrl: "/audio/Nasheed_Azan_1.mp3"
+      },
+      {
+        id: 3,
+        title: "رحب بذه النعمه",
+        titleTransliteration: "Rahib Bidhihi An-Ni'mah",
+        artist: "Hamzah Adel",
+        duration: "2:58",
+        audioUrl: "/audio/Nasheed_Azan_1.mp3"
+      },
+      {
+        id: 4,
+        title: "Tala'al Badru 'Alayna",
+        titleTransliteration: "Tala'al Badru 'Alayna",
+        artist: "Zain",
+        duration: "5:12",
+        audioUrl: "/audio/Nasheed_Azan_1.mp3"
+      },
+      {
+        id: 5,
+        title: "الطريق إلى الجنة",
+        titleTransliteration: "At-Tariq ila al-Jannah",
+        artist: "Abu Ali",
+        duration: "4:15",
+        audioUrl: "/audio/Nasheed_Azan_1.mp3"
+      },
+      {
+        id: 6,
+        title: "لا إله إلا الله",
+        titleTransliteration: "La Ilaha Illa Allah",
+        artist: "Ahmad Nashid",
+        duration: "3:30",
+        audioUrl: "/audio/Nasheed_Azan_1.mp3"
+      }
+    ];
+
+    const nashid = mockNashids.find(n => n.id === nashidId);
+
+    if (nashid) {
+      try {
+        await ctx.reply('⏳ Отправляю нашид...');
+
+        // Формируем полный URL для аудиофайла
+        const audioUrl = `${WEB_APP_URL}${nashid.audioUrl}`;
+
+        console.log('Sending audio:', audioUrl);
+
+        // Отправляем аудиофайл пользователю
+        await ctx.replyWithAudio(audioUrl, {
+          title: nashid.title,
+          performer: nashid.artist,
+          duration: parseDuration(nashid.duration),
+          caption: `🎵 *${nashid.title}*\n👤 ${nashid.artist}\n\n_Отправлено из MubarakWay_`,
+          parse_mode: 'Markdown'
+        });
+
+        await ctx.reply('✅ Нашид сохранён в чате! Можете слушать прямо здесь 🎧');
+        return;
+      } catch (error) {
+        console.error('Error sending audio:', error);
+        await ctx.reply('❌ Произошла ошибка при отправке аудиофайла. Попробуйте позже.');
+      }
+    } else {
+      await ctx.reply('❌ Нашид не найден. Попробуйте выбрать другой.');
+    }
+
+    return;
+  }
+
+  // Обычное приветствие при /start без параметров
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.webApp('🕌 Открыть MubarakWay', WEB_APP_URL)],
     [
@@ -184,55 +288,7 @@ bot.command('help', (ctx) => {
 Напишите нам: support@mubarakway.com`);
 });
 
-// Обработка данных из Web App
-bot.on('web_app_data', async (ctx) => {
-  try {
-    const data = JSON.parse(ctx.webAppData.data);
-    console.log('Received Web App data:', data);
-
-    if (data.action === 'download_audio' && data.nashid) {
-      const { nashid } = data;
-
-      // Формируем полный URL для аудиофайла
-      const audioUrl = nashid.audioUrl.startsWith('http')
-        ? nashid.audioUrl
-        : `${WEB_APP_URL}${nashid.audioUrl}`;
-
-      console.log('Sending audio:', audioUrl);
-
-      // Отправляем аудиофайл пользователю
-      await ctx.replyWithAudio(audioUrl, {
-        title: nashid.title,
-        performer: nashid.artist,
-        duration: parseDuration(nashid.duration),
-        caption: `🎵 *${nashid.title}*\n👤 ${nashid.artist}\n\n_Отправлено из MubarakWay_`,
-        parse_mode: 'Markdown'
-      });
-
-      ctx.answerWebAppQuery(ctx.webAppData.query_id, {
-        type: 'article',
-        id: String(nashid.id),
-        title: 'Аудиофайл отправлен',
-        input_message_content: {
-          message_text: `✅ Нашид "${nashid.title}" отправлен в чат`
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error processing web app data:', error);
-    ctx.reply('Произошла ошибка при обработке запроса 😔');
-  }
-});
-
-// Вспомогательная функция для парсинга длительности (3:45 -> 225 секунд)
-function parseDuration(durationStr) {
-  if (!durationStr) return 0;
-  const parts = durationStr.split(':');
-  if (parts.length === 2) {
-    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-  }
-  return 0;
-}
+// Note: web_app_data обработчик убран - используем Deep Links вместо этого
 
 // Обработка любого текста
 bot.on('text', (ctx) => {
