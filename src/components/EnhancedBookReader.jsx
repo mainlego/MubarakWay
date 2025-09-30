@@ -1005,6 +1005,30 @@ const EnhancedBookReader = () => {
         {/* Book Container with page stack effect */}
         <div className="relative" style={{ transformStyle: 'preserve-3d' }}>
 
+          {/* Page Stack Layers - Multiple layers for realistic book effect */}
+          <div
+            className={`absolute inset-0 rounded-xl sm:rounded-2xl ${
+              isDarkTheme ? 'bg-gray-900' : 'bg-amber-100'
+            }`}
+            style={{
+              minHeight: '500px',
+              transform: 'translateZ(-15px) translateY(6px)',
+              opacity: 0.5,
+              boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
+            }}
+          />
+          <div
+            className={`absolute inset-0 rounded-xl sm:rounded-2xl ${
+              isDarkTheme ? 'bg-gray-850' : 'bg-amber-75'
+            }`}
+            style={{
+              minHeight: '500px',
+              transform: 'translateZ(-10px) translateY(4px)',
+              opacity: 0.7,
+              boxShadow: '0 6px 15px rgba(0,0,0,0.25)'
+            }}
+          />
+
           {/* Bottom/Next Page - Always visible underneath */}
           <div
             className={`absolute inset-0 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden ${
@@ -1014,15 +1038,15 @@ const EnhancedBookReader = () => {
             }`}
             style={{
               minHeight: '500px',
-              transform: 'translateZ(-10px)',
+              transform: 'translateZ(-5px) translateY(2px)',
               boxShadow: isDarkTheme
-                ? 'inset 3px 0 8px rgba(0,0,0,0.3), inset -3px 0 8px rgba(0,0,0,0.3)'
-                : 'inset 3px 0 8px rgba(0,0,0,0.1), inset -3px 0 8px rgba(0,0,0,0.1)',
+                ? 'inset 5px 0 15px rgba(0,0,0,0.5), inset -5px 0 15px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.4)'
+                : 'inset 5px 0 15px rgba(139,92,46,0.15), inset -5px 0 15px rgba(139,92,46,0.15), 0 4px 12px rgba(0,0,0,0.2)',
             }}
           >
-            {/* Page stack effect on sides */}
-            <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-r from-black/10 to-transparent"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-l from-black/10 to-transparent"></div>
+            {/* Enhanced page edges effect */}
+            <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/20 via-black/10 to-transparent"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-black/20 via-black/10 to-transparent"></div>
 
             {/* Next/Prev page content - visible during flip */}
             {(pageTransition === 'flip-left' || pageTransition === 'flip-right') && nextPageContent && (
@@ -1055,9 +1079,9 @@ const EnhancedBookReader = () => {
             )}
           </div>
 
-          {/* Top/Current Page - Flips over */}
+          {/* Top/Current Page - Flips over and disappears */}
           <div
-            className={`relative transition-all ${
+            className={`relative transition-all ease-in-out ${
               pageTransition === 'flip-left' ? 'duration-[700ms]' :
               pageTransition === 'flip-right' ? 'duration-[700ms]' :
               'duration-300'
@@ -1066,10 +1090,12 @@ const EnhancedBookReader = () => {
               transformStyle: 'preserve-3d',
               transformOrigin: pageTransition === 'flip-left' ? '0% 50%' : '100% 50%',
               transform:
-                pageTransition === 'flip-left' ? 'rotateY(-180deg)' :
-                pageTransition === 'flip-right' ? 'rotateY(180deg)' :
-                'rotateY(0deg)',
-              zIndex: pageTransition ? 10 : 1
+                pageTransition === 'flip-left' ? 'rotateY(-180deg) scale(0.95)' :
+                pageTransition === 'flip-right' ? 'rotateY(180deg) scale(0.95)' :
+                'rotateY(0deg) scale(1)',
+              opacity: pageTransition ? 0 : 1,
+              zIndex: pageTransition ? 10 : 1,
+              pointerEvents: pageTransition ? 'none' : 'auto'
             }}
           >
             <div
@@ -1086,8 +1112,19 @@ const EnhancedBookReader = () => {
                   : '0 25px 70px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.9)',
               }}
             >
-              {/* Page stack effect on right edge */}
-              <div className="absolute right-0 top-0 bottom-0 w-3 bg-gradient-to-l from-black/5 to-transparent"></div>
+              {/* Enhanced page stack effect on edges */}
+              <div className="absolute left-0 top-0 bottom-0 w-6 pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-r from-black/25 via-black/15 to-transparent"></div>
+                <div className="absolute left-1 top-0 bottom-0 w-px bg-black/20"></div>
+                <div className="absolute left-2 top-0 bottom-0 w-px bg-black/15"></div>
+                <div className="absolute left-3 top-0 bottom-0 w-px bg-black/10"></div>
+              </div>
+              <div className="absolute right-0 top-0 bottom-0 w-6 pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-l from-black/25 via-black/15 to-transparent"></div>
+                <div className="absolute right-1 top-0 bottom-0 w-px bg-black/20"></div>
+                <div className="absolute right-2 top-0 bottom-0 w-px bg-black/15"></div>
+                <div className="absolute right-3 top-0 bottom-0 w-px bg-black/10"></div>
+              </div>
 
               {/* Page number at bottom */}
               {isPageMode && (

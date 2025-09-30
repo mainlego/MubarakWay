@@ -27,6 +27,44 @@
 
     <title>MubarakWay - Исламское мини-приложение</title>
     <meta name="description" content="Комплексное исламское приложение: библиотека книг, нашиды, определение киблы и время молитв" />
+
+    <!-- Cache Busting for Development -->
+    <script>
+      // Clear cache on version change (only in development)
+      const APP_VERSION = 'v1.0.6';
+      const savedVersion = localStorage.getItem('app_version');
+
+      if (savedVersion !== APP_VERSION) {
+        console.log('New version detected, clearing cache...');
+
+        // Clear Service Worker caches
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            names.forEach(name => caches.delete(name));
+          });
+        }
+
+        // Clear localStorage except important data
+        const importantKeys = ['bookFavorites', 'bookmarks'];
+        const tempStorage = {};
+        importantKeys.forEach(key => {
+          const value = localStorage.getItem(key);
+          if (value) tempStorage[key] = value;
+        });
+
+        localStorage.clear();
+
+        // Restore important data
+        Object.keys(tempStorage).forEach(key => {
+          localStorage.setItem(key, tempStorage[key]);
+        });
+
+        localStorage.setItem('app_version', APP_VERSION);
+
+        // Reload page to get fresh content
+        window.location.reload(true);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
