@@ -57,10 +57,27 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   // Определяем ВСЕ обработчики ПЕРЕД использованием в useEffect
   const handlePlayPause = useCallback(() => {
     hasUserInteracted.current = true;
+    const audio = audioRef.current;
+
+    if (!audio) return;
 
     if (isPlaying) {
-      dispatch(pauseNashid());
+      // Если Redux думает что играет, но аудио на паузе - сначала синхронизируем
+      if (audio.paused) {
+        // Пытаемся возобновить воспроизведение
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error('Ошибка при попытке возобновить:', error);
+            dispatch(pauseNashid());
+          });
+        }
+      } else {
+        // Все синхронизировано, можно ставить на паузу
+        dispatch(pauseNashid());
+      }
     } else {
+      // Если Redux думает что на паузе
       if (nashid) {
         dispatch(playNashid(nashid));
       }
@@ -105,9 +122,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     if (!audio) return;
 
     const handleTimeUpdate = () => {
-      if (audio.currentTime) {
-        setCurrentTime(audio.currentTime);
-      }
+      setCurrentTime(audio.currentTime);
     };
 
     const handleDurationChange = () => {
@@ -136,7 +151,25 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
 
     const handleCanPlay = () => setIsLoading(false);
     const handleWaiting = () => setIsLoading(true);
-    const handlePlaying = () => setIsLoading(false);
+
+    const handlePlaying = () => {
+      setIsLoading(false);
+      // Синхронизация: если аудио начало играть, убедимся что Redux в курсе
+      if (!isPlaying) {
+        console.log('Audio started playing, syncing Redux state');
+        dispatch(playNashid(nashid));
+      }
+    };
+
+    const handlePause = () => {
+      // Синхронизация: если аудио поставлено на паузу, убедимся что Redux в курсе
+      // НО только если это не временная пауза (loading)
+      if (isPlaying && !isLoading) {
+        console.log('Audio paused, syncing Redux state');
+        dispatch(pauseNashid());
+      }
+    };
+
     const handleEnded = () => handleNext();
 
     const handleError = (e) => {
@@ -154,6 +187,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('waiting', handleWaiting);
     audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
@@ -161,9 +195,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
       setDuration(audio.duration);
     }
-    if (audio.currentTime) {
-      setCurrentTime(audio.currentTime);
-    }
+    setCurrentTime(audio.currentTime);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
@@ -174,10 +206,11 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('waiting', handleWaiting);
       audio.removeEventListener('playing', handlePlaying);
+      audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
-  }, [dispatch, handleNext]);
+  }, [dispatch, handleNext, nashid, isPlaying, isLoading]);
 
   // Проверка офлайн доступности
   useEffect(() => {
@@ -211,25 +244,35 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       hasUserInteracted.current = true;
     }
 
-    if (isPlaying) {
-      stopAllOtherAudio();
+    // Управляем воспроизведением на основе Redux state
+    // Важно: используем setTimeout для синхронизации состояния после ре-рендера
+    const syncPlayback = () => {
+      if (isPlaying && audio.paused) {
+        stopAllOtherAudio();
 
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setAudioError(null);
-          })
-          .catch(error => {
-            console.error('Ошибка воспроизведения:', error);
-            setAudioError(`Не удалось воспроизвести аудио: ${error.message}`);
-            dispatch(pauseNashid());
-          });
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setAudioError(null);
+              setIsLoading(false);
+            })
+            .catch(error => {
+              console.error('Ошибка воспроизведения:', error);
+              setAudioError(`Не удалось воспроизвести аудио: ${error.message}`);
+              setIsLoading(false);
+              dispatch(pauseNashid());
+            });
+        }
+      } else if (!isPlaying && !audio.paused) {
+        audio.pause();
       }
-    } else {
-      audio.pause();
-    }
-  }, [isPlaying, nashid, dispatch, stopAllOtherAudio, getAudioUrl]);
+    };
+
+    // Немедленная синхронизация
+    syncPlayback();
+
+  }, [isPlaying, nashid, dispatch, stopAllOtherAudio, getAudioUrl, isMinimized]);
 
   // Media Session API для фонового воспроизведения
   useEffect(() => {
