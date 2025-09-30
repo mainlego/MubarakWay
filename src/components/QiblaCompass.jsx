@@ -166,6 +166,27 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   // Local loading state for geolocation to avoid conflicts
   const [localLoading, setLocalLoading] = useState(true);
 
+  // Helper function for angle difference
+  const getAngleDiff = (target, current) => {
+    const normalizedTarget = ((target % 360) + 360) % 360;
+    const normalizedCurrent = ((current % 360) + 360) % 360;
+    let diff = normalizedTarget - normalizedCurrent;
+    if (diff > 180) diff -= 360;
+    else if (diff < -180) diff += 360;
+    return diff;
+  };
+
+  // Update qibla adjusted buffer when orientation or qibla changes
+  useEffect(() => {
+    const rawQiblaAdjusted = getAngleDiff(qiblaDegree || 0, smoothedOrientation);
+
+    setQiblaAdjustedBuffer(currentBuffer => {
+      const buffer = [...currentBuffer, rawQiblaAdjusted];
+      if (buffer.length > 5) buffer.shift();
+      return buffer;
+    });
+  }, [smoothedOrientation, qiblaDegree]);
+
   useEffect(() => {
     // Get user location with local loading state
     setLocalLoading(true);
@@ -523,24 +544,12 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const rawQiblaAdjusted = getAngleDifference(safeQiblaDegree, safeOrientation);
   const deviceDirectionAdjusted = 0; // Device always points "up" in our view
 
-  // Smooth qibla arrow to prevent jitter near alignment
-  const smoothQiblaAdjusted = (newValue) => {
-    setQiblaAdjustedBuffer(currentBuffer => {
-      const buffer = [...currentBuffer, newValue];
-      if (buffer.length > 5) buffer.shift(); // Small buffer for qibla arrow
-
-      // Simple average for stability
-      const average = buffer.reduce((sum, val) => sum + val, 0) / buffer.length;
-      return buffer;
-    });
-
-    // Return smoothed value
-    if (qiblaAdjustedBuffer.length === 0) return newValue;
-    const allValues = [...qiblaAdjustedBuffer, newValue];
-    return allValues.reduce((sum, val) => sum + val, 0) / allValues.length;
-  };
-
-  const qiblaDirectionAdjusted = smoothQiblaAdjusted(rawQiblaAdjusted);
+  // Calculate smoothed qibla direction (without causing re-renders)
+  let qiblaDirectionAdjusted = rawQiblaAdjusted;
+  if (qiblaAdjustedBuffer.length > 0) {
+    const allValues = [...qiblaAdjustedBuffer, rawQiblaAdjusted];
+    qiblaDirectionAdjusted = allValues.reduce((sum, val) => sum + val, 0) / allValues.length;
+  }
 
   if (process.env.NODE_ENV === 'development') {
     console.log('Display angles:', {
