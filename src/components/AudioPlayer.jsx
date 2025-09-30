@@ -150,6 +150,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
       // 1. Временная техническая пауза (loading, buffering)
       // 2. Пауза при сворачивании плеера (не должна останавливать воспроизведение)
       // Синхронизация происходит только через явные действия пользователя (кнопка play/pause)
+      console.log('Audio pause event fired, but NOT syncing to Redux');
     };
 
     const handleEnded = () => handleNext();
@@ -232,13 +233,17 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     // Управляем воспроизведением на основе Redux state
     // Важно: используем setTimeout для синхронизации состояния после ре-рендера
     const syncPlayback = () => {
+      console.log('syncPlayback:', { isPlaying, audioPaused: audio.paused });
+
       if (isPlaying && audio.paused) {
+        console.log('Starting playback...');
         stopAllOtherAudio();
 
         const playPromise = audio.play();
         if (playPromise !== undefined) {
           playPromise
             .then(() => {
+              console.log('Playback started successfully');
               setAudioError(null);
               setIsLoading(false);
             })
@@ -250,6 +255,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
             });
         }
       } else if (!isPlaying && !audio.paused) {
+        console.log('Pausing audio because Redux state is paused');
         audio.pause();
       }
     };
