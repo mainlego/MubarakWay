@@ -457,10 +457,13 @@ const startBot = async () => {
 
     // Запускаем систему уведомлений о времени молитв
     console.log('⏰ Запуск системы уведомлений о времени молитв...');
+    console.log(`📊 Текущих подписчиков: ${userSubscriptions.size}`);
+
     // Проверяем каждую минуту
     setInterval(checkPrayerTimes, 60000);
     // Первая проверка сразу
-    checkPrayerTimes();
+    console.log('🔄 Выполняю первую проверку времени молитв...');
+    await checkPrayerTimes();
 
     // Очищаем старые уведомления раз в день (в полночь)
     setInterval(() => {
@@ -472,6 +475,7 @@ const startBot = async () => {
     }, 60000);
 
     console.log('✅ Система уведомлений о молитвах запущена');
+    console.log('💡 Пользователи будут автоматически подписаны при /start');
 
   } catch (error) {
     console.error('💥 Критическая ошибка запуска бота:', error);
@@ -481,13 +485,14 @@ const startBot = async () => {
 };
 
 // Функция для добавления пользователя в подписки
-function subscribeUser(userId, location = null) {
+function subscribeUser(userId, location = null, timezone = null) {
   userSubscriptions.set(userId, {
     userId,
     location: location || { latitude: 55.7558, longitude: 37.6173 }, // По умолчанию Москва
+    timezone: timezone || 'Europe/Moscow', // Часовой пояс пользователя
     subscribedAt: Date.now()
   });
-  console.log(`✅ User ${userId} subscribed to prayer notifications`);
+  console.log(`✅ User ${userId} subscribed to prayer notifications (timezone: ${timezone || 'Europe/Moscow'})`);
 }
 
 // Функция для расчета времени молитв
@@ -544,11 +549,12 @@ function getCurrentAndNextPrayer(prayerTimes) {
   return { currentPrayer, nextPrayer };
 }
 
-// Форматировать время
-function formatTime(date) {
+// Форматировать время с учетом часового пояса пользователя
+function formatTime(date, timezone = 'Europe/Moscow') {
   return date.toLocaleTimeString('ru-RU', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: timezone
   });
 }
 
@@ -556,17 +562,33 @@ function formatTime(date) {
 async function checkPrayerTimes() {
   try {
     const now = new Date();
+    console.log(`🔍 Checking prayer times for ${userSubscriptions.size} subscribers at ${now.toISOString()}`);
+
+    if (userSubscriptions.size === 0) {
+      console.log('⚠️ No subscribers yet. Users will be subscribed when they run /start');
+      return;
+    }
 
     for (const [userId, subscription] of userSubscriptions) {
       try {
         const prayerTimes = calculatePrayerTimes(subscription.location);
-        if (!prayerTimes) continue;
+        if (!prayerTimes) {
+          console.warn(`❌ Could not calculate prayer times for user ${userId}`);
+          continue;
+        }
 
         const { currentPrayer, nextPrayer } = getCurrentAndNextPrayer(prayerTimes);
-        if (!nextPrayer) continue;
+        if (!nextPrayer) {
+          console.warn(`❌ No next prayer found for user ${userId}`);
+          continue;
+        }
 
         const timeUntilNext = nextPrayer.time - now;
         const minutesUntilNext = Math.floor(timeUntilNext / (1000 * 60));
+
+        if (minutesUntilNext <= 15) {
+          console.log(`⏱️ User ${userId}: ${minutesUntilNext} min until ${nextPrayer.name} at ${formatTime(nextPrayer.time, subscription.timezone)}`);
+        }
 
         // Уведомление за 10 минут до молитвы
         if (minutesUntilNext === 10) {
@@ -575,7 +597,7 @@ async function checkPrayerTimes() {
             await bot.telegram.sendMessage(
               userId,
               `⏰ <b>Осталось 10 минут до молитвы ${nextPrayer.name}</b>\n\n` +
-              `🕌 Время: ${formatTime(nextPrayer.time)}\n\n` +
+              `🕌 Время: ${formatTime(nextPrayer.time, subscription.timezone)}\n\n` +
               `Приготовьтесь к намазу.`,
               { parse_mode: 'HTML' }
             );
@@ -591,7 +613,7 @@ async function checkPrayerTimes() {
             await bot.telegram.sendMessage(
               userId,
               `🕌 <b>Наступило время молитвы ${nextPrayer.name}</b>\n\n` +
-              `🕐 ${formatTime(nextPrayer.time)}\n\n` +
+              `🕐 ${formatTime(nextPrayer.time, subscription.timezone)}\n\n` +
               `Не откладывайте намаз!`,
               { parse_mode: 'HTML' }
             );
@@ -620,7 +642,7 @@ async function checkPrayerTimes() {
                 await bot.telegram.sendMessage(
                   userId,
                   `📿 <b>Следующая молитва: ${upcomingPrayer.name}</b>\n\n` +
-                  `🕐 Время: ${formatTime(upcomingPrayer.time)}\n` +
+                  `🕐 Время: ${formatTime(upcomingPrayer.time, subscription.timezone)}\n` +
                   `⏳ Через: ${hoursUntil}ч ${minutesRemaining}м`,
                   { parse_mode: 'HTML' }
                 );
