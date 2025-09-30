@@ -333,58 +333,56 @@ app.get('/health', (req, res) => {
 const startBot = async () => {
   try {
     // ВАЖНО: Сначала запускаем HTTP сервер для Render
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`🌐 HTTP server запущен на порту ${PORT}`);
       console.log('✅ Render может подключиться к боту');
     });
 
-    // Затем запускаем Telegram бота с повторными попытками
-    let retries = 3;
-    let lastError;
+    // На продакшене используем Webhook вместо Polling
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
 
-    for (let i = 0; i < retries; i++) {
-      try {
-        console.log(`🔄 Попытка запуска бота ${i + 1}/${retries}...`);
+    if (isProduction && WEB_APP_URL) {
+      console.log('🔧 Режим: Webhook (Production)');
 
-        // Сначала останавливаем любые активные сессии
-        if (i > 0) {
-          try {
-            await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-            console.log('🧹 Webhook очищен');
-          } catch (e) {
-            console.log('⚠️ Не удалось очистить webhook:', e.message);
-          }
+      // Удаляем старые webhook и обновления
+      await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+      console.log('🧹 Старый webhook удалён');
 
-          // Ждём перед повторной попыткой
-          await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
-        }
+      // Устанавливаем новый webhook
+      const webhookPath = '/webhook';
+      const webhookUrl = `${WEB_APP_URL.replace('mubarak-way.onrender.com', 'mubarak-way-bot.onrender.com')}${webhookPath}`;
 
-        await bot.launch({
-          dropPendingUpdates: true,
-          allowedUpdates: ['message', 'callback_query']
-        });
+      app.use(bot.webhookCallback(webhookPath));
 
-        console.log('🤖 MubarakWay Bot запущен успешно!');
-        console.log('🕌 Готов служить умме...');
-        console.log('📱 Web App URL:', WEB_APP_URL);
-        return; // Успешный запуск
+      await bot.telegram.setWebhook(webhookUrl, {
+        drop_pending_updates: true,
+        allowed_updates: ['message', 'callback_query']
+      });
 
-      } catch (error) {
-        lastError = error;
-        console.error(`❌ Попытка ${i + 1} не удалась:`, error.message);
+      console.log('✅ Webhook установлен:', webhookUrl);
+      console.log('🤖 MubarakWay Bot запущен успешно (Webhook режим)!');
+      console.log('🕌 Готов служить умме...');
+      console.log('📱 Web App URL:', WEB_APP_URL);
 
-        if (error.response?.error_code === 409) {
-          console.log('⚠️ Обнаружен конфликт. Возможно, бот уже запущен где-то ещё.');
-          console.log('💡 Совет: Остановите все другие инстансы бота и попробуйте снова.');
-        }
-      }
+    } else {
+      // В разработке используем Polling
+      console.log('🔧 Режим: Polling (Development)');
+
+      await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+      console.log('🧹 Webhook удалён');
+
+      await bot.launch({
+        dropPendingUpdates: true,
+        allowedUpdates: ['message', 'callback_query']
+      });
+
+      console.log('🤖 MubarakWay Bot запущен успешно (Polling режим)!');
+      console.log('🕌 Готов служить умме...');
     }
-
-    // Если все попытки не удались
-    throw new Error(`Не удалось запустить бота после ${retries} попыток. Последняя ошибка: ${lastError?.message}`);
 
   } catch (error) {
     console.error('💥 Критическая ошибка запуска бота:', error);
+    console.error('Stack:', error.stack);
     // Не выходим из процесса, чтобы HTTP сервер продолжал работать для health checks
   }
 };
