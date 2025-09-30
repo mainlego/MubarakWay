@@ -57,27 +57,12 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
   // Определяем ВСЕ обработчики ПЕРЕД использованием в useEffect
   const handlePlayPause = useCallback(() => {
     hasUserInteracted.current = true;
-    const audio = audioRef.current;
 
-    if (!audio) return;
-
+    // Простое переключение состояния Redux
+    // Реальное управление аудио произойдет в useEffect
     if (isPlaying) {
-      // Если Redux думает что играет, но аудио на паузе - сначала синхронизируем
-      if (audio.paused) {
-        // Пытаемся возобновить воспроизведение
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.error('Ошибка при попытке возобновить:', error);
-            dispatch(pauseNashid());
-          });
-        }
-      } else {
-        // Все синхронизировано, можно ставить на паузу
-        dispatch(pauseNashid());
-      }
+      dispatch(pauseNashid());
     } else {
-      // Если Redux думает что на паузе
       if (nashid) {
         dispatch(playNashid(nashid));
       }
@@ -154,20 +139,17 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
 
     const handlePlaying = () => {
       setIsLoading(false);
-      // Синхронизация: если аудио начало играть, убедимся что Redux в курсе
-      if (!isPlaying) {
-        console.log('Audio started playing, syncing Redux state');
-        dispatch(playNashid(nashid));
-      }
+      // Синхронизация: если аудио начало играть БЕЗ команды от Redux
+      // Это может произойти при автоматическом возобновлении воспроизведения
+      // НО мы НЕ вызываем dispatch, так как это создаст бесконечный цикл
+      // Состояние Redux уже должно быть isPlaying=true
     };
 
     const handlePause = () => {
-      // Синхронизация: если аудио поставлено на паузу, убедимся что Redux в курсе
-      // НО только если это не временная пауза (loading)
-      if (isPlaying && !isLoading) {
-        console.log('Audio paused, syncing Redux state');
-        dispatch(pauseNashid());
-      }
+      // НЕ синхронизируем автоматически при паузе, так как это может быть:
+      // 1. Временная техническая пауза (loading, buffering)
+      // 2. Пауза при сворачивании плеера (не должна останавливать воспроизведение)
+      // Синхронизация происходит только через явные действия пользователя (кнопка play/pause)
     };
 
     const handleEnded = () => handleNext();
@@ -238,6 +220,9 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     // Устанавливаем источник только если он изменился
     const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `${window.location.origin}${audioUrl}`;
 
+    console.log('Audio URL:', audioUrl);
+    console.log('Full Audio URL:', fullAudioUrl);
+
     if (audio.src !== fullAudioUrl) {
       audio.src = fullAudioUrl;
       audio.load();
@@ -272,7 +257,7 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     // Немедленная синхронизация
     syncPlayback();
 
-  }, [isPlaying, nashid, dispatch, stopAllOtherAudio, getAudioUrl, isMinimized]);
+  }, [isPlaying, nashid, dispatch, stopAllOtherAudio, getAudioUrl]);
 
   // Media Session API для фонового воспроизведения
   useEffect(() => {
