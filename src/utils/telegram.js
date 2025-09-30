@@ -173,6 +173,59 @@ export class TelegramWebApp {
     this.webApp.sendData(JSON.stringify(data));
   }
 
+  // Открыть чат с ботом
+  openChat() {
+    if (!this.webApp) return;
+    // Получаем bot username из параметров или используем дефолтный
+    const botUsername = this.webApp.initDataUnsafe?.bot?.username || 'MubarakWayBot';
+    this.openLink(`https://t.me/${botUsername}`);
+  }
+
+  // Отправить аудиофайл в чат с ботом
+  async sendAudioToBot(nashid) {
+    if (!this.webApp) {
+      console.error('Telegram WebApp not available');
+      return false;
+    }
+
+    try {
+      // Отправляем данные о нашиде боту
+      const data = {
+        action: 'download_audio',
+        nashid: {
+          id: nashid.id,
+          title: nashid.title,
+          artist: nashid.artist,
+          audioUrl: nashid.audioUrl || nashid.audio_url,
+          cover: nashid.cover,
+          duration: nashid.duration
+        }
+      };
+
+      this.sendData(data);
+
+      // Показываем подтверждение
+      this.showPopup({
+        title: 'Аудиофайл отправлен',
+        message: 'Нашид отправлен в чат с ботом. Откройте чат для прослушивания.',
+        buttons: [
+          { id: 'open_chat', type: 'default', text: 'Открыть чат' },
+          { id: 'close', type: 'close', text: 'Закрыть' }
+        ]
+      }, (buttonId) => {
+        if (buttonId === 'open_chat') {
+          this.openChat();
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error sending audio to bot:', error);
+      this.showAlert('Ошибка при отправке аудиофайла');
+      return false;
+    }
+  }
+
   // Включить/выключить вибрацию
   vibrate() {
     if (!this.webApp) return;

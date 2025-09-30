@@ -184,6 +184,56 @@ bot.command('help', (ctx) => {
 Напишите нам: support@mubarakway.com`);
 });
 
+// Обработка данных из Web App
+bot.on('web_app_data', async (ctx) => {
+  try {
+    const data = JSON.parse(ctx.webAppData.data);
+    console.log('Received Web App data:', data);
+
+    if (data.action === 'download_audio' && data.nashid) {
+      const { nashid } = data;
+
+      // Формируем полный URL для аудиофайла
+      const audioUrl = nashid.audioUrl.startsWith('http')
+        ? nashid.audioUrl
+        : `${WEB_APP_URL}${nashid.audioUrl}`;
+
+      console.log('Sending audio:', audioUrl);
+
+      // Отправляем аудиофайл пользователю
+      await ctx.replyWithAudio(audioUrl, {
+        title: nashid.title,
+        performer: nashid.artist,
+        duration: parseDuration(nashid.duration),
+        caption: `🎵 *${nashid.title}*\n👤 ${nashid.artist}\n\n_Отправлено из MubarakWay_`,
+        parse_mode: 'Markdown'
+      });
+
+      ctx.answerWebAppQuery(ctx.webAppData.query_id, {
+        type: 'article',
+        id: String(nashid.id),
+        title: 'Аудиофайл отправлен',
+        input_message_content: {
+          message_text: `✅ Нашид "${nashid.title}" отправлен в чат`
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error processing web app data:', error);
+    ctx.reply('Произошла ошибка при обработке запроса 😔');
+  }
+});
+
+// Вспомогательная функция для парсинга длительности (3:45 -> 225 секунд)
+function parseDuration(durationStr) {
+  if (!durationStr) return 0;
+  const parts = durationStr.split(':');
+  if (parts.length === 2) {
+    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+  }
+  return 0;
+}
+
 // Обработка любого текста
 bot.on('text', (ctx) => {
   const text = ctx.message.text.toLowerCase();

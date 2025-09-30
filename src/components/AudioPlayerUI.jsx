@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { playNashid, pauseNashid, stopNashid, toggleFavorite } from '../store/slices/nashidsSlice';
 import { useOfflineNashids } from '../hooks/useOffline';
+import { telegram } from '../utils/telegram';
 
 /**
  * Чистый UI компонент для аудиоплеера
@@ -124,16 +125,28 @@ const AudioPlayerUI = ({ nashid, playlist = [], onClose, isMinimized, onToggleMi
   }, [nashid, dispatch]);
 
   const handleDownload = useCallback(async () => {
-    if (!nashid || isOfflineAvailable) return;
+    if (!nashid) return;
 
-    try {
-      const audioUrl = nashid.audioUrl || nashid.audio_url || '';
-      const response = await fetch(audioUrl);
-      const audioBlob = await response.blob();
-      await saveNashidOffline(nashid, audioBlob);
-      setIsOfflineAvailable(true);
-    } catch (error) {
-      console.error('Error downloading nashid:', error);
+    // Если в Telegram Mini App - отправляем в чат с ботом
+    if (telegram.isMiniApp()) {
+      telegram.vibrate();
+      await telegram.sendAudioToBot(nashid);
+    } else {
+      // В браузере - сохраняем офлайн
+      if (isOfflineAvailable) return;
+
+      try {
+        const audioUrl = nashid.audioUrl || nashid.audio_url || '';
+        const response = await fetch(audioUrl);
+        const audioBlob = await response.blob();
+        await saveNashidOffline(nashid, audioBlob);
+        setIsOfflineAvailable(true);
+
+        telegram.showAlert('Нашид сохранён для офлайн прослушивания');
+      } catch (error) {
+        console.error('Error downloading nashid:', error);
+        telegram.showAlert('Ошибка при сохранении нашида');
+      }
     }
   }, [nashid, isOfflineAvailable, saveNashidOffline]);
 
@@ -411,12 +424,8 @@ const AudioPlayerUI = ({ nashid, playlist = [], onClose, isMinimized, onToggleMi
 
           <button
             onClick={handleDownload}
-            className={`p-3 rounded-full transition-colors ${
-              isOfflineAvailable
-                ? 'bg-green-100 text-green-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-            title={isOfflineAvailable ? 'Доступно офлайн' : 'Скачать для офлайн'}
+            className="p-3 text-gray-600 hover:text-gray-900 rounded-full transition-colors"
+            title={telegram.isMiniApp() ? 'Отправить в чат с ботом' : 'Скачать для офлайн'}
           >
             <Download className="w-5 h-5" />
           </button>
