@@ -332,21 +332,38 @@ class PrayerTimesService {
     }
 
     try {
-      const coordinates = new Coordinates(loc.latitude, loc.longitude);
-      const qibla = new Qibla(coordinates);
-      const direction = qibla.direction;
+      // Manual calculation using Great Circle formula
+      const MECCA_LAT = 21.4225;
+      const MECCA_LNG = 39.8261;
 
-      console.log('Qibla direction calculated:', direction, 'for location:', loc);
+      const lat1 = loc.latitude * Math.PI / 180;
+      const lat2 = MECCA_LAT * Math.PI / 180;
+      const deltaLng = (MECCA_LNG - loc.longitude) * Math.PI / 180;
 
-      // Нормализуем направление (0-360)
-      if (typeof direction === 'number' && !isNaN(direction)) {
-        let normalized = direction % 360;
-        if (normalized < 0) normalized += 360;
-        return normalized;
+      const y = Math.sin(deltaLng) * Math.cos(lat2);
+      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+
+      let bearing = Math.atan2(y, x) * 180 / Math.PI;
+
+      // Normalize to 0-360
+      bearing = (bearing + 360) % 360;
+
+      console.log('Manual Qibla calculation:', {
+        location: loc,
+        bearing: bearing.toFixed(2)
+      });
+
+      // Also try adhan library for comparison
+      try {
+        const coordinates = new Coordinates(loc.latitude, loc.longitude);
+        const qibla = new Qibla(coordinates);
+        const adhanDirection = qibla.direction;
+        console.log('Adhan library result:', adhanDirection);
+      } catch (err) {
+        console.warn('Adhan library failed:', err);
       }
 
-      console.warn('Qibla library returned invalid direction:', direction);
-      return null;
+      return bearing;
     } catch (error) {
       console.error('Error calculating qibla direction:', error);
       return null;
