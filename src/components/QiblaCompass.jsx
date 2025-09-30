@@ -494,12 +494,21 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   // Normalize angles to 0-360 range
   const normalizeAngle = (angle) => ((angle % 360) + 360) % 360;
 
+  // Calculate shortest angle difference (handles 0/360 wrap-around)
+  const getAngleDifference = (target, current) => {
+    let diff = target - current;
+    // Normalize to -180 to 180 range
+    while (diff > 180) diff -= 360;
+    while (diff < -180) diff += 360;
+    return diff;
+  };
+
   // Calculate adjusted angles for display (используем сглаженные значения)
   const safeOrientation = isNaN(smoothedOrientation) ? 0 : smoothedOrientation;
   const safeQiblaDegree = isNaN(qiblaDegree) ? 0 : qiblaDegree;
 
   const northDirection = normalizeAngle(-safeOrientation);
-  const qiblaDirectionAdjusted = normalizeAngle(safeQiblaDegree - safeOrientation);
+  const qiblaDirectionAdjusted = getAngleDifference(safeQiblaDegree, safeOrientation);
   const deviceDirectionAdjusted = 0; // Device always points "up" in our view
 
   if (process.env.NODE_ENV === 'development') {
