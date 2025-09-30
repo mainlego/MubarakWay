@@ -164,19 +164,27 @@ const EnhancedBookReader = () => {
     }
   }, [fontSize, lineHeight, book]);
 
-  // Восстановление прогресса чтения при загрузке
+  // Восстановление прогресса чтения и скролла при загрузке
   useEffect(() => {
-    if (totalPages > 0 && currentPage > 1) {
+    if (totalPages > 0 && currentPage > 0) {
       // Небольшая задержка, чтобы страница успела отрендериться
       const timer = setTimeout(() => {
         const savedProgress = parseInt(localStorage.getItem(`readingProgress_${id}`) || '0');
         if (savedProgress > 0) {
           setReadingProgress(savedProgress);
         }
-      }, 100);
+
+        // Восстанавливаем скролл из закладки
+        const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+        const bookId = parseInt(id);
+        if (bookmarks[bookId] && bookmarks[bookId].scrollPosition !== undefined) {
+          const scrollPos = bookmarks[bookId].scrollPosition;
+          window.scrollTo({ top: scrollPos, behavior: 'smooth' });
+        }
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [totalPages, id]);
+  }, [totalPages, id, currentPage]);
 
   // Отслеживание онлайн статуса
   useEffect(() => {
@@ -227,7 +235,7 @@ const EnhancedBookReader = () => {
 
   const nextPage = () => {
     if (currentPage < totalPages) {
-      setPageTransition('slide-left');
+      setPageTransition('flip-forward');
       setTimeout(() => {
         const newPage = currentPage + 1;
         setCurrentPage(newPage);
@@ -235,14 +243,14 @@ const EnhancedBookReader = () => {
         updateProgress(newPage);
         // Прокрутка к началу страницы
         window.scrollTo({ top: 0, behavior: 'instant' });
-        setPageTransition('');
-      }, 150);
+        setTimeout(() => setPageTransition(''), 50);
+      }, 400);
     }
   };
 
   const prevPage = () => {
     if (currentPage > 1) {
-      setPageTransition('slide-right');
+      setPageTransition('flip-backward');
       setTimeout(() => {
         const newPage = currentPage - 1;
         setCurrentPage(newPage);
@@ -250,8 +258,8 @@ const EnhancedBookReader = () => {
         updateProgress(newPage);
         // Прокрутка к началу страницы
         window.scrollTo({ top: 0, behavior: 'instant' });
-        setPageTransition('');
-      }, 150);
+        setTimeout(() => setPageTransition(''), 50);
+      }, 400);
     }
   };
 
@@ -363,10 +371,12 @@ const EnhancedBookReader = () => {
       localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
       setIsBookmarked(false);
     } else {
-      // Сохраняем закладку с текущей позицией
+      // Сохраняем закладку с текущей позицией и скроллом
+      const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
       bookmarks[bookId] = {
         page: currentPage,
         progress: readingProgress,
+        scrollPosition: scrollPosition,
         timestamp: Date.now()
       };
       localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
@@ -985,14 +995,27 @@ const EnhancedBookReader = () => {
               lineHeight: lineHeight,
               fontFamily: '"Inter", "Segoe UI", "Roboto", sans-serif'
             }}
+          style={{
+            perspective: '1500px',
+            transformStyle: 'preserve-3d'
+          }}
         >
           {isPageMode ? (
             <div
-              className={`transition-all duration-300 ${
-                pageTransition === 'slide-left' ? 'opacity-0 -translate-x-4' :
-                pageTransition === 'slide-right' ? 'opacity-0 translate-x-4' :
-                'opacity-100 translate-x-0'
+              className={`transition-all ${
+                pageTransition === 'flip-forward' ? 'duration-[400ms]' :
+                pageTransition === 'flip-backward' ? 'duration-[400ms]' :
+                'duration-300'
               }`}
+              style={{
+                transformStyle: 'preserve-3d',
+                transformOrigin: pageTransition === 'flip-forward' ? 'left center' : 'right center',
+                transform: pageTransition === 'flip-forward' ? 'rotateY(-180deg)' :
+                          pageTransition === 'flip-backward' ? 'rotateY(180deg)' :
+                          'rotateY(0deg)',
+                opacity: pageTransition ? 0.3 : 1,
+                backfaceVisibility: 'hidden'
+              }}
               dangerouslySetInnerHTML={{
                 __html: (() => {
                   try {
