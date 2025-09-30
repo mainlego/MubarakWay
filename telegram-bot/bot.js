@@ -338,24 +338,87 @@ const startBot = async () => {
       console.log('✅ Render может подключиться к боту');
     });
 
-    // Затем запускаем Telegram бота
-    await bot.launch();
-    console.log('🤖 MubarakWay Bot запущен успешно!');
-    console.log('🕌 Готов служить умме...');
-    console.log('📱 Web App URL:', WEB_APP_URL);
+    // Затем запускаем Telegram бота с повторными попытками
+    let retries = 3;
+    let lastError;
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        console.log(`🔄 Попытка запуска бота ${i + 1}/${retries}...`);
+
+        // Сначала останавливаем любые активные сессии
+        if (i > 0) {
+          try {
+            await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+            console.log('🧹 Webhook очищен');
+          } catch (e) {
+            console.log('⚠️ Не удалось очистить webhook:', e.message);
+          }
+
+          // Ждём перед повторной попыткой
+          await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+        }
+
+        await bot.launch({
+          dropPendingUpdates: true,
+          allowedUpdates: ['message', 'callback_query']
+        });
+
+        console.log('🤖 MubarakWay Bot запущен успешно!');
+        console.log('🕌 Готов служить умме...');
+        console.log('📱 Web App URL:', WEB_APP_URL);
+        return; // Успешный запуск
+
+      } catch (error) {
+        lastError = error;
+        console.error(`❌ Попытка ${i + 1} не удалась:`, error.message);
+
+        if (error.response?.error_code === 409) {
+          console.log('⚠️ Обнаружен конфликт. Возможно, бот уже запущен где-то ещё.');
+          console.log('💡 Совет: Остановите все другие инстансы бота и попробуйте снова.');
+        }
+      }
+    }
+
+    // Если все попытки не удались
+    throw new Error(`Не удалось запустить бота после ${retries} попыток. Последняя ошибка: ${lastError?.message}`);
+
   } catch (error) {
-    console.error('Ошибка запуска бота:', error);
+    console.error('💥 Критическая ошибка запуска бота:', error);
+    // Не выходим из процесса, чтобы HTTP сервер продолжал работать для health checks
   }
 };
 
 // Graceful stop
-process.once('SIGINT', () => {
-  bot.stop('SIGINT');
-  process.exit(0);
+const gracefulShutdown = async (signal) => {
+  console.log(`\n🛑 Получен сигнал ${signal}. Graceful shutdown...`);
+
+  try {
+    // Останавливаем бота
+    await bot.stop(signal);
+    console.log('✅ Бот остановлен');
+  } catch (error) {
+    console.error('❌ Ошибка при остановке бота:', error);
+  }
+
+  // Даём время на завершение всех операций
+  setTimeout(() => {
+    console.log('👋 Процесс завершён');
+    process.exit(0);
+  }, 1000);
+};
+
+process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+// Обработка uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('💥 Uncaught Exception:', error);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
-process.once('SIGTERM', () => {
-  bot.stop('SIGTERM');
-  process.exit(0);
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 startBot();
