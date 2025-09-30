@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider, useSelector } from 'react-redux';
 import { store } from './store/store';
 import { telegram } from './utils/telegram';
+import { useGlobalAudio } from './hooks/useGlobalAudio';
 
 import Home from './pages/Home';
 import Library from './pages/Library';
@@ -10,13 +11,16 @@ import Nashids from './pages/Nashids';
 import Qibla from './pages/Qibla';
 import EnhancedBookReader from './components/EnhancedBookReader';
 import Navigation from './components/Navigation';
-import AudioPlayer from './components/AudioPlayer';
+import AudioPlayerUI from './components/AudioPlayerUI';
 import ScrollToTop from './components/ScrollToTop';
 
 function AppContent() {
   const { currentPlaying, nashids } = useSelector(state => state.nashids);
   const [showPlayer, setShowPlayer] = useState(false);
   const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
+
+  // Инициализация глобального аудио (один раз на весь App)
+  const audioState = useGlobalAudio();
 
   useEffect(() => {
     if (currentPlaying) {
@@ -53,14 +57,15 @@ function AppContent() {
       </Routes>
       <Navigation />
 
-      {/* Глобальный аудиоплеер */}
+      {/* Глобальный аудиоплеер (только UI, аудио элемент управляется через useGlobalAudio) */}
       {showPlayer && currentPlaying && (
-        <AudioPlayer
+        <AudioPlayerUI
           nashid={currentPlaying}
           playlist={nashids}
           onClose={handleClosePlayer}
           isMinimized={isPlayerMinimized}
           onToggleMinimize={handleToggleMinimize}
+          audioState={audioState}
         />
       )}
     </div>
