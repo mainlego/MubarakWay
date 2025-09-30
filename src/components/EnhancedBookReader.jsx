@@ -49,6 +49,7 @@ const EnhancedBookReader = () => {
   const [isPageMode, setIsPageMode] = useState(true);
   const [pageTransition, setPageTransition] = useState('');
   const [nextPageContent, setNextPageContent] = useState('');
+  const [flippingPageContent, setFlippingPageContent] = useState('');
   const [isFlipping, setIsFlipping] = useState(false);
 
   // Аудио функции
@@ -247,16 +248,15 @@ const EnhancedBookReader = () => {
   const nextPage = () => {
     if (currentPage < totalPages && !isFlipping) {
       setIsFlipping(true);
-      // Подготавливаем контент следующей страницы
+      // Сохраняем текущий контент для перелистывающейся страницы
+      setFlippingPageContent(pages[currentPage - 1] || '');
+      // Подготавливаем контент следующей страницы для нижнего слоя
       setNextPageContent(pages[currentPage] || ''); // currentPage потому что индекс с 0
       setPageTransition('flip-left');
 
-      // Сначала очищаем transition, затем меняем страницу
       setTimeout(() => {
+        // Одновременно: очищаем анимацию и меняем страницу
         setPageTransition('');
-      }, 650);
-
-      setTimeout(() => {
         const newPage = currentPage + 1;
         setCurrentPage(newPage);
         localStorage.setItem(`currentPage_${id}`, newPage.toString());
@@ -270,16 +270,15 @@ const EnhancedBookReader = () => {
   const prevPage = () => {
     if (currentPage > 1 && !isFlipping) {
       setIsFlipping(true);
-      // Подготавливаем контент предыдущей страницы
+      // Сохраняем текущий контент для перелистывающейся страницы
+      setFlippingPageContent(pages[currentPage - 1] || '');
+      // Подготавливаем контент предыдущей страницы для нижнего слоя
       setNextPageContent(pages[currentPage - 2] || ''); // -2 потому что индекс с 0 и идем назад
       setPageTransition('flip-right');
 
-      // Сначала очищаем transition, затем меняем страницу
       setTimeout(() => {
+        // Одновременно: очищаем анимацию и меняем страницу
         setPageTransition('');
-      }, 650);
-
-      setTimeout(() => {
         const newPage = currentPage - 1;
         setCurrentPage(newPage);
         localStorage.setItem(`currentPage_${id}`, newPage.toString());
@@ -1063,10 +1062,9 @@ const EnhancedBookReader = () => {
             <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-black/20 via-black/10 to-transparent"></div>
             <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-black/20 via-black/10 to-transparent"></div>
 
-            {/* Next/Prev page content - visible during flip */}
-            {(pageTransition === 'flip-left' || pageTransition === 'flip-right') && nextPageContent && (
+            {/* Next/Prev page content - shown during animation */}
+            {pageTransition && nextPageContent && (
               <div
-                ref={contentRef}
                 className={`p-6 sm:p-12 prose prose-sm sm:prose-lg max-w-none ${
                   isDarkTheme
                     ? 'prose-invert prose-p:text-gray-300 prose-headings:text-gray-100'
@@ -1094,13 +1092,10 @@ const EnhancedBookReader = () => {
             )}
           </div>
 
-          {/* Top/Current Page - Flips over and disappears */}
+          {/* Top/Current Page - Only visible during animation, flips and disappears */}
+          {pageTransition && (
           <div
-            className={`relative transition-all ease-in-out ${
-              pageTransition === 'flip-left' ? 'duration-[700ms]' :
-              pageTransition === 'flip-right' ? 'duration-[700ms]' :
-              'duration-300'
-            }`}
+            className={`relative transition-all ease-in-out duration-[700ms]`}
             style={{
               transformStyle: 'preserve-3d',
               transformOrigin: pageTransition === 'flip-left' ? '0% 50%' : '100% 50%',
@@ -1108,11 +1103,82 @@ const EnhancedBookReader = () => {
                 pageTransition === 'flip-left' ? 'rotateY(-180deg) scale(0.95)' :
                 pageTransition === 'flip-right' ? 'rotateY(180deg) scale(0.95)' :
                 'rotateY(0deg) scale(1)',
-              opacity: pageTransition ? 0 : 1,
-              zIndex: pageTransition ? 10 : 1,
-              pointerEvents: pageTransition ? 'none' : 'auto'
+              opacity: 0,
+              zIndex: 10,
+              pointerEvents: 'none'
             }}
           >
+            <div
+              className={`rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden relative ${
+                isDarkTheme
+                  ? 'bg-gradient-to-br from-gray-800 to-gray-900'
+                  : 'bg-gradient-to-br from-amber-50 via-white to-amber-50'
+              }`}
+              style={{
+                minHeight: '500px',
+                backfaceVisibility: 'hidden',
+                boxShadow: isDarkTheme
+                  ? '0 25px 70px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)'
+                  : '0 25px 70px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.9)',
+              }}
+            >
+              {/* Enhanced page stack effect on edges */}
+              <div className="absolute left-0 top-0 bottom-0 w-6 pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-r from-black/25 via-black/15 to-transparent"></div>
+                <div className="absolute left-1 top-0 bottom-0 w-px bg-black/20"></div>
+                <div className="absolute left-2 top-0 bottom-0 w-px bg-black/15"></div>
+                <div className="absolute left-3 top-0 bottom-0 w-px bg-black/10"></div>
+              </div>
+              <div className="absolute right-0 top-0 bottom-0 w-6 pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-l from-black/25 via-black/15 to-transparent"></div>
+                <div className="absolute right-1 top-0 bottom-0 w-px bg-black/20"></div>
+                <div className="absolute right-2 top-0 bottom-0 w-px bg-black/15"></div>
+                <div className="absolute right-3 top-0 bottom-0 w-px bg-black/10"></div>
+              </div>
+
+              {/* Page number at bottom */}
+              {isPageMode && (
+                <div className={`absolute bottom-6 right-8 text-sm font-serif ${
+                  isDarkTheme ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  {currentPage}
+                </div>
+              )}
+
+              {/* Content - показываем контент перелистывающейся страницы */}
+              <div
+                className={`p-6 sm:p-12 prose prose-sm sm:prose-lg max-w-none ${
+                  isDarkTheme
+                    ? 'prose-invert prose-p:text-gray-300 prose-headings:text-gray-100'
+                    : 'prose-p:text-gray-800 prose-headings:text-gray-900'
+                }`}
+                style={{
+                  fontSize: `${Math.max(fontSize - 2, 14)}px`,
+                  lineHeight: lineHeight,
+                  fontFamily: isDarkTheme
+                    ? '"Inter", "Segoe UI", "Roboto", sans-serif'
+                    : '"Crimson Text", "Georgia", "Times New Roman", serif',
+                  textAlign: 'justify',
+                  hyphens: 'auto'
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: (() => {
+                    try {
+                      return DOMPurify.sanitize(marked(flippingPageContent || '', { breaks: true, gfm: true }));
+                    } catch (error) {
+                      console.error('Error rendering flipping page content:', error);
+                      return (flippingPageContent || '').replace(/\n/g, '<br>');
+                    }
+                  })()
+                }}
+              />
+            </div>
+          </div>
+          )}
+
+          {/* Static Current Page - Always visible when no animation */}
+          {!pageTransition && (
+          <div className="relative">
             <div
               className={`rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden relative ${
                 isDarkTheme
@@ -1197,6 +1263,7 @@ const EnhancedBookReader = () => {
               </div>
             </div>
           </div>
+          )}
         </div>
       </main>
 

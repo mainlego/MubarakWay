@@ -47,10 +47,30 @@ const BookCard = ({ book }) => {
     }
   };
 
-  const handleGuideClick = (e) => {
+  const sendBookToBot = async (e) => {
     e.stopPropagation();
-    if (canAccess && book.content) {
-      navigate(`/book/${book.id}?guide=true`);
+    if (!canAccess || !book) return;
+
+    try {
+      const botUsername = window.Telegram?.WebApp?.initDataUnsafe?.bot?.username || 'MubarakWayApp_bot';
+      const deepLink = `https://t.me/${botUsername}?start=download_book_${book.id}`;
+
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showConfirm(
+          `Отправить книгу "${book.title}" в чат с ботом?`,
+          (confirmed) => {
+            if (confirmed) {
+              window.Telegram.WebApp.HapticFeedback?.impactOccurred('light');
+              window.Telegram.WebApp.openLink(deepLink);
+            }
+          }
+        );
+      } else {
+        window.open(deepLink, '_blank');
+      }
+    } catch (error) {
+      console.error('Error sending book to bot:', error);
+      alert('Ошибка при отправке книги в бот');
     }
   };
 
@@ -90,45 +110,47 @@ const BookCard = ({ book }) => {
         <p className="text-xs text-gray-500 mb-2 sm:mb-3 line-clamp-2">{book.description}</p>
 
         {/* Прогресс чтения */}
-        {readingProgress > 0 && (
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-600">
-                {readingProgress === 100 ? 'Прочитано' : 'Прогресс'}
-              </span>
-              <span className="text-xs font-medium flex items-center gap-1">
-                {readingProgress === 100 ? (
-                  <span className="text-green-600 flex items-center gap-1">
-                    <span>✓</span> 100%
-                  </span>
-                ) : (
-                  <span className="text-blue-600">{readingProgress}%</span>
-                )}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
-              <div
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  readingProgress === 100
-                    ? 'bg-gradient-to-r from-green-500 to-green-600'
-                    : 'bg-gradient-to-r from-blue-500 to-blue-600'
-                }`}
-                style={{ width: `${readingProgress}%` }}
-              />
-            </div>
-            {currentPage > 1 && totalPages > 1 && (
-              <div className="text-xs text-gray-500">
-                Страница {currentPage} из {totalPages}
-              </div>
-            )}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-600">
+              {readingProgress === 100 ? 'Прочитано' : readingProgress > 0 ? 'Прогресс' : 'Не прочитано'}
+            </span>
+            <span className="text-xs font-medium flex items-center gap-1">
+              {readingProgress === 100 ? (
+                <span className="text-green-600 flex items-center gap-1">
+                  <span>✓</span> 100%
+                </span>
+              ) : readingProgress > 0 ? (
+                <span className="text-blue-600">{readingProgress}%</span>
+              ) : (
+                <span className="text-gray-400">0%</span>
+              )}
+            </span>
           </div>
-        )}
+          <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1">
+            <div
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                readingProgress === 100
+                  ? 'bg-gradient-to-r from-green-500 to-green-600'
+                  : readingProgress > 0
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+                  : 'bg-gray-300'
+              }`}
+              style={{ width: `${readingProgress}%` }}
+            />
+          </div>
+          {currentPage > 1 && totalPages > 1 && (
+            <div className="text-xs text-gray-500">
+              Страница {currentPage} из {totalPages}
+            </div>
+          )}
+        </div>
 
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex gap-2">
           <button
             onClick={handleReadClick}
             disabled={!canAccess || !book.content}
-            className={`w-full flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
               canAccess && book.content
                 ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -137,31 +159,17 @@ const BookCard = ({ book }) => {
             <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
             Читать
           </button>
-          <div className="flex gap-2">
-            {book.content && (
-              <button
-                onClick={handleGuideClick}
-                disabled={!canAccess}
-                className={`flex-1 flex items-center justify-center gap-1 py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
-                  canAccess
-                    ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                Гид
-              </button>
-            )}
-            <button
-              disabled={!canAccess}
-              className={`flex-1 flex items-center justify-center p-2 rounded-lg transition-colors ${
-                canAccess
-                  ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-            </button>
-          </div>
+          <button
+            onClick={sendBookToBot}
+            disabled={!canAccess}
+            className={`flex items-center justify-center p-2 rounded-lg transition-colors ${
+              canAccess
+                ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+          </button>
         </div>
       </div>
     </div>
