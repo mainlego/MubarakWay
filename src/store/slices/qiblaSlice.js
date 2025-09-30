@@ -90,22 +90,30 @@ const qiblaSlice = createSlice({
   },
   reducers: {
     setUserLocation: (state, action) => {
-      console.log('setUserLocation called with:', action.payload);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('setUserLocation called with:', action.payload);
+      }
       state.userLocation = action.payload;
 
       // Calculate Qibla direction using the service
       try {
         const direction = prayerTimesService.getQiblaDirection(action.payload);
-        console.log('Calculated qibla direction in slice:', direction);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Calculated qibla direction in slice:', direction);
+        }
 
         if (direction !== null && !isNaN(direction)) {
           state.qiblaDirection = direction;
         } else {
-          console.warn('Invalid qibla direction calculated:', direction);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Invalid qibla direction calculated:', direction);
+          }
           state.qiblaDirection = null;
         }
       } catch (error) {
-        console.error('Error calculating qibla direction in slice:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error calculating qibla direction in slice:', error);
+        }
         state.qiblaDirection = null;
         state.error = 'Ошибка расчета направления на Мекку';
       }
@@ -153,23 +161,31 @@ const qiblaSlice = createSlice({
         state.locationError = null;
       })
       .addCase(getCurrentLocation.fulfilled, (state, action) => {
-        console.log('getCurrentLocation fulfilled with:', action.payload);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('getCurrentLocation fulfilled with:', action.payload);
+        }
         state.locationLoading = false;
         state.userLocation = action.payload;
 
         // Calculate Qibla direction
         try {
           const direction = prayerTimesService.getQiblaDirection(action.payload);
-          console.log('Calculated qibla direction in getCurrentLocation:', direction);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Calculated qibla direction in getCurrentLocation:', direction);
+          }
 
           if (direction !== null && !isNaN(direction)) {
             state.qiblaDirection = direction;
           } else {
-            console.warn('Invalid qibla direction in getCurrentLocation:', direction);
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Invalid qibla direction in getCurrentLocation:', direction);
+            }
             state.qiblaDirection = null;
           }
         } catch (error) {
-          console.error('Error calculating qibla direction in getCurrentLocation:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error calculating qibla direction in getCurrentLocation:', error);
+          }
           state.qiblaDirection = null;
           state.error = 'Ошибка расчета направления на Мекку';
         }

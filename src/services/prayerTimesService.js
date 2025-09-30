@@ -225,7 +225,7 @@ class PrayerTimesService {
     }
   }
 
-  // Получить текущую молитву
+  // Получить текущую молитву (ту, которая идет сейчас)
   getCurrentPrayer(prayerTimes = null) {
     const times = prayerTimes || this.lastPrayerTimes;
     if (!times) return null;
@@ -240,24 +240,21 @@ class PrayerTimesService {
       { name: 'isha', time: times.isha, displayName: 'Иша' }
     ];
 
-    // Находим текущую молитву
+    // Находим текущую молитву (которая уже началась, но следующая еще не наступила)
     let currentPrayer = null;
-    for (let i = 0; i < prayers.length; i++) {
-      if (now < prayers[i].time) {
+    for (let i = prayers.length - 1; i >= 0; i--) {
+      if (now >= prayers[i].time) {
         currentPrayer = prayers[i];
         break;
       }
     }
 
-    // Если время после Иша, то следующая молитва - Фаджр следующего дня
+    // Если время до Фаджр, то текущая молитва - Иша предыдущего дня
     if (!currentPrayer) {
-      const nextDay = new Date(now);
-      nextDay.setDate(nextDay.getDate() + 1);
-      const nextDayTimes = this.calculatePrayerTimes(nextDay, times.location, times.settings);
       currentPrayer = {
-        name: 'fajr',
-        time: nextDayTimes.fajr,
-        displayName: 'Фаджр'
+        name: 'isha',
+        time: times.isha,
+        displayName: 'Иша'
       };
     }
 
@@ -266,7 +263,41 @@ class PrayerTimesService {
 
   // Получить следующую молитву
   getNextPrayer(prayerTimes = null) {
-    return this.getCurrentPrayer(prayerTimes);
+    const times = prayerTimes || this.lastPrayerTimes;
+    if (!times) return null;
+
+    const now = new Date();
+    const prayers = [
+      { name: 'fajr', time: times.fajr, displayName: 'Фаджр' },
+      { name: 'sunrise', time: times.sunrise, displayName: 'Восход' },
+      { name: 'dhuhr', time: times.dhuhr, displayName: 'Зухр' },
+      { name: 'asr', time: times.asr, displayName: 'Аср' },
+      { name: 'maghrib', time: times.maghrib, displayName: 'Магриб' },
+      { name: 'isha', time: times.isha, displayName: 'Иша' }
+    ];
+
+    // Находим следующую молитву
+    let nextPrayer = null;
+    for (let i = 0; i < prayers.length; i++) {
+      if (now < prayers[i].time) {
+        nextPrayer = prayers[i];
+        break;
+      }
+    }
+
+    // Если время после Иша, то следующая молитва - Фаджр следующего дня
+    if (!nextPrayer) {
+      const nextDay = new Date(now);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayTimes = this.calculatePrayerTimes(nextDay, times.location, times.settings);
+      nextPrayer = {
+        name: 'fajr',
+        time: nextDayTimes.fajr,
+        displayName: 'Фаджр'
+      };
+    }
+
+    return nextPrayer;
   }
 
   // Получить время до следующей молитвы
@@ -310,78 +341,32 @@ class PrayerTimesService {
   getQiblaDirection(location = null) {
     const loc = location || this.currentLocation;
 
-    // More lenient validation - check if values exist and are numbers
     if (!loc || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number' ||
         isNaN(loc.latitude) || isNaN(loc.longitude)) {
-      console.warn('No valid location for qibla calculation:', loc);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('No valid location for qibla calculation:', loc);
+      }
       return null;
     }
 
     try {
-      console.log('Creating coordinates for qibla direction:', { lat: loc.latitude, lng: loc.longitude });
       const coordinates = new Coordinates(loc.latitude, loc.longitude);
-
-      // Проверим координаты
-      console.log('Created coordinates object:', coordinates);
-
       const qibla = new Qibla(coordinates);
-      console.log('Created Qibla object:', qibla);
-
-      // Попробуем получить направление
       const direction = qibla.direction;
-      console.log('Raw qibla direction calculated:', direction, typeof direction);
 
-      // Альтернативный способ расчета, если основной не работает
       if (isNaN(direction) || direction === null || direction === undefined) {
-        console.warn('Primary qibla calculation failed, trying manual calculation');
-
-        // Ручной расчет направления на Мекку
-        const meccaLat = 21.4225;
-        const meccaLng = 39.8261;
-
-        const lat1 = loc.latitude * Math.PI / 180;
-        const lat2 = meccaLat * Math.PI / 180;
-        const deltaLng = (meccaLng - loc.longitude) * Math.PI / 180;
-
-        const bearing = Math.atan2(
-          Math.sin(deltaLng) * Math.cos(lat2),
-          Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng)
-        );
-
-        let bearingDegrees = (bearing * 180 / Math.PI + 360) % 360;
-
-        console.log('Manual qibla calculation result:', bearingDegrees);
-        return bearingDegrees;
-      }
-
-      console.log('Valid qibla direction:', direction);
-      return direction;
-    } catch (error) {
-      console.error('Error calculating qibla direction:', error);
-
-      // Если все остальное не работает, делаем ручной расчет
-      try {
-        console.log('Fallback to manual qibla calculation');
-        const meccaLat = 21.4225;
-        const meccaLng = 39.8261;
-
-        const lat1 = loc.latitude * Math.PI / 180;
-        const lat2 = meccaLat * Math.PI / 180;
-        const deltaLng = (meccaLng - loc.longitude) * Math.PI / 180;
-
-        const bearing = Math.atan2(
-          Math.sin(deltaLng) * Math.cos(lat2),
-          Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng)
-        );
-
-        let bearingDegrees = (bearing * 180 / Math.PI + 360) % 360;
-
-        console.log('Fallback qibla calculation result:', bearingDegrees);
-        return bearingDegrees;
-      } catch (fallbackError) {
-        console.error('Fallback qibla calculation also failed:', fallbackError);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Qibla library returned invalid direction, using it anyway');
+        }
         return null;
       }
+
+      return direction;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error calculating qibla direction:', error);
+      }
+      return null;
     }
   }
 

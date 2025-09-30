@@ -516,70 +516,13 @@ const Qibla = () => {
 
               {/* Prayer Statistics */}
               <div className="space-y-4 mb-6">
-                {/* Today's Prayer Status */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                  <h3 className="text-white font-medium mb-3">Сегодня</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {['Фаджр', 'Зухр', 'Аср', 'Магриб', 'Иша'].map((prayer, index) => (
-                      <div key={prayer} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                        <span className="text-white/80 text-sm">{prayer}</span>
-                        <div className={`w-3 h-3 rounded-full ${
-                          Math.random() > 0.5 ? 'bg-green-500' : 'bg-gray-500'
-                        }`}></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Weekly Statistics */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                  <h3 className="text-white font-medium mb-3">Эта неделя</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/80 text-sm">Совершено молитв</span>
-                      <span className="text-white font-bold">28/35</span>
-                    </div>
-                    <div className="w-full bg-white/10 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{width: '80%'}}></div>
-                    </div>
-                    <div className="text-center text-white/60 text-xs">80% выполнено</div>
-                  </div>
-                </div>
-
-                {/* Monthly Chart */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                  <h3 className="text-white font-medium mb-3">Месячная активность</h3>
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {Array.from({length: 28}, (_, i) => (
-                      <div
-                        key={i}
-                        className={`h-6 rounded ${
-                          Math.random() > 0.3
-                            ? `bg-green-${Math.floor(Math.random() * 3) + 3}00`
-                            : 'bg-gray-700'
-                        }`}
-                      ></div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-xs text-white/60">
-                    <span>Меньше</span>
-                    <span>Больше</span>
-                  </div>
-                </div>
-
-                {/* Streak Information */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                  <h3 className="text-white font-medium mb-3">Достижения</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="text-center p-3 bg-white/5 rounded-lg">
-                      <div className="text-2xl font-bold text-green-400">7</div>
-                      <div className="text-xs text-white/80">Дней подряд</div>
-                    </div>
-                    <div className="text-center p-3 bg-white/5 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-400">147</div>
-                      <div className="text-xs text-white/80">Всего молитв</div>
-                    </div>
-                  </div>
+                {/* Info Card */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
+                  <div className="text-4xl mb-4">📊</div>
+                  <h3 className="text-white font-medium mb-2">Статистика в разработке</h3>
+                  <p className="text-white/70 text-sm">
+                    Функция отслеживания молитв и достижений скоро будет доступна.
+                  </p>
                 </div>
 
                 {/* Accuracy Settings */}

@@ -3,6 +3,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setUserLocation, setLoading, setError } from '../store/slices/qiblaSlice';
 import { Navigation, MapPin, Clock, Compass } from 'lucide-react';
 import GyroNorm from 'gyronorm';
+import {
+  MECCA_COORDINATES,
+  COMPASS_SMOOTHING_BUFFER_SIZE,
+  COMPASS_SENSITIVITY,
+  GYRO_UPDATE_FREQUENCY,
+  COMPASS_FALLBACK_TIMEOUT
+} from '../constants/qibla';
 
 const QiblaCompass = ({ direction, isAnimating = false }) => {
   const dispatch = useDispatch();
@@ -15,7 +22,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const [orientationSupported, setOrientationSupported] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [manualOrientation, setManualOrientation] = useState(0);
-  const [sensitivity, setSensitivity] = useState(2); // Порог чувствительности в градусах
+  const [sensitivity, setSensitivity] = useState(COMPASS_SENSITIVITY);
 
   // Фильтрация дрожания
   const [smoothedOrientation, setSmoothedOrientation] = useState(0);
@@ -24,7 +31,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   // Улучшенная функция сглаживания с буфером
   const smoothOrientation = (newValue) => {
     if (typeof newValue !== 'number' || isNaN(newValue)) {
-      console.warn('Invalid orientation value:', newValue);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Invalid orientation value:', newValue);
+      }
       return smoothedOrientation;
     }
 
@@ -52,16 +61,17 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
       // Добавляем в буфер с ограничением размера
       buffer.push(adjustedValue);
-      if (buffer.length > 8) { // Увеличили буфер для лучшего сглаживания
+      if (buffer.length > COMPASS_SMOOTHING_BUFFER_SIZE) {
         buffer.shift();
       }
 
       // Вычисляем взвешенное среднее (последние значения важнее)
+      // Используем линейно возрастающие веса для приоритета свежих данных
       let weightedSum = 0;
       let totalWeight = 0;
 
       buffer.forEach((value, index) => {
-        const weight = index + 1; // Линейно возрастающие веса
+        const weight = index + 1; // Вес от 1 (старое) до COMPASS_SMOOTHING_BUFFER_SIZE (новое)
         weightedSum += value * weight;
         totalWeight += weight;
       });
@@ -106,7 +116,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const requestOrientationPermission = async () => {
     // Проверяем поддержку DeviceOrientationEvent
     if (typeof DeviceOrientationEvent === 'undefined') {
-      console.log('DeviceOrientationEvent не поддерживается');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('DeviceOrientationEvent не поддерживается');
+      }
       setOrientationSupported(false);
       setPermissionGranted(false);
       return false;
@@ -116,7 +128,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
         const permission = await DeviceOrientationEvent.requestPermission();
-        console.log('iOS permission result:', permission);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('iOS permission result:', permission);
+        }
         if (permission === 'granted') {
           setPermissionGranted(true);
           setOrientationSupported(true);
@@ -128,7 +142,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
           return false;
         }
       } catch (error) {
-        console.error('Permission request failed:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Permission request failed:', error);
+        }
         setPermissionGranted(false);
         setOrientationSupported(true);
         dispatch(setError('Ошибка запроса разрешения компаса'));
@@ -136,7 +152,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
       }
     } else {
       // Старые браузеры без requestPermission - сразу разрешаем
-      console.log('Старый браузер - разрешение не требуется');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Старый браузер - разрешение не требуется');
+      }
       setPermissionGranted(true);
       setOrientationSupported(true);
       return true;
@@ -152,7 +170,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          console.log('Geolocation success:', position.coords);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Geolocation success:', position.coords);
+          }
           const locationData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
@@ -165,15 +185,21 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
               !isNaN(locationData.longitude)) {
             dispatch(setUserLocation(locationData));
             setLocalLoading(false);
-            console.log('Location dispatched successfully');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Location dispatched successfully');
+            }
           } else {
-            console.error('Invalid location data:', locationData);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Invalid location data:', locationData);
+            }
             dispatch(setError('Получены неверные координаты'));
             setLocalLoading(false);
           }
         },
         (error) => {
-          console.error('Geolocation error:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Geolocation error:', error);
+          }
           dispatch(setError('Не удалось получить геолокацию'));
           setLocalLoading(false);
         },
@@ -200,7 +226,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
   // GyroNorm компас инициализация
   useEffect(() => {
-    console.log('Инициализация GyroNorm компаса...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Инициализация GyroNorm компаса...');
+    }
 
     let gyroNorm = null;
 
@@ -208,17 +236,21 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
       try {
         gyroNorm = new GyroNorm();
 
-        console.log('GyroNorm создан, инициализируем...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('GyroNorm создан, инициализируем...');
+        }
 
         gyroNorm.init({
-          frequency: 100,               // Увеличили частоту для стабильности (мс)
-          gravityNormalized: true,      // Нормализованная гравитация
-          orientationBase: GyroNorm.WORLD, // Мировая система координат
-          decimalCount: 1,              // Меньше знаков для устойчивости
-          logger: null,                 // Отключаем логирование
-          screenAdjusted: false         // Не корректировать по ориентации экрана
+          frequency: GYRO_UPDATE_FREQUENCY,
+          gravityNormalized: true,
+          orientationBase: GyroNorm.WORLD,
+          decimalCount: 1,
+          logger: null,
+          screenAdjusted: false
         }).then(() => {
-          console.log('GyroNorm успешно инициализирован');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('GyroNorm успешно инициализирован');
+          }
 
           // Переменная для отслеживания последнего значения
           let lastSmoothedValue = null;
@@ -233,7 +265,9 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
               // Фильтруем малые изменения (динамическая чувствительность)
               if (lastSmoothedValue === null || Math.abs(smoothed - lastSmoothedValue) > sensitivity) {
-                console.log('GyroNorm compass heading:', compassHeading.toFixed(1), '-> smoothed:', smoothed.toFixed(1));
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('GyroNorm compass heading:', compassHeading.toFixed(1), '-> smoothed:', smoothed.toFixed(1));
+                }
 
                 setDeviceOrientation(compassHeading);
                 setSmoothedOrientation(smoothed);
@@ -244,20 +278,24 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
                 setPermissionGranted(true);
               }
             } else {
-              console.log('GyroNorm: No valid compass data', data.do);
+              if (process.env.NODE_ENV === 'development') {
+                console.log('GyroNorm: No valid compass data', data.do);
+              }
             }
           });
         }).catch(error => {
-          console.error('GyroNorm ошибка инициализации:', error.message);
-
-          // Fallback на стандартный API
-          console.log('Переходим на стандартный DeviceOrientation API');
+          if (process.env.NODE_ENV === 'development') {
+            console.error('GyroNorm ошибка инициализации:', error.message);
+            console.log('Переходим на стандартный DeviceOrientation API');
+          }
           initStandardOrientation();
         });
 
       } catch (error) {
-        console.error('GyroNorm не поддерживается:', error.message);
-        console.log('Используем стандартный DeviceOrientation API');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('GyroNorm не поддерживается:', error.message);
+          console.log('Используем стандартный DeviceOrientation API');
+        }
         initStandardOrientation();
       }
     };
@@ -304,23 +342,29 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     // Запускаем инициализацию GyroNorm
     initGyroNormCompass();
 
-    // Если через 3 секунды компас не заработал, включаем ручной режим
+    // Fallback на ручной режим если автоматический компас не инициализировался
     const fallbackTimer = setTimeout(() => {
       if (!isCalibrated && !manualMode) {
-        console.log('Включаем ручной режим компаса');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Включаем ручной режим компаса');
+        }
         setManualMode(true);
         setOrientationSupported(true);
         setPermissionGranted(true);
       }
-    }, 3000);
+    }, COMPASS_FALLBACK_TIMEOUT);
 
     return () => {
-      console.log('Очистка GyroNorm компаса');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Очистка GyroNorm компаса');
+      }
       if (gyroNorm) {
         try {
           gyroNorm.stop();
         } catch (e) {
-          console.log('Ошибка при остановке GyroNorm:', e);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Ошибка при остановке GyroNorm:', e);
+          }
         }
       }
       clearTimeout(fallbackTimer);
@@ -354,29 +398,33 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
     angle = (angle + 90 + 360) % 360; // Корректируем для компаса (север = 0°)
 
-    console.log('Manual rotation angle:', angle);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Manual rotation angle:', angle);
+    }
     setManualOrientation(angle);
     setSmoothedOrientation(angle); // Прямое обновление без сглаживания для ручного режима
-    console.log('Updated smoothedOrientation to:', angle);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Updated smoothedOrientation to:', angle);
+    }
   };
 
   const calculateQiblaDirection = () => {
     if (!userLocation || !userLocation.latitude || !userLocation.longitude) {
-      console.log('No user location available for qibla calculation');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('No user location available for qibla calculation');
+      }
       return 0;
     }
 
-    // Mecca coordinates (точные координаты Каабы)
-    const meccaLat = 21.4225;
-    const meccaLng = 39.8261;
-
     const { latitude: userLat, longitude: userLng } = userLocation;
 
-    console.log('Calculating qibla for location:', { userLat, userLng });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Calculating qibla for location:', { userLat, userLng });
+    }
 
     const latRad1 = (userLat * Math.PI) / 180;
-    const latRad2 = (meccaLat * Math.PI) / 180;
-    const deltaLng = ((meccaLng - userLng) * Math.PI) / 180;
+    const latRad2 = (MECCA_COORDINATES.latitude * Math.PI) / 180;
+    const deltaLng = ((MECCA_COORDINATES.longitude - userLng) * Math.PI) / 180;
 
     const bearing = Math.atan2(
       Math.sin(deltaLng) * Math.cos(latRad2),
@@ -390,42 +438,58 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
       bearingDegrees += 360;
     }
 
-    console.log('Calculated qibla direction:', bearingDegrees);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Calculated qibla direction:', bearingDegrees);
+    }
     return bearingDegrees;
   };
 
   // Приоритет: пропс direction > Redux qiblaDirection > локальный расчет
   let qiblaDegree = 0;
-  console.log('Qibla direction sources:', {
-    propDirection: direction,
-    reduxQiblaDirection: qiblaDirection,
-    userLocation: userLocation
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Qibla direction sources:', {
+      propDirection: direction,
+      reduxQiblaDirection: qiblaDirection,
+      userLocation: userLocation
+    });
+  }
 
   if (direction !== undefined && !isNaN(direction)) {
     qiblaDegree = direction;
-    console.log('Using prop direction:', qiblaDegree);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Using prop direction:', qiblaDegree);
+    }
   } else if (qiblaDirection !== undefined && qiblaDirection !== null && !isNaN(qiblaDirection)) {
     qiblaDegree = qiblaDirection;
-    console.log('Using Redux qiblaDirection:', qiblaDegree);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Using Redux qiblaDirection:', qiblaDegree);
+    }
   } else {
-    console.log('Calculating qibla direction locally...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Calculating qibla direction locally...');
+    }
     qiblaDegree = calculateQiblaDirection();
-    console.log('Using calculated direction:', qiblaDegree);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Using calculated direction:', qiblaDegree);
+    }
   }
 
   // Защита от NaN
   if (isNaN(qiblaDegree)) {
-    console.warn('qiblaDegree is NaN, setting to 0');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('qiblaDegree is NaN, setting to 0');
+    }
     qiblaDegree = 0;
   }
 
-  console.log('Final qibla degree:', qiblaDegree, {
-    direction,
-    qiblaDirection,
-    userLocation,
-    smoothedOrientation
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Final qibla degree:', qiblaDegree, {
+      direction,
+      qiblaDirection,
+      userLocation,
+      smoothedOrientation
+    });
+  }
 
   // Normalize angles to 0-360 range
   const normalizeAngle = (angle) => ((angle % 360) + 360) % 360;
@@ -438,12 +502,14 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const qiblaDirectionAdjusted = normalizeAngle(safeQiblaDegree - safeOrientation);
   const deviceDirectionAdjusted = 0; // Device always points "up" in our view
 
-  console.log('Display angles:', {
-    safeOrientation,
-    safeQiblaDegree,
-    northDirection,
-    qiblaDirectionAdjusted
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Display angles:', {
+      safeOrientation,
+      safeQiblaDegree,
+      northDirection,
+      qiblaDirectionAdjusted
+    });
+  }
 
   if (localLoading || locationLoading) {
     return (
@@ -472,15 +538,28 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
     <div className="text-center">
       {/* iOS Permission Request */}
       {!orientationSupported && (
-        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-xl">
-          <p className="text-red-200 text-sm mb-2">Компас не поддерживается на этом устройстве</p>
-          <p className="text-red-200 text-xs">Попробуйте использовать другой браузер или устройство</p>
+        <div className="mb-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-xl">
+          <p className="text-amber-200 text-sm mb-2">⚠️ Компас не поддерживается</p>
+          <p className="text-amber-200 text-xs">
+            Для автоматического компаса требуется:
+          </p>
+          <ul className="text-amber-200 text-xs mt-1 text-left ml-4">
+            <li>• Современный браузер (Chrome, Safari)</li>
+            <li>• HTTPS соединение</li>
+            <li>• Разрешение на использование датчиков</li>
+          </ul>
+          <p className="text-amber-200 text-xs mt-2">
+            Используйте ручной режим ниже для поворота компаса
+          </p>
         </div>
       )}
 
       {orientationSupported && !permissionGranted && (
         <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-xl">
-          <p className="text-blue-200 text-sm mb-2">Для работы компаса нужно разрешение</p>
+          <p className="text-blue-200 text-sm mb-2">📱 Требуется разрешение на доступ к компасу</p>
+          <p className="text-blue-200 text-xs mb-3">
+            Нажмите кнопку ниже и выберите "Разрешить" в появившемся окне
+          </p>
           <button
             onClick={requestOrientationPermission}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors touch-manipulation"
