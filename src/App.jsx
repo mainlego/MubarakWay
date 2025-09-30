@@ -37,6 +37,7 @@ function AppContent() {
   };
 
   const handleToggleMinimize = () => {
+    console.log('Toggling player minimize state from', isPlayerMinimized, 'to', !isPlayerMinimized);
     setIsPlayerMinimized(!isPlayerMinimized);
   };
 

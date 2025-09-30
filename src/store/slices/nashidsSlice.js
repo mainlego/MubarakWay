@@ -94,10 +94,13 @@ const nashidsSlice = createSlice({
       }
     },
     playNashid: (state, action) => {
+      console.log('Redux: playNashid called with', action.payload.title);
       state.currentPlaying = action.payload;
       state.isPlaying = true;
     },
     pauseNashid: (state) => {
+      console.log('Redux: pauseNashid called');
+      console.trace('pauseNashid call stack');
       state.isPlaying = false;
     },
     stopNashid: (state) => {
