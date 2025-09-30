@@ -269,10 +269,13 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
   // Get qibla degree from props or redux
   let qiblaDegree = 0;
+  let qiblaSource = 'none';
   if (direction !== undefined && direction !== null && !isNaN(direction)) {
     qiblaDegree = direction;
+    qiblaSource = 'props';
   } else if (qiblaDirection !== undefined && qiblaDirection !== null && !isNaN(qiblaDirection)) {
     qiblaDegree = qiblaDirection;
+    qiblaSource = 'redux';
   }
 
   const safeOrientation = isNaN(smoothedOrientation) ? 0 : smoothedOrientation;
@@ -282,6 +285,20 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const deviceDirectionAdjusted = 0; // Device always points "up"
   const northDirection = normalizeAngle(-safeOrientation);
   const qiblaDirectionAdjusted = normalizeAngle(safeQiblaDegree - safeOrientation);
+
+  // Debug logging (only log every 3 seconds to avoid spam)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🧭 Compass Debug:', {
+        qiblaSource,
+        qiblaDegreeAbsolute: Math.round(safeQiblaDegree),
+        deviceOrientation: Math.round(safeOrientation),
+        qiblaRelative: Math.round(qiblaDirectionAdjusted),
+        northDirection: Math.round(northDirection)
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [qiblaSource, safeQiblaDegree, safeOrientation, qiblaDirectionAdjusted, northDirection]);
 
   // Loading state
   if (localLoading || locationLoading) {
