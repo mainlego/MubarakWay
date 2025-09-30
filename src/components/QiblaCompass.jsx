@@ -27,6 +27,8 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   // Фильтрация дрожания
   const [smoothedOrientation, setSmoothedOrientation] = useState(0);
   const [orientationBuffer, setOrientationBuffer] = useState([]);
+  const [smoothedQiblaAdjusted, setSmoothedQiblaAdjusted] = useState(0);
+  const [qiblaAdjustedBuffer, setQiblaAdjustedBuffer] = useState([]);
 
   // Улучшенная функция сглаживания с буфером
   const smoothOrientation = (newValue) => {
@@ -496,10 +498,19 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
   // Calculate shortest angle difference (handles 0/360 wrap-around)
   const getAngleDifference = (target, current) => {
-    let diff = target - current;
-    // Normalize to -180 to 180 range
-    while (diff > 180) diff -= 360;
-    while (diff < -180) diff += 360;
+    // Normalize both angles to 0-360 first
+    const normalizedTarget = ((target % 360) + 360) % 360;
+    const normalizedCurrent = ((current % 360) + 360) % 360;
+
+    let diff = normalizedTarget - normalizedCurrent;
+
+    // Find shortest path: direct or through 0°/360°
+    if (diff > 180) {
+      diff -= 360;
+    } else if (diff < -180) {
+      diff += 360;
+    }
+
     return diff;
   };
 
@@ -508,14 +519,35 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const safeQiblaDegree = isNaN(qiblaDegree) ? 0 : qiblaDegree;
 
   const northDirection = normalizeAngle(-safeOrientation);
-  const qiblaDirectionAdjusted = getAngleDifference(safeQiblaDegree, safeOrientation);
+  // Use angle difference instead of simple subtraction
+  const rawQiblaAdjusted = getAngleDifference(safeQiblaDegree, safeOrientation);
   const deviceDirectionAdjusted = 0; // Device always points "up" in our view
+
+  // Smooth qibla arrow to prevent jitter near alignment
+  const smoothQiblaAdjusted = (newValue) => {
+    setQiblaAdjustedBuffer(currentBuffer => {
+      const buffer = [...currentBuffer, newValue];
+      if (buffer.length > 5) buffer.shift(); // Small buffer for qibla arrow
+
+      // Simple average for stability
+      const average = buffer.reduce((sum, val) => sum + val, 0) / buffer.length;
+      return buffer;
+    });
+
+    // Return smoothed value
+    if (qiblaAdjustedBuffer.length === 0) return newValue;
+    const allValues = [...qiblaAdjustedBuffer, newValue];
+    return allValues.reduce((sum, val) => sum + val, 0) / allValues.length;
+  };
+
+  const qiblaDirectionAdjusted = smoothQiblaAdjusted(rawQiblaAdjusted);
 
   if (process.env.NODE_ENV === 'development') {
     console.log('Display angles:', {
       safeOrientation,
       safeQiblaDegree,
       northDirection,
+      rawQiblaAdjusted,
       qiblaDirectionAdjusted
     });
   }
