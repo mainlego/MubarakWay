@@ -149,12 +149,18 @@ const EnhancedBookReader = () => {
     const bookId = parseInt(id);
     if (savedBookmarks[bookId]) {
       setIsBookmarked(true);
-      // Восстанавливаем страницу из закладки, если текущая позиция не сохранена
-      if (savedPage === 1 && savedBookmarks[bookId].page > 1) {
-        setCurrentPage(savedBookmarks[bookId].page);
+      // Всегда восстанавливаем страницу из закладки (закладка имеет приоритет)
+      const bookmarkPage = savedBookmarks[bookId].page || 1;
+      setCurrentPage(bookmarkPage);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Bookmark found:', savedBookmarks[bookId]);
+        console.log('Restoring to page:', bookmarkPage);
       }
     } else {
       setCurrentPage(savedPage);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('No bookmark, using saved page:', savedPage);
+      }
     }
   }, [id]);
 
@@ -166,7 +172,7 @@ const EnhancedBookReader = () => {
 
   // Восстановление прогресса чтения и скролла при загрузке
   useEffect(() => {
-    if (totalPages > 0 && currentPage > 0) {
+    if (totalPages > 0 && currentPage > 0 && book) {
       // Небольшая задержка, чтобы страница успела отрендериться
       const timer = setTimeout(() => {
         const savedProgress = parseInt(localStorage.getItem(`readingProgress_${id}`) || '0');
@@ -179,12 +185,15 @@ const EnhancedBookReader = () => {
         const bookId = parseInt(id);
         if (bookmarks[bookId] && bookmarks[bookId].scrollPosition !== undefined) {
           const scrollPos = bookmarks[bookId].scrollPosition;
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Restoring scroll position:', scrollPos);
+          }
           window.scrollTo({ top: scrollPos, behavior: 'smooth' });
         }
-      }, 300);
+      }, 500); // Увеличили задержку для надежности
       return () => clearTimeout(timer);
     }
-  }, [totalPages, id, currentPage]);
+  }, [totalPages, id, book]);
 
   // Отслеживание онлайн статуса
   useEffect(() => {
@@ -244,7 +253,7 @@ const EnhancedBookReader = () => {
         // Прокрутка к началу страницы
         window.scrollTo({ top: 0, behavior: 'instant' });
         setTimeout(() => setPageTransition(''), 50);
-      }, 400);
+      }, 600);
     }
   };
 
@@ -259,7 +268,7 @@ const EnhancedBookReader = () => {
         // Прокрутка к началу страницы
         window.scrollTo({ top: 0, behavior: 'instant' });
         setTimeout(() => setPageTransition(''), 50);
-      }, 400);
+      }, 600);
     }
   };
 
@@ -976,71 +985,97 @@ const EnhancedBookReader = () => {
       <main
         id="book-reader-content"
         className="max-w-4xl mx-auto px-3 py-4 sm:px-6 sm:py-8 touch-pan-y"
-        style={{ touchAction: 'pan-y', minHeight: 'calc(100vh - 200px)' }}
+        style={{
+          touchAction: 'pan-y',
+          minHeight: 'calc(100vh - 200px)',
+          perspective: '2000px'
+        }}
       >
-        <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-lg sm:shadow-xl transition-all duration-300 ${
-          isDarkTheme
-            ? 'bg-gray-800/50 backdrop-blur-sm border border-gray-700'
-            : 'bg-white/80 backdrop-blur-sm border border-gray-200'
-        }`} style={{ minHeight: '400px' }}>
-          <div
-            ref={contentRef}
-            className={`prose prose-sm sm:prose-lg max-w-none transition-all duration-300 ${
-              isDarkTheme
-                ? 'prose-invert prose-p:text-gray-300 prose-headings:text-gray-100 prose-h1:text-xl sm:prose-h1:text-3xl prose-h2:text-lg sm:prose-h2:text-2xl prose-h3:text-base sm:prose-h3:text-xl'
-                : 'prose-p:text-gray-700 prose-headings:text-gray-900 prose-h1:text-xl sm:prose-h1:text-3xl prose-h2:text-lg sm:prose-h2:text-2xl prose-h3:text-base sm:prose-h3:text-xl'
-            }`}
-            style={{
-              fontSize: `${Math.max(fontSize - 2, 14)}px`,
-              lineHeight: lineHeight,
-              fontFamily: '"Inter", "Segoe UI", "Roboto", sans-serif'
-            }}
+        {/* Animated Page Container */}
+        <div
+          className={`transition-all ${
+            pageTransition === 'flip-forward' ? 'duration-[600ms]' :
+            pageTransition === 'flip-backward' ? 'duration-[600ms]' :
+            'duration-300'
+          }`}
           style={{
-            perspective: '1500px',
-            transformStyle: 'preserve-3d'
+            transformStyle: 'preserve-3d',
+            transformOrigin: pageTransition === 'flip-forward' ? 'left center' : 'right center',
+            transform: pageTransition === 'flip-forward' ? 'rotateY(-180deg)' :
+                      pageTransition === 'flip-backward' ? 'rotateY(180deg)' :
+                      'rotateY(0deg)',
+            backfaceVisibility: 'hidden'
           }}
         >
-          {isPageMode ? (
+          {/* Book Page Design */}
+          <div
+            className={`rounded-xl sm:rounded-2xl shadow-2xl transition-all duration-300 relative overflow-hidden ${
+              isDarkTheme
+                ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-700'
+                : 'bg-gradient-to-br from-amber-50 via-white to-amber-50 border-2 border-amber-200'
+            }`}
+            style={{
+              minHeight: '500px',
+              boxShadow: isDarkTheme
+                ? '0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)'
+                : '0 20px 60px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.8), 5px 0 15px rgba(0,0,0,0.1), -5px 0 15px rgba(0,0,0,0.1)'
+            }}
+          >
+            {/* Page number at bottom */}
+            {isPageMode && (
+              <div className={`absolute bottom-6 right-8 text-sm font-serif ${
+                isDarkTheme ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+                {currentPage}
+              </div>
+            )}
+
+            {/* Content */}
             <div
-              className={`transition-all ${
-                pageTransition === 'flip-forward' ? 'duration-[400ms]' :
-                pageTransition === 'flip-backward' ? 'duration-[400ms]' :
-                'duration-300'
+              ref={contentRef}
+              className={`p-6 sm:p-12 prose prose-sm sm:prose-lg max-w-none ${
+                isDarkTheme
+                  ? 'prose-invert prose-p:text-gray-300 prose-headings:text-gray-100'
+                  : 'prose-p:text-gray-800 prose-headings:text-gray-900'
               }`}
               style={{
-                transformStyle: 'preserve-3d',
-                transformOrigin: pageTransition === 'flip-forward' ? 'left center' : 'right center',
-                transform: pageTransition === 'flip-forward' ? 'rotateY(-180deg)' :
-                          pageTransition === 'flip-backward' ? 'rotateY(180deg)' :
-                          'rotateY(0deg)',
-                opacity: pageTransition ? 0.3 : 1,
-                backfaceVisibility: 'hidden'
+                fontSize: `${Math.max(fontSize - 2, 14)}px`,
+                lineHeight: lineHeight,
+                fontFamily: isDarkTheme
+                  ? '"Inter", "Segoe UI", "Roboto", sans-serif'
+                  : '"Crimson Text", "Georgia", "Times New Roman", serif',
+                textAlign: 'justify',
+                hyphens: 'auto'
               }}
-              dangerouslySetInnerHTML={{
-                __html: (() => {
-                  try {
-                    return DOMPurify.sanitize(marked(pages[currentPage - 1] || '', { breaks: true, gfm: true }));
-                  } catch (error) {
-                    console.error('Error rendering page content:', error);
-                    return (pages[currentPage - 1] || '').replace(/\n/g, '<br>');
-                  }
-                })()
-              }}
-            />
-          ) : (
-            <div
-              dangerouslySetInnerHTML={{
-                __html: (() => {
-                  try {
-                    return DOMPurify.sanitize(marked(book.content, { breaks: true, gfm: true }));
-                  } catch (error) {
-                    console.error('Error rendering book content:', error);
-                    return book.content.replace(/\n/g, '<br>');
-                  }
-                })()
-              }}
-            />
-          )}
+            >
+              {isPageMode ? (
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: (() => {
+                      try {
+                        return DOMPurify.sanitize(marked(pages[currentPage - 1] || '', { breaks: true, gfm: true }));
+                      } catch (error) {
+                        console.error('Error rendering page content:', error);
+                        return (pages[currentPage - 1] || '').replace(/\n/g, '<br>');
+                      }
+                    })()
+                  }}
+                />
+              ) : (
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: (() => {
+                      try {
+                        return DOMPurify.sanitize(marked(book.content, { breaks: true, gfm: true }));
+                      } catch (error) {
+                        console.error('Error rendering book content:', error);
+                        return book.content.replace(/\n/g, '<br>');
+                      }
+                    })()
+                  }}
+                />
+              )}
+            </div>
           </div>
         </div>
       </main>
