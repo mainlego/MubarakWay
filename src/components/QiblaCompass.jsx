@@ -13,6 +13,8 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [localLoading, setLocalLoading] = useState(true);
   const [isIOS, setIsIOS] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]);
 
   // Refs for performance (no re-render on change)
   const lastUpdateTime = useRef(0);
@@ -286,19 +288,31 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const northDirection = normalizeAngle(-safeOrientation);
   const qiblaDirectionAdjusted = normalizeAngle(safeQiblaDegree - safeOrientation);
 
-  // Debug logging (only log every 3 seconds to avoid spam)
+  // Add debug log helper
+  const addDebugLog = useCallback((message) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => {
+      const newLogs = [...prev, { time: timestamp, msg: message }];
+      // Keep only last 10 logs
+      return newLogs.slice(-10);
+    });
+  }, []);
+
+  // Debug logging - update every second
   useEffect(() => {
     const interval = setInterval(() => {
-      console.log('🧭 Compass Debug:', {
-        qiblaSource,
-        qiblaDegreeAbsolute: Math.round(safeQiblaDegree),
-        deviceOrientation: Math.round(safeOrientation),
-        qiblaRelative: Math.round(qiblaDirectionAdjusted),
-        northDirection: Math.round(northDirection)
-      });
-    }, 3000);
+      const debugInfo = {
+        source: qiblaSource,
+        qiblaAbs: Math.round(safeQiblaDegree),
+        deviceOri: Math.round(safeOrientation),
+        qiblaRel: Math.round(qiblaDirectionAdjusted),
+        northDir: Math.round(northDirection)
+      };
+      console.log('🧭 Compass Debug:', debugInfo);
+      addDebugLog(JSON.stringify(debugInfo, null, 2));
+    }, 1000);
     return () => clearInterval(interval);
-  }, [qiblaSource, safeQiblaDegree, safeOrientation, qiblaDirectionAdjusted, northDirection]);
+  }, [qiblaSource, safeQiblaDegree, safeOrientation, qiblaDirectionAdjusted, northDirection, addDebugLog]);
 
   // Loading state
   if (localLoading || locationLoading) {
@@ -531,7 +545,67 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
             {userLocation.latitude.toFixed(4)}°, {userLocation.longitude.toFixed(4)}°
           </div>
         )}
+
+        {/* Debug Toggle Button */}
+        <button
+          onClick={() => setShowDebug(!showDebug)}
+          className="mt-2 w-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-200 text-xs py-1 px-2 rounded transition-colors"
+        >
+          {showDebug ? '🔍 Скрыть отладку' : '🔍 Показать отладку'}
+        </button>
       </div>
+
+      {/* Debug Panel */}
+      {showDebug && (
+        <div className="mt-4 bg-black/80 backdrop-blur-sm rounded-xl p-3 text-left">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-yellow-300 font-bold text-sm">📊 Панель отладки</h3>
+            <button
+              onClick={() => setDebugLogs([])}
+              className="text-xs text-red-300 hover:text-red-400"
+            >
+              Очистить
+            </button>
+          </div>
+
+          {/* Current Values */}
+          <div className="bg-white/10 rounded p-2 mb-2 text-xs font-mono">
+            <div className="grid grid-cols-2 gap-1 text-white/90">
+              <div>Источник: <span className="text-green-300">{qiblaSource}</span></div>
+              <div>Мекка абс: <span className="text-green-300">{Math.round(safeQiblaDegree)}°</span></div>
+              <div>Устройство: <span className="text-red-300">{Math.round(safeOrientation)}°</span></div>
+              <div>Мекка отн: <span className="text-green-300">{Math.round(qiblaDirectionAdjusted)}°</span></div>
+              <div>Север: <span className="text-blue-300">{Math.round(northDirection)}°</span></div>
+              <div>Калибровка: <span className={isCalibrated ? 'text-green-300' : 'text-red-300'}>{isCalibrated ? 'ДА' : 'НЕТ'}</span></div>
+            </div>
+          </div>
+
+          {/* Log History */}
+          <div className="bg-white/5 rounded p-2 max-h-40 overflow-y-auto">
+            <div className="text-white/60 text-xs mb-1">История (последние 10):</div>
+            {debugLogs.length === 0 ? (
+              <div className="text-white/40 text-xs">Нет логов</div>
+            ) : (
+              debugLogs.map((log, idx) => (
+                <div key={idx} className="text-white/70 text-xs font-mono mb-1 border-b border-white/10 pb-1">
+                  <div className="text-white/50">[{log.time}]</div>
+                  <pre className="whitespace-pre-wrap">{log.msg}</pre>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Explanation */}
+          <div className="mt-2 p-2 bg-blue-500/10 rounded text-xs text-blue-200">
+            <div className="font-bold mb-1">Пояснение:</div>
+            <div>• <b>source</b> - откуда берётся направление к Мекке</div>
+            <div>• <b>qiblaAbs</b> - абсолютный азимут к Мекке (0-360°)</div>
+            <div>• <b>deviceOri</b> - куда смотрит телефон (0-360°)</div>
+            <div>• <b>qiblaRel</b> - куда указывает зелёная стрелка</div>
+            <div>• <b>northDir</b> - куда указывает синяя стрелка</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
