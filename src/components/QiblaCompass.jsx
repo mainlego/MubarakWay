@@ -19,11 +19,11 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   // Refs for performance (no re-render on change)
   const lastUpdateTime = useRef(0);
   const lastHeading = useRef(0);
-  const smoothingAlpha = useRef(0.2); // Low-pass filter coefficient (0-1, lower = smoother)
+  const smoothingAlpha = useRef(0.15); // Low-pass filter coefficient (0-1, lower = smoother)
 
   // Constants
-  const UPDATE_INTERVAL = 100; // Update every 100ms = 10 FPS
-  const DEADZONE_DEGREES = 2; // Ignore changes smaller than 2°
+  const UPDATE_INTERVAL = 200; // Update every 200ms = 5 FPS
+  const DEADZONE_DEGREES = 3; // Ignore changes smaller than 3°
 
   // Detect iOS
   useEffect(() => {
@@ -380,7 +380,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
           }`}
           style={{
             transform: `rotate(${-smoothedOrientation}deg)`,
-            transition: 'transform 0.3s ease-out',
+            transition: 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)',
             background: 'conic-gradient(from 0deg, rgba(34, 197, 94, 0.1) 0deg, rgba(34, 197, 94, 0.2) 45deg, rgba(34, 197, 94, 0.1) 90deg, rgba(34, 197, 94, 0.05) 180deg, rgba(34, 197, 94, 0.1) 270deg, rgba(34, 197, 94, 0.2) 315deg, rgba(34, 197, 94, 0.1) 360deg)'
           }}
         >
@@ -443,7 +443,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
                   top: '8px',
                   transformOrigin: '50% 112px',
                   transform: `translateX(-50%) rotate(${angle - smoothedOrientation}deg)`,
-                  transition: 'transform 0.3s ease-out'
+                  transition: 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)'
                 }}
               >
                 <span style={{ transform: `rotate(${-(angle - smoothedOrientation)}deg)`, display: 'inline-block' }}>
@@ -471,7 +471,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
             className="absolute inset-0 flex items-center justify-center"
             style={{
               transform: `rotate(${northDirection}deg)`,
-              transition: 'transform 0.3s ease-out'
+              transition: 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)'
             }}
           >
             <div className="flex flex-col items-center">
@@ -489,7 +489,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
             }`}
             style={{
               transform: `rotate(${qiblaDirectionAdjusted}deg)`,
-              transition: 'transform 0.3s ease-out'
+              transition: 'transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)'
             }}
           >
             <div className="flex flex-col items-center">
@@ -537,7 +537,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
       <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
         <div className="flex items-center justify-center gap-2 text-white/80 text-sm">
           <Compass className="w-4 h-4" />
-          <span>Точность: ±3° | Обновление: 10 FPS</span>
+          <span>Точность: ±3° | Обновление: 5 FPS</span>
         </div>
 
         {userLocation && (
