@@ -26,11 +26,13 @@ bot.start(async (ctx) => {
 
   // Проверяем, есть ли параметр start (Deep Link)
   const startPayload = ctx.startPayload;
+  console.log(`[/start] Received from user ${ctx.from.id} (${ctx.from.username || ctx.from.first_name})`);
+  console.log(`[/start] Start payload:`, startPayload);
 
   // Если это запрос на скачивание нашида
   if (startPayload && startPayload.startsWith('download_')) {
     const nashidId = parseInt(startPayload.replace('download_', ''));
-    console.log(`User ${ctx.from.id} requested nashid ${nashidId}`);
+    console.log(`[/start] User ${ctx.from.id} requested nashid ${nashidId}`);
 
     // Находим нашид по ID (здесь нужна база данных или API, но пока используем моковые данные)
     const mockNashids = [

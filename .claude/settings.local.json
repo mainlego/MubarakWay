@@ -16,7 +16,11 @@
       "Bash(npm install:*)",
       "Bash(npm i:*)",
       "Bash(npm uninstall:*)",
-      "Bash(curl -I http://localhost:5173/audio/Nasheed_Azan_1.mp3)"
+      "Bash(curl -I http://localhost:5173/audio/Nasheed_Azan_1.mp3)",
+      "Bash(tasklist)",
+      "Bash(findstr:*)",
+      "Bash(netstat:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

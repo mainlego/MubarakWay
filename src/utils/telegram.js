@@ -184,26 +184,23 @@ export class TelegramWebApp {
   // Отправить аудиофайл в чат с ботом через Deep Link
   async sendAudioToBot(nashid) {
     try {
+      console.log('[sendAudioToBot] Начало отправки нашида:', nashid);
+
       // Получаем username бота
       const botUsername = this.webApp?.initDataUnsafe?.bot?.username || 'MubarakWayBot';
-
-      // Кодируем ID нашида в base64 для передачи в команде
-      const nashidData = btoa(JSON.stringify({
-        id: nashid.id,
-        title: nashid.title,
-        artist: nashid.artist
-      }));
+      console.log('[sendAudioToBot] Bot username:', botUsername);
 
       // Формируем Deep Link с командой start и параметром
       const deepLink = `https://t.me/${botUsername}?start=download_${nashid.id}`;
-
-      console.log('Opening bot with deep link:', deepLink);
+      console.log('[sendAudioToBot] Deep link:', deepLink);
 
       // Показываем popup с подтверждением
       if (this.webApp) {
+        console.log('[sendAudioToBot] Используем Telegram WebApp API');
         this.showConfirm(
           `Отправить нашид "${nashid.title}" в чат с ботом?`,
           (confirmed) => {
+            console.log('[sendAudioToBot] User confirmed:', confirmed);
             if (confirmed) {
               this.vibrate();
               this.openLink(deepLink);
@@ -212,12 +209,13 @@ export class TelegramWebApp {
         );
       } else {
         // В браузере просто открываем ссылку
+        console.log('[sendAudioToBot] Открываем в браузере');
         window.open(deepLink, '_blank');
       }
 
       return true;
     } catch (error) {
-      console.error('Error sending audio to bot:', error);
+      console.error('[sendAudioToBot] Ошибка:', error);
       this.showAlert('Ошибка при отправке аудиофайла');
       return false;
     }
