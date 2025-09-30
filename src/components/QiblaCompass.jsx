@@ -520,10 +520,11 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const safeOrientation = isNaN(smoothedOrientation) ? 0 : smoothedOrientation;
   const safeQiblaDegree = isNaN(qiblaDegree) ? 0 : qiblaDegree;
 
-  const northDirection = normalizeAngle(-safeOrientation);
   const deviceDirectionAdjusted = 0; // Device always points "up" in our view
+  const northDirection = normalizeAngle(-safeOrientation); // North arrow rotates opposite to device
 
-  // Рассчитываем абсолютное направление стрелки Мекки (относительно севера компаса)
+  // Qibla arrow should point at absolute Qibla direction, adjusted for device rotation
+  // If device points at 90° and Qibla is at 120°, arrow should point at 120-90=30° relative to device
   const qiblaAbsoluteDirection = normalizeAngle(safeQiblaDegree - safeOrientation);
 
   // Сглаживаем стрелку Мекки через буфер
@@ -803,6 +804,7 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
             Мекка
           </div>
           <div className="text-white font-mono text-sm">{isNaN(qiblaDirectionAdjusted) ? '--' : Math.round(qiblaDirectionAdjusted)}°</div>
+          <div className="text-white/40 font-mono text-xs">({Math.round(safeQiblaDegree)}° абс)</div>
         </div>
       </div>
 
