@@ -28,6 +28,10 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const [smoothedOrientation, setSmoothedOrientation] = useState(0);
   const [orientationBuffer, setOrientationBuffer] = useState([]);
 
+  // Сглаживание стрелки Мекки
+  const [smoothedQibla, setSmoothedQibla] = useState(0);
+  const [qiblaBuffer, setQiblaBuffer] = useState([]);
+
   // Улучшенная функция сглаживания с буфером
   const smoothOrientation = (newValue) => {
     if (typeof newValue !== 'number' || isNaN(newValue)) {
@@ -517,15 +521,56 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   const safeQiblaDegree = isNaN(qiblaDegree) ? 0 : qiblaDegree;
 
   const northDirection = normalizeAngle(-safeOrientation);
-  // Use angle difference instead of simple subtraction
-  const qiblaDirectionAdjusted = getAngleDifference(safeQiblaDegree, safeOrientation);
   const deviceDirectionAdjusted = 0; // Device always points "up" in our view
+
+  // Рассчитываем абсолютное направление стрелки Мекки (относительно севера компаса)
+  const qiblaAbsoluteDirection = normalizeAngle(safeQiblaDegree - safeOrientation);
+
+  // Сглаживаем стрелку Мекки через буфер
+  React.useEffect(() => {
+    setQiblaBuffer(currentBuffer => {
+      const buffer = [...currentBuffer];
+
+      // Обработка перехода через 360°/0°
+      let adjustedValue = qiblaAbsoluteDirection;
+      if (buffer.length > 0) {
+        const lastValue = buffer[buffer.length - 1];
+        const diff = qiblaAbsoluteDirection - lastValue;
+
+        if (diff > 180) {
+          adjustedValue = qiblaAbsoluteDirection - 360;
+        } else if (diff < -180) {
+          adjustedValue = qiblaAbsoluteDirection + 360;
+        }
+      }
+
+      buffer.push(adjustedValue);
+      if (buffer.length > 5) buffer.shift();
+
+      // Взвешенное среднее
+      let weightedSum = 0;
+      let totalWeight = 0;
+      buffer.forEach((value, index) => {
+        const weight = index + 1;
+        weightedSum += value * weight;
+        totalWeight += weight;
+      });
+
+      const smoothedValue = normalizeAngle(weightedSum / totalWeight);
+      setSmoothedQibla(smoothedValue);
+
+      return buffer;
+    });
+  }, [qiblaAbsoluteDirection]);
+
+  const qiblaDirectionAdjusted = smoothedQibla;
 
   if (process.env.NODE_ENV === 'development') {
     console.log('Display angles:', {
       safeOrientation,
       safeQiblaDegree,
       northDirection,
+      qiblaAbsoluteDirection,
       qiblaDirectionAdjusted
     });
   }
