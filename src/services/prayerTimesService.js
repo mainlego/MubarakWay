@@ -327,9 +327,7 @@ class PrayerTimesService {
 
     if (!loc || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number' ||
         isNaN(loc.latitude) || isNaN(loc.longitude)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('No valid location for qibla calculation:', loc);
-      }
+      console.warn('No valid location for qibla calculation:', loc);
       return null;
     }
 
@@ -338,18 +336,19 @@ class PrayerTimesService {
       const qibla = new Qibla(coordinates);
       const direction = qibla.direction;
 
-      if (isNaN(direction) || direction === null || direction === undefined) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Qibla library returned invalid direction, using it anyway');
-        }
-        return null;
+      console.log('Qibla direction calculated:', direction, 'for location:', loc);
+
+      // Нормализуем направление (0-360)
+      if (typeof direction === 'number' && !isNaN(direction)) {
+        let normalized = direction % 360;
+        if (normalized < 0) normalized += 360;
+        return normalized;
       }
 
-      return direction;
+      console.warn('Qibla library returned invalid direction:', direction);
+      return null;
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error calculating qibla direction:', error);
-      }
+      console.error('Error calculating qibla direction:', error);
       return null;
     }
   }

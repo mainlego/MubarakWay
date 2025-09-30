@@ -232,10 +232,26 @@ const Qibla = () => {
               <h2 className="text-xl font-semibold text-white text-center mb-4">
                 Интерактивный компас
               </h2>
-              {qiblaDirection !== null ? (
+              {locationLoading ? (
+                <div className="text-center py-12">
+                  <Navigation className="w-16 h-16 text-white/50 mx-auto mb-4 animate-pulse" />
+                  <p className="text-white/80">Определение местоположения...</p>
+                </div>
+              ) : locationError ? (
+                <div className="text-center py-12">
+                  <Navigation className="w-16 h-16 text-red-400/50 mx-auto mb-4" />
+                  <p className="text-red-300 mb-4">{locationError}</p>
+                  <button
+                    onClick={handleGetLocation}
+                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                  >
+                    Попробовать снова
+                  </button>
+                </div>
+              ) : (
                 <>
                   <QiblaCompass
-                    direction={qiblaDirection}
+                    direction={qiblaDirection || 0}
                     isAnimating={isAnimating}
                   />
                   <div className="text-center mt-4">
@@ -243,8 +259,13 @@ const Qibla = () => {
                       Поверните устройство для точного направления
                     </p>
                     <p className="text-white font-semibold">
-                      Направление: {qiblaDirection && !isNaN(qiblaDirection) ? Math.round(qiblaDirection) : '--'}°
+                      Направление: {qiblaDirection && !isNaN(qiblaDirection) ? Math.round(qiblaDirection) : 'Вычисляется...'}
                     </p>
+                    {userLocation && (
+                      <p className="text-white/60 text-xs mt-2">
+                        {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+                      </p>
+                    )}
                     {isAnimating && (
                       <div className="mt-2 p-2 bg-green-500/20 border border-green-500/30 rounded-lg">
                         <p className="text-green-300 text-sm animate-pulse">
@@ -254,11 +275,6 @@ const Qibla = () => {
                     )}
                   </div>
                 </>
-              ) : (
-                <div className="text-center py-12">
-                  <Navigation className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                  <p className="text-white/80">Определение местоположения...</p>
-                </div>
               )}
             </div>
           )}
