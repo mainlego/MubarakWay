@@ -48,6 +48,8 @@ const EnhancedBookReader = () => {
   const [pages, setPages] = useState([]);
   const [isPageMode, setIsPageMode] = useState(true);
   const [pageTransition, setPageTransition] = useState('');
+  const [nextPageContent, setNextPageContent] = useState('');
+  const [isFlipping, setIsFlipping] = useState(false);
 
   // Аудио функции
   const [isPlaying, setIsPlaying] = useState(false);
@@ -243,32 +245,40 @@ const EnhancedBookReader = () => {
   }, []);
 
   const nextPage = () => {
-    if (currentPage < totalPages) {
-      setPageTransition('flip-forward');
+    if (currentPage < totalPages && !isFlipping) {
+      setIsFlipping(true);
+      // Подготавливаем контент следующей страницы
+      setNextPageContent(pages[currentPage] || ''); // currentPage потому что индекс с 0
+      setPageTransition('flip-left');
+
       setTimeout(() => {
         const newPage = currentPage + 1;
         setCurrentPage(newPage);
         localStorage.setItem(`currentPage_${id}`, newPage.toString());
         updateProgress(newPage);
-        // Прокрутка к началу страницы
         window.scrollTo({ top: 0, behavior: 'instant' });
-        setTimeout(() => setPageTransition(''), 50);
-      }, 600);
+        setPageTransition('');
+        setIsFlipping(false);
+      }, 700);
     }
   };
 
   const prevPage = () => {
-    if (currentPage > 1) {
-      setPageTransition('flip-backward');
+    if (currentPage > 1 && !isFlipping) {
+      setIsFlipping(true);
+      // Подготавливаем контент предыдущей страницы
+      setNextPageContent(pages[currentPage - 2] || ''); // -2 потому что индекс с 0 и идем назад
+      setPageTransition('flip-right');
+
       setTimeout(() => {
         const newPage = currentPage - 1;
         setCurrentPage(newPage);
         localStorage.setItem(`currentPage_${id}`, newPage.toString());
         updateProgress(newPage);
-        // Прокрутка к началу страницы
         window.scrollTo({ top: 0, behavior: 'instant' });
-        setTimeout(() => setPageTransition(''), 50);
-      }, 600);
+        setPageTransition('');
+        setIsFlipping(false);
+      }, 700);
     }
   };
 
@@ -988,93 +998,151 @@ const EnhancedBookReader = () => {
         style={{
           touchAction: 'pan-y',
           minHeight: 'calc(100vh - 200px)',
-          perspective: '2000px'
+          perspective: '2500px',
+          perspectiveOrigin: '50% 50%'
         }}
       >
-        {/* Animated Page Container */}
-        <div
-          className={`transition-all ${
-            pageTransition === 'flip-forward' ? 'duration-[600ms]' :
-            pageTransition === 'flip-backward' ? 'duration-[600ms]' :
-            'duration-300'
-          }`}
-          style={{
-            transformStyle: 'preserve-3d',
-            transformOrigin: pageTransition === 'flip-forward' ? 'left center' : 'right center',
-            transform: pageTransition === 'flip-forward' ? 'rotateY(-180deg)' :
-                      pageTransition === 'flip-backward' ? 'rotateY(180deg)' :
-                      'rotateY(0deg)',
-            backfaceVisibility: 'hidden'
-          }}
-        >
-          {/* Book Page Design */}
+        {/* Book Container with page stack effect */}
+        <div className="relative" style={{ transformStyle: 'preserve-3d' }}>
+
+          {/* Bottom/Next Page - Always visible underneath */}
           <div
-            className={`rounded-xl sm:rounded-2xl shadow-2xl transition-all duration-300 relative overflow-hidden ${
+            className={`absolute inset-0 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden ${
               isDarkTheme
-                ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-gray-700'
-                : 'bg-gradient-to-br from-amber-50 via-white to-amber-50 border-2 border-amber-200'
+                ? 'bg-gradient-to-br from-gray-800 to-gray-900'
+                : 'bg-gradient-to-br from-amber-50 via-white to-amber-50'
             }`}
             style={{
               minHeight: '500px',
+              transform: 'translateZ(-10px)',
               boxShadow: isDarkTheme
-                ? '0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)'
-                : '0 20px 60px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.8), 5px 0 15px rgba(0,0,0,0.1), -5px 0 15px rgba(0,0,0,0.1)'
+                ? 'inset 3px 0 8px rgba(0,0,0,0.3), inset -3px 0 8px rgba(0,0,0,0.3)'
+                : 'inset 3px 0 8px rgba(0,0,0,0.1), inset -3px 0 8px rgba(0,0,0,0.1)',
             }}
           >
-            {/* Page number at bottom */}
-            {isPageMode && (
-              <div className={`absolute bottom-6 right-8 text-sm font-serif ${
-                isDarkTheme ? 'text-gray-500' : 'text-gray-400'
-              }`}>
-                {currentPage}
-              </div>
-            )}
+            {/* Page stack effect on sides */}
+            <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-r from-black/10 to-transparent"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-l from-black/10 to-transparent"></div>
 
-            {/* Content */}
+            {/* Next/Prev page content - visible during flip */}
+            {(pageTransition === 'flip-left' || pageTransition === 'flip-right') && nextPageContent && (
+              <div
+                ref={contentRef}
+                className={`p-6 sm:p-12 prose prose-sm sm:prose-lg max-w-none ${
+                  isDarkTheme
+                    ? 'prose-invert prose-p:text-gray-300 prose-headings:text-gray-100'
+                    : 'prose-p:text-gray-800 prose-headings:text-gray-900'
+                }`}
+                style={{
+                  fontSize: `${Math.max(fontSize - 2, 14)}px`,
+                  lineHeight: lineHeight,
+                  fontFamily: isDarkTheme
+                    ? '"Inter", "Segoe UI", "Roboto", sans-serif'
+                    : '"Crimson Text", "Georgia", "Times New Roman", serif',
+                  textAlign: 'justify',
+                  hyphens: 'auto'
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: (() => {
+                    try {
+                      return DOMPurify.sanitize(marked(nextPageContent, { breaks: true, gfm: true }));
+                    } catch (error) {
+                      return nextPageContent.replace(/\n/g, '<br>');
+                    }
+                  })()
+                }}
+              />
+            )}
+          </div>
+
+          {/* Top/Current Page - Flips over */}
+          <div
+            className={`relative transition-all ${
+              pageTransition === 'flip-left' ? 'duration-[700ms]' :
+              pageTransition === 'flip-right' ? 'duration-[700ms]' :
+              'duration-300'
+            }`}
+            style={{
+              transformStyle: 'preserve-3d',
+              transformOrigin: pageTransition === 'flip-left' ? '0% 50%' : '100% 50%',
+              transform:
+                pageTransition === 'flip-left' ? 'rotateY(-180deg)' :
+                pageTransition === 'flip-right' ? 'rotateY(180deg)' :
+                'rotateY(0deg)',
+              zIndex: pageTransition ? 10 : 1
+            }}
+          >
             <div
-              ref={contentRef}
-              className={`p-6 sm:p-12 prose prose-sm sm:prose-lg max-w-none ${
+              className={`rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden relative ${
                 isDarkTheme
-                  ? 'prose-invert prose-p:text-gray-300 prose-headings:text-gray-100'
-                  : 'prose-p:text-gray-800 prose-headings:text-gray-900'
+                  ? 'bg-gradient-to-br from-gray-800 to-gray-900'
+                  : 'bg-gradient-to-br from-amber-50 via-white to-amber-50'
               }`}
               style={{
-                fontSize: `${Math.max(fontSize - 2, 14)}px`,
-                lineHeight: lineHeight,
-                fontFamily: isDarkTheme
-                  ? '"Inter", "Segoe UI", "Roboto", sans-serif'
-                  : '"Crimson Text", "Georgia", "Times New Roman", serif',
-                textAlign: 'justify',
-                hyphens: 'auto'
+                minHeight: '500px',
+                backfaceVisibility: 'hidden',
+                boxShadow: isDarkTheme
+                  ? '0 25px 70px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1)'
+                  : '0 25px 70px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.9)',
               }}
             >
-              {isPageMode ? (
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: (() => {
-                      try {
-                        return DOMPurify.sanitize(marked(pages[currentPage - 1] || '', { breaks: true, gfm: true }));
-                      } catch (error) {
-                        console.error('Error rendering page content:', error);
-                        return (pages[currentPage - 1] || '').replace(/\n/g, '<br>');
-                      }
-                    })()
-                  }}
-                />
-              ) : (
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: (() => {
-                      try {
-                        return DOMPurify.sanitize(marked(book.content, { breaks: true, gfm: true }));
-                      } catch (error) {
-                        console.error('Error rendering book content:', error);
-                        return book.content.replace(/\n/g, '<br>');
-                      }
-                    })()
-                  }}
-                />
+              {/* Page stack effect on right edge */}
+              <div className="absolute right-0 top-0 bottom-0 w-3 bg-gradient-to-l from-black/5 to-transparent"></div>
+
+              {/* Page number at bottom */}
+              {isPageMode && (
+                <div className={`absolute bottom-6 right-8 text-sm font-serif ${
+                  isDarkTheme ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  {currentPage}
+                </div>
               )}
+
+              {/* Content */}
+              <div
+                className={`p-6 sm:p-12 prose prose-sm sm:prose-lg max-w-none ${
+                  isDarkTheme
+                    ? 'prose-invert prose-p:text-gray-300 prose-headings:text-gray-100'
+                    : 'prose-p:text-gray-800 prose-headings:text-gray-900'
+                }`}
+                style={{
+                  fontSize: `${Math.max(fontSize - 2, 14)}px`,
+                  lineHeight: lineHeight,
+                  fontFamily: isDarkTheme
+                    ? '"Inter", "Segoe UI", "Roboto", sans-serif'
+                    : '"Crimson Text", "Georgia", "Times New Roman", serif',
+                  textAlign: 'justify',
+                  hyphens: 'auto'
+                }}
+              >
+                {isPageMode ? (
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: (() => {
+                        try {
+                          return DOMPurify.sanitize(marked(pages[currentPage - 1] || '', { breaks: true, gfm: true }));
+                        } catch (error) {
+                          console.error('Error rendering page content:', error);
+                          return (pages[currentPage - 1] || '').replace(/\n/g, '<br>');
+                        }
+                      })()
+                    }}
+                  />
+                ) : (
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: (() => {
+                        try {
+                          return DOMPurify.sanitize(marked(book.content, { breaks: true, gfm: true }));
+                        } catch (error) {
+                          console.error('Error rendering book content:', error);
+                          return book.content.replace(/\n/g, '<br>');
+                        }
+                      })()
+                    }}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
