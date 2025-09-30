@@ -27,8 +27,6 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   // Фильтрация дрожания
   const [smoothedOrientation, setSmoothedOrientation] = useState(0);
   const [orientationBuffer, setOrientationBuffer] = useState([]);
-  const [smoothedQiblaAdjusted, setSmoothedQiblaAdjusted] = useState(0);
-  const [qiblaAdjustedBuffer, setQiblaAdjustedBuffer] = useState([]);
 
   // Улучшенная функция сглаживания с буфером
   const smoothOrientation = (newValue) => {
@@ -165,27 +163,6 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
   // Local loading state for geolocation to avoid conflicts
   const [localLoading, setLocalLoading] = useState(true);
-
-  // Update qibla adjusted buffer when orientation or qibla changes
-  useEffect(() => {
-    // Calculate angle difference inline
-    const getAngleDiff = (target, current) => {
-      const normalizedTarget = ((target % 360) + 360) % 360;
-      const normalizedCurrent = ((current % 360) + 360) % 360;
-      let diff = normalizedTarget - normalizedCurrent;
-      if (diff > 180) diff -= 360;
-      else if (diff < -180) diff += 360;
-      return diff;
-    };
-
-    const rawQiblaAdjusted = getAngleDiff(qiblaDegree || 0, smoothedOrientation);
-
-    setQiblaAdjustedBuffer(currentBuffer => {
-      const buffer = [...currentBuffer, rawQiblaAdjusted];
-      if (buffer.length > 5) buffer.shift();
-      return buffer;
-    });
-  }, [smoothedOrientation, qiblaDegree]);
 
   useEffect(() => {
     // Get user location with local loading state
@@ -541,22 +518,14 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
 
   const northDirection = normalizeAngle(-safeOrientation);
   // Use angle difference instead of simple subtraction
-  const rawQiblaAdjusted = getAngleDifference(safeQiblaDegree, safeOrientation);
+  const qiblaDirectionAdjusted = getAngleDifference(safeQiblaDegree, safeOrientation);
   const deviceDirectionAdjusted = 0; // Device always points "up" in our view
-
-  // Calculate smoothed qibla direction (without causing re-renders)
-  let qiblaDirectionAdjusted = rawQiblaAdjusted;
-  if (qiblaAdjustedBuffer.length > 0) {
-    const allValues = [...qiblaAdjustedBuffer, rawQiblaAdjusted];
-    qiblaDirectionAdjusted = allValues.reduce((sum, val) => sum + val, 0) / allValues.length;
-  }
 
   if (process.env.NODE_ENV === 'development') {
     console.log('Display angles:', {
       safeOrientation,
       safeQiblaDegree,
       northDirection,
-      rawQiblaAdjusted,
       qiblaDirectionAdjusted
     });
   }
