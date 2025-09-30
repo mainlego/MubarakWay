@@ -148,24 +148,8 @@ class PrayerTimesService {
       // Создаем координаты
       const coordinates = new Coordinates(loc.latitude, loc.longitude);
 
-      // Получаем метод расчета
-      const calculationMethod = CalculationMethod[sett.calculationMethod];
-      if (!calculationMethod) {
-        throw new Error('Неверный метод расчета');
-      }
-
-      // Создаем новый объект параметров с явным копированием нужных свойств
-      const params = {
-        fajrAngle: calculationMethod.fajrAngle,
-        ishaAngle: calculationMethod.ishaAngle,
-        ishaInterval: calculationMethod.ishaInterval,
-        method: calculationMethod.method
-      };
-
-      // Копируем функции, если они есть
-      if (calculationMethod.nightPortions) {
-        params.nightPortions = calculationMethod.nightPortions;
-      }
+      // Получаем метод расчета напрямую из библиотеки
+      const params = CalculationMethod[sett.calculationMethod]();
 
       // Устанавливаем мазхаб
       if (sett.madhab === madhabs.HANAFI) {
