@@ -166,18 +166,18 @@ const QiblaCompass = ({ direction, isAnimating = false }) => {
   // Local loading state for geolocation to avoid conflicts
   const [localLoading, setLocalLoading] = useState(true);
 
-  // Helper function for angle difference
-  const getAngleDiff = (target, current) => {
-    const normalizedTarget = ((target % 360) + 360) % 360;
-    const normalizedCurrent = ((current % 360) + 360) % 360;
-    let diff = normalizedTarget - normalizedCurrent;
-    if (diff > 180) diff -= 360;
-    else if (diff < -180) diff += 360;
-    return diff;
-  };
-
   // Update qibla adjusted buffer when orientation or qibla changes
   useEffect(() => {
+    // Calculate angle difference inline
+    const getAngleDiff = (target, current) => {
+      const normalizedTarget = ((target % 360) + 360) % 360;
+      const normalizedCurrent = ((current % 360) + 360) % 360;
+      let diff = normalizedTarget - normalizedCurrent;
+      if (diff > 180) diff -= 360;
+      else if (diff < -180) diff += 360;
+      return diff;
+    };
+
     const rawQiblaAdjusted = getAngleDiff(qiblaDegree || 0, smoothedOrientation);
 
     setQiblaAdjustedBuffer(currentBuffer => {
