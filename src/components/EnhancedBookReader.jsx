@@ -47,6 +47,7 @@ const EnhancedBookReader = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [pages, setPages] = useState([]);
   const [isPageMode, setIsPageMode] = useState(true);
+  const [pageTransition, setPageTransition] = useState('');
 
   // Аудио функции
   const [isPlaying, setIsPlaying] = useState(false);
@@ -136,15 +137,25 @@ const EnhancedBookReader = () => {
     const savedFontSize = localStorage.getItem('readerFontSize');
     const savedLineHeight = localStorage.getItem('readerLineHeight');
     const savedPageMode = localStorage.getItem('readerPageMode');
-    const savedBookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+    const savedBookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
     const savedPage = parseInt(localStorage.getItem(`currentPage_${id}`) || '1');
 
     if (savedTheme) setIsDarkTheme(savedTheme === 'dark');
     if (savedFontSize) setFontSize(parseInt(savedFontSize));
     if (savedLineHeight) setLineHeight(parseFloat(savedLineHeight));
     if (savedPageMode !== null) setIsPageMode(savedPageMode === 'true');
-    if (savedBookmarks.includes(parseInt(id))) setIsBookmarked(true);
-    setCurrentPage(savedPage);
+
+    // Проверяем закладку и восстанавливаем позицию если есть
+    const bookId = parseInt(id);
+    if (savedBookmarks[bookId]) {
+      setIsBookmarked(true);
+      // Восстанавливаем страницу из закладки, если текущая позиция не сохранена
+      if (savedPage === 1 && savedBookmarks[bookId].page > 1) {
+        setCurrentPage(savedBookmarks[bookId].page);
+      }
+    } else {
+      setCurrentPage(savedPage);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -152,6 +163,20 @@ const EnhancedBookReader = () => {
       splitContentIntoPages(book.content);
     }
   }, [fontSize, lineHeight, book]);
+
+  // Восстановление прогресса чтения при загрузке
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > 1) {
+      // Небольшая задержка, чтобы страница успела отрендериться
+      const timer = setTimeout(() => {
+        const savedProgress = parseInt(localStorage.getItem(`readingProgress_${id}`) || '0');
+        if (savedProgress > 0) {
+          setReadingProgress(savedProgress);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [totalPages, id]);
 
   // Отслеживание онлайн статуса
   useEffect(() => {
@@ -202,19 +227,31 @@ const EnhancedBookReader = () => {
 
   const nextPage = () => {
     if (currentPage < totalPages) {
-      const newPage = currentPage + 1;
-      setCurrentPage(newPage);
-      localStorage.setItem(`currentPage_${id}`, newPage.toString());
-      updateProgress(newPage);
+      setPageTransition('slide-left');
+      setTimeout(() => {
+        const newPage = currentPage + 1;
+        setCurrentPage(newPage);
+        localStorage.setItem(`currentPage_${id}`, newPage.toString());
+        updateProgress(newPage);
+        // Прокрутка к началу страницы
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        setPageTransition('');
+      }, 150);
     }
   };
 
   const prevPage = () => {
     if (currentPage > 1) {
-      const newPage = currentPage - 1;
-      setCurrentPage(newPage);
-      localStorage.setItem(`currentPage_${id}`, newPage.toString());
-      updateProgress(newPage);
+      setPageTransition('slide-right');
+      setTimeout(() => {
+        const newPage = currentPage - 1;
+        setCurrentPage(newPage);
+        localStorage.setItem(`currentPage_${id}`, newPage.toString());
+        updateProgress(newPage);
+        // Прокрутка к началу страницы
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        setPageTransition('');
+      }, 150);
     }
   };
 
@@ -317,17 +354,28 @@ const EnhancedBookReader = () => {
   };
 
   const toggleBookmark = () => {
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
     const bookId = parseInt(id);
 
     if (isBookmarked) {
-      const updatedBookmarks = bookmarks.filter(bid => bid !== bookId);
-      localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
-    } else {
-      bookmarks.push(bookId);
+      // Удаляем закладку
+      delete bookmarks[bookId];
       localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+      setIsBookmarked(false);
+    } else {
+      // Сохраняем закладку с текущей позицией
+      bookmarks[bookId] = {
+        page: currentPage,
+        progress: readingProgress,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+      setIsBookmarked(true);
+      // Показываем уведомление
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showAlert(`Закладка сохранена на странице ${currentPage}`);
+      }
     }
-    setIsBookmarked(!isBookmarked);
   };
 
   // Text-to-Speech функционал
@@ -374,19 +422,30 @@ const EnhancedBookReader = () => {
       setCurrentPage(pageNum);
       localStorage.setItem(`currentPage_${id}`, pageNum.toString());
       updateProgress(pageNum);
+      // Прокрутка к началу при переходе на страницу
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const downloadBook = async () => {
     if (!book) return;
 
-    const element = document.createElement('a');
-    const file = new Blob([book.content], { type: 'text/markdown' });
-    element.href = URL.createObjectURL(file);
-    element.download = `${book.title}.md`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    try {
+      const element = document.createElement('a');
+      // Используем правильную кодировку UTF-8 с BOM для корректного отображения кириллицы
+      const BOM = '\uFEFF';
+      const content = BOM + book.content;
+      const file = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      element.href = URL.createObjectURL(file);
+      element.download = `${book.title}.txt`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      URL.revokeObjectURL(element.href);
+    } catch (error) {
+      console.error('Error downloading book:', error);
+      alert('Ошибка при скачивании книги');
+    }
   };
 
   const toggleOfflineAccess = async () => {
@@ -907,13 +966,13 @@ const EnhancedBookReader = () => {
       <main
         id="book-reader-content"
         className="max-w-4xl mx-auto px-3 py-4 sm:px-6 sm:py-8 touch-pan-y"
-        style={{ touchAction: 'pan-y' }}
+        style={{ touchAction: 'pan-y', minHeight: 'calc(100vh - 200px)' }}
       >
         <div className={`rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-lg sm:shadow-xl transition-all duration-300 ${
           isDarkTheme
             ? 'bg-gray-800/50 backdrop-blur-sm border border-gray-700'
             : 'bg-white/80 backdrop-blur-sm border border-gray-200'
-        }`}>
+        }`} style={{ minHeight: '400px' }}>
           <div
             ref={contentRef}
             className={`prose prose-sm sm:prose-lg max-w-none transition-all duration-300 ${
@@ -929,6 +988,11 @@ const EnhancedBookReader = () => {
         >
           {isPageMode ? (
             <div
+              className={`transition-all duration-300 ${
+                pageTransition === 'slide-left' ? 'opacity-0 -translate-x-4' :
+                pageTransition === 'slide-right' ? 'opacity-0 translate-x-4' :
+                'opacity-100 translate-x-0'
+              }`}
               dangerouslySetInnerHTML={{
                 __html: (() => {
                   try {

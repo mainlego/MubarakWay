@@ -658,11 +658,22 @@ export const fetchBooks = createAsyncThunk(
   }
 );
 
+// Загрузка favorites из localStorage
+const loadFavorites = () => {
+  try {
+    const saved = localStorage.getItem('bookFavorites');
+    return saved ? JSON.parse(saved) : [];
+  } catch (error) {
+    console.error('Error loading favorites:', error);
+    return [];
+  }
+};
+
 const booksSlice = createSlice({
   name: 'books',
   initialState: {
     books: [],
-    favorites: [],
+    favorites: loadFavorites(),
     readingProgress: {},
     loading: false,
     error: null
@@ -674,6 +685,12 @@ const booksSlice = createSlice({
         state.favorites = state.favorites.filter(id => id !== bookId);
       } else {
         state.favorites.push(bookId);
+      }
+      // Сохраняем в localStorage
+      try {
+        localStorage.setItem('bookFavorites', JSON.stringify(state.favorites));
+      } catch (error) {
+        console.error('Error saving favorites:', error);
       }
     },
     updateReadingProgress: (state, action) => {
