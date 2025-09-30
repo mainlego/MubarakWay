@@ -146,11 +146,21 @@ const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMini
     };
 
     const handlePause = () => {
-      // НЕ синхронизируем автоматически при паузе, так как это может быть:
-      // 1. Временная техническая пауза (loading, buffering)
-      // 2. Пауза при сворачивании плеера (не должна останавливать воспроизведение)
-      // Синхронизация происходит только через явные действия пользователя (кнопка play/pause)
       console.log('Audio pause event fired, but NOT syncing to Redux');
+
+      // Если Redux state говорит что должно играть, но аудио на паузе - возобновляем
+      // Это происходит при ре-рендере компонента (например, при сворачивании)
+      if (isPlaying && !isLoading) {
+        console.log('Auto-resuming playback because Redux state is playing');
+        setTimeout(() => {
+          const audio = audioRef.current;
+          if (audio && audio.paused && isPlaying) {
+            audio.play().catch(error => {
+              console.error('Failed to auto-resume:', error);
+            });
+          }
+        }, 100); // Небольшая задержка для завершения ре-рендера
+      }
     };
 
     const handleEnded = () => handleNext();
