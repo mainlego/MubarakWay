@@ -2,13 +2,57 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Music, Navigation2, Clock, Crown } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
+import prayerTimesService from '../services/prayerTimesService';
 
 const Home = () => {
   const [backgroundStyle, setBackgroundStyle] = useState({});
+  const [nextPrayer, setNextPrayer] = useState(null);
+  const [timeUntilPrayer, setTimeUntilPrayer] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setBackgroundStyle(getBackgroundWithOverlay('home', 0.3));
+    loadPrayerTimes();
+
+    // Обновляем время каждую минуту
+    const interval = setInterval(() => {
+      updateTimeUntilPrayer();
+    }, 60000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  const loadPrayerTimes = async () => {
+    try {
+      setLoading(true);
+      // Получаем местоположение
+      const location = await prayerTimesService.getCurrentLocation();
+
+      // Загружаем настройки
+      await prayerTimesService.loadSettings();
+
+      // Рассчитываем время молитв
+      const times = await prayerTimesService.getPrayerTimesWithOfflineSupport(
+        new Date(),
+        location
+      );
+
+      // Получаем следующую молитву
+      const next = prayerTimesService.getNextPrayer(times);
+      setNextPrayer(next);
+
+      updateTimeUntilPrayer(times);
+    } catch (error) {
+      console.error('Error loading prayer times:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateTimeUntilPrayer = (times = null) => {
+    const timeInfo = prayerTimesService.getTimeUntilNextPrayer(times);
+    setTimeUntilPrayer(timeInfo);
+  };
 
   const features = [
     {
@@ -52,8 +96,23 @@ const Home = () => {
             <Clock className="w-5 h-5 text-green-600" />
             <span className="text-gray-700 font-medium">Следующая молитва</span>
           </div>
-          <div className="text-2xl font-bold text-gray-800 mb-1">Зухр</div>
-          <div className="text-gray-600">через 2ч 35м</div>
+          {loading ? (
+            <div className="text-gray-500">Загрузка...</div>
+          ) : nextPrayer && timeUntilPrayer ? (
+            <>
+              <div className="text-2xl font-bold text-gray-800 mb-1">
+                {nextPrayer.displayName}
+              </div>
+              <div className="text-gray-600">
+                через {timeUntilPrayer.formatted}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {prayerTimesService.formatTime(nextPrayer.time)}
+              </div>
+            </>
+          ) : (
+            <div className="text-gray-500">Нет данных</div>
+          )}
         </div>
 
         {/* Features Grid */}
