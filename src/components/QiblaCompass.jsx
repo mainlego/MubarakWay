@@ -5,23 +5,22 @@ import { Navigation, Compass } from 'lucide-react';
 const QiblaCompass = () => {
   // States
   const [qiblaData, setQiblaData] = useState(null);
-  const [deviceHeading, setDeviceHeading] = useState(0);
+  const [compassHeading, setCompassHeading] = useState(0);
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [calibrationNeeded, setCalibrationNeeded] = useState(false);
+  const [isPointingToQibla, setIsPointingToQibla] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
 
-  // Refs for smoothing
-  const lastHeading = useRef(0);
+  // Refs
   const animationFrameRef = useRef(null);
 
-  // Detect platform
+  // Detect iOS
   useEffect(() => {
-    const ios = typeof DeviceOrientationEvent !== 'undefined' &&
-                typeof DeviceOrientationEvent.requestPermission === 'function';
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     setIsIOS(ios);
   }, []);
 
@@ -45,15 +44,12 @@ const QiblaCompass = () => {
         try {
           const result = getQiblaDirection(location, {
             bearingPrecision: 2,
-            distancePrecision: 2,
+            distancePrecision: 0,
             includeCardinalDirection: true,
             includeMagneticDeclination: false
           });
 
-          console.log('Qibla calculation FULL result:', result);
-          console.log('Distance value:', result.distance);
-          console.log('Distance type:', typeof result.distance);
-
+          console.log('Qibla calculation:', result);
           setQiblaData(result);
           setLoading(false);
         } catch (err) {
@@ -84,12 +80,18 @@ const QiblaCompass = () => {
     }
 
     try {
-      const permission = await DeviceOrientationEvent.requestPermission();
-      if (permission === 'granted') {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        if (permission === 'granted') {
+          setPermissionGranted(true);
+          startCompass();
+        } else {
+          setError('Доступ к компасу отклонен');
+        }
+      } else {
         setPermissionGranted(true);
         startCompass();
-      } else {
-        setError('Доступ к компасу отклонен');
       }
     } catch (err) {
       console.error('Permission error:', err);
@@ -97,49 +99,34 @@ const QiblaCompass = () => {
     }
   };
 
-  // Smooth angle interpolation
-  const smoothAngle = (target, current, factor = 0.15) => {
-    // Calculate shortest distance
-    let diff = target - current;
-    if (diff > 180) diff -= 360;
-    if (diff < -180) diff += 360;
-
-    // Apply smoothing
-    const smoothed = current + diff * factor;
-    return (smoothed + 360) % 360;
-  };
-
-  // Handle device orientation
+  // Handle device orientation (based on dev.to article)
   const handleOrientation = (event) => {
-    let heading = null;
+    let compass = 0;
 
-    // iOS: use webkitCompassHeading
-    if (event.webkitCompassHeading !== undefined) {
-      heading = event.webkitCompassHeading;
+    // Use webkitCompassHeading for iOS, or calculate from alpha
+    if (event.webkitCompassHeading) {
+      // iOS devices
+      compass = event.webkitCompassHeading;
+    } else {
+      // Android devices
+      compass = Math.abs(event.alpha - 360);
     }
-    // Android: use alpha with absolute orientation
-    else if (event.absolute && event.alpha !== null) {
-      heading = 360 - event.alpha;
+
+    // Update compass heading with animation frame for smooth performance
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
     }
 
-    if (heading !== null) {
-      // Smooth the heading
-      const smoothed = smoothAngle(heading, lastHeading.current);
-      lastHeading.current = smoothed;
+    animationFrameRef.current = requestAnimationFrame(() => {
+      setCompassHeading(compass);
 
-      // Update state with throttling
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      // Check if pointing to Qibla (within ±15 degrees)
+      if (qiblaData) {
+        const diff = Math.abs(qiblaData.bearing - compass);
+        const isPointing = diff <= 15 || diff >= 345;
+        setIsPointingToQibla(isPointing);
       }
-      animationFrameRef.current = requestAnimationFrame(() => {
-        setDeviceHeading(smoothed);
-      });
-    }
-
-    // Check calibration status
-    if (event.webkitCompassAccuracy !== undefined) {
-      setCalibrationNeeded(event.webkitCompassAccuracy < 0 || event.webkitCompassAccuracy > 20);
-    }
+    });
   };
 
   // Start compass
@@ -147,8 +134,9 @@ const QiblaCompass = () => {
     if (isIOS) {
       window.addEventListener('deviceorientation', handleOrientation, true);
     } else {
+      // Try deviceorientationabsolute first (Android)
       window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-      // Fallback for non-absolute
+      // Fallback to regular deviceorientation
       window.addEventListener('deviceorientation', handleOrientation, true);
     }
   };
@@ -156,12 +144,6 @@ const QiblaCompass = () => {
   // Request permission button handler
   const handleEnableCompass = () => {
     requestOrientationPermission();
-  };
-
-  // Calculate relative Qibla direction (relative to device heading)
-  const getRelativeQiblaDirection = () => {
-    if (!qiblaData) return 0;
-    return (qiblaData.bearing - deviceHeading + 360) % 360;
   };
 
   // Cleanup
@@ -223,23 +205,15 @@ const QiblaCompass = () => {
     );
   }
 
-  const relativeQibla = getRelativeQiblaDirection();
-  // Note: @masaajid/qibla returns distance in meters, need to convert to km
-  const distanceKm = qiblaData?.distance ? (qiblaData.distance / 1000).toFixed(0) : '—';
-
-  // Debug: log the raw distance value
-  if (qiblaData?.distance) {
-    console.log('Raw distance from library:', qiblaData.distance);
-    console.log('Converted to km:', distanceKm);
-  }
+  const distanceKm = qiblaData?.distance ? Math.round(qiblaData.distance / 1000) : '—';
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] p-6">
-      {/* Calibration warning */}
-      {calibrationNeeded && (
-        <div className="mb-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 max-w-md">
-          <p className="text-yellow-300 text-sm text-center">
-            ⚠️ Требуется калибровка компаса. Поверните устройство восьмеркой.
+      {/* Pointing to Qibla indicator */}
+      {isPointingToQibla && (
+        <div className="mb-4 bg-emerald-500/20 border border-emerald-500/50 rounded-xl p-4 max-w-md animate-pulse">
+          <p className="text-emerald-300 text-sm text-center font-semibold">
+            ✓ Вы направлены на Киблу!
           </p>
         </div>
       )}
@@ -256,21 +230,22 @@ const QiblaCompass = () => {
 
       {/* Compass container */}
       <div className="relative w-80 h-80 mb-6">
-        {/* Rotating compass ring */}
+        {/* Rotating compass (rotates based on device heading) */}
         <div
-          className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-2 border-emerald-500/30 shadow-2xl"
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-2 border-emerald-500/30 shadow-2xl transition-transform duration-300 ease-out"
           style={{
-            transform: `rotate(${-deviceHeading}deg)`,
-            transition: 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)'
+            transform: `translate(-50%, -50%) rotate(${-compassHeading}deg)`,
+            top: '50%',
+            left: '50%'
           }}
         >
-          {/* Cardinal directions (rotate with compass) */}
+          {/* Cardinal directions */}
           <div className="absolute top-2 left-1/2 -translate-x-1/2 text-white font-bold text-xl">N</div>
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white/50 font-bold text-lg">S</div>
           <div className="absolute left-2 top-1/2 -translate-y-1/2 text-white/50 font-bold text-lg">W</div>
           <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white/50 font-bold text-lg">E</div>
 
-          {/* Degree markers (rotate with compass) */}
+          {/* Degree markers */}
           {[...Array(36)].map((_, i) => {
             const angle = i * 10;
             const isMajor = angle % 30 === 0;
@@ -289,42 +264,39 @@ const QiblaCompass = () => {
               </div>
             );
           })}
+
+          {/* Qibla direction marker on compass ring */}
+          <div
+            className="absolute left-1/2 top-0 origin-bottom"
+            style={{
+              height: '50%',
+              transform: `rotate(${qiblaData?.bearing}deg)`
+            }}
+          >
+            <div className={`mx-auto w-1 h-8 ${isPointingToQibla ? 'bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]' : 'bg-emerald-500'} transition-all duration-300`} />
+          </div>
         </div>
 
-        {/* Device heading indicator (static red arrow at top = where device points) */}
-        <div className="absolute inset-0 flex items-start justify-center pt-6 pointer-events-none">
+        {/* Static device pointer (red arrow at top) */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 pt-6 pointer-events-none">
           <div className="flex flex-col items-center">
             <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[24px] border-b-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
             <div className="mt-1 text-red-400 text-xs font-bold">ВЫ</div>
           </div>
         </div>
 
-        {/* Qibla direction arrow (rotates to point to Qibla) */}
-        <div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          style={{
-            transform: `rotate(${qiblaData?.bearing - deviceHeading}deg)`,
-            transition: 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)'
-          }}
-        >
-          <div className="flex flex-col items-center -mt-2">
-            <Navigation
-              className="w-20 h-20 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.8)]"
-              fill="currentColor"
-            />
-            <div className="text-emerald-300 text-sm font-semibold mt-1">الكعبة</div>
-          </div>
-        </div>
-
         {/* Center dot */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg z-10" />
       </div>
 
       {/* Direction indicator */}
       <div className="text-center mb-4">
         <p className="text-white/50 text-sm mb-1">Направление на Киблу</p>
         <p className="text-4xl font-bold text-emerald-400">
-          {relativeQibla.toFixed(0)}°
+          {qiblaData?.bearing.toFixed(0)}°
+        </p>
+        <p className="text-white/50 text-xs mt-2">
+          Текущий курс: {compassHeading.toFixed(0)}°
         </p>
       </div>
 
@@ -346,12 +318,12 @@ const QiblaCompass = () => {
               <span className="text-emerald-300">{qiblaData?.bearing.toFixed(2)}°</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white/50">Device heading:</span>
-              <span className="text-blue-300">{deviceHeading.toFixed(2)}°</span>
+              <span className="text-white/50">Compass heading:</span>
+              <span className="text-blue-300">{compassHeading.toFixed(2)}°</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white/50">Relative Qibla:</span>
-              <span className="text-emerald-300">{relativeQibla.toFixed(2)}°</span>
+              <span className="text-white/50">Difference:</span>
+              <span className="text-yellow-300">{Math.abs(qiblaData?.bearing - compassHeading).toFixed(2)}°</span>
             </div>
             <div className="flex justify-between">
               <span className="text-white/50">Distance:</span>
@@ -364,6 +336,12 @@ const QiblaCompass = () => {
             <div className="flex justify-between">
               <span className="text-white/50">Platform:</span>
               <span className="text-white/70">{isIOS ? 'iOS' : 'Android/Other'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-white/50">Pointing to Qibla:</span>
+              <span className={isPointingToQibla ? 'text-emerald-300' : 'text-red-300'}>
+                {isPointingToQibla ? 'YES' : 'NO'}
+              </span>
             </div>
           </div>
         </div>
