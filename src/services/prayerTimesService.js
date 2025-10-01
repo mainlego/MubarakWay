@@ -1,4 +1,5 @@
 import { Coordinates, CalculationMethod, HighLatitudeRule, Madhab, PrayerTimes, Qibla } from 'adhan';
+import { getQiblaDirection } from '@masaajid/qibla';
 import { offlinePrayerTimes } from './offlineStorage';
 
 // Методы расчета
@@ -332,41 +333,49 @@ class PrayerTimesService {
     }
 
     try {
-      // Manual calculation using Great Circle formula
-      const MECCA_LAT = 21.4225;
-      const MECCA_LNG = 39.8261;
+      // Use @masaajid/qibla library for precise geodetic calculation
+      const result = getQiblaDirection(
+        { latitude: loc.latitude, longitude: loc.longitude },
+        {
+          bearingPrecision: 2,
+          distancePrecision: 2,
+          includeCardinalDirection: true,
+          includeMagneticDeclination: false
+        }
+      );
 
-      const lat1 = loc.latitude * Math.PI / 180;
-      const lat2 = MECCA_LAT * Math.PI / 180;
-      const deltaLng = (MECCA_LNG - loc.longitude) * Math.PI / 180;
-
-      const y = Math.sin(deltaLng) * Math.cos(lat2);
-      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
-
-      let bearing = Math.atan2(y, x) * 180 / Math.PI;
-
-      // Normalize to 0-360
-      bearing = (bearing + 360) % 360;
-
-      console.log('Manual Qibla calculation:', {
+      console.log('Qibla direction (@masaajid/qibla):', {
         location: loc,
-        bearing: bearing.toFixed(2)
+        bearing: result.bearing,
+        cardinalDirection: result.cardinalDirection,
+        distance: result.distance
       });
 
-      // Also try adhan library for comparison
-      try {
-        const coordinates = new Coordinates(loc.latitude, loc.longitude);
-        const qibla = new Qibla(coordinates);
-        const adhanDirection = qibla.direction;
-        console.log('Adhan library result:', adhanDirection);
-      } catch (err) {
-        console.warn('Adhan library failed:', err);
-      }
-
-      return bearing;
+      return result.bearing;
     } catch (error) {
       console.error('Error calculating qibla direction:', error);
-      return null;
+
+      // Fallback to manual Great Circle formula
+      try {
+        const MECCA_LAT = 21.4225;
+        const MECCA_LNG = 39.8261;
+
+        const lat1 = loc.latitude * Math.PI / 180;
+        const lat2 = MECCA_LAT * Math.PI / 180;
+        const deltaLng = (MECCA_LNG - loc.longitude) * Math.PI / 180;
+
+        const y = Math.sin(deltaLng) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+
+        let bearing = Math.atan2(y, x) * 180 / Math.PI;
+        bearing = (bearing + 360) % 360;
+
+        console.log('Fallback manual calculation:', bearing.toFixed(2));
+        return bearing;
+      } catch (fallbackError) {
+        console.error('Fallback calculation failed:', fallbackError);
+        return null;
+      }
     }
   }
 

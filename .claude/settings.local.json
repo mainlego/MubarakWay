@@ -20,7 +20,8 @@
       "Bash(tasklist)",
       "Bash(findstr:*)",
       "Bash(netstat:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(npm view:*)"
     ],
     "deny": [],
     "ask": []
