@@ -50,9 +50,12 @@ const QiblaCompass = () => {
             includeMagneticDeclination: false
           });
 
+          console.log('Qibla calculation FULL result:', result);
+          console.log('Distance value:', result.distance);
+          console.log('Distance type:', typeof result.distance);
+
           setQiblaData(result);
           setLoading(false);
-          console.log('Qibla calculation:', result);
         } catch (err) {
           console.error('Qibla calculation error:', err);
           setError('Ошибка расчета направления на Киблу');
@@ -221,7 +224,14 @@ const QiblaCompass = () => {
   }
 
   const relativeQibla = getRelativeQiblaDirection();
+  // Note: @masaajid/qibla returns distance in meters, need to convert to km
   const distanceKm = qiblaData?.distance ? (qiblaData.distance / 1000).toFixed(0) : '—';
+
+  // Debug: log the raw distance value
+  if (qiblaData?.distance) {
+    console.log('Raw distance from library:', qiblaData.distance);
+    console.log('Converted to km:', distanceKm);
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] p-6">
