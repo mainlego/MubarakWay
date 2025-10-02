@@ -10,6 +10,13 @@ const mockBooks = [
     cover: "https://images.unsplash.com/photo-1542816417-0983c9c9ad53?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     isPro: false,
     category: "religious",
+    genre: "quran", // про ислам, пророков, хадисы, акыда, тафсиры
+    language: "ru",
+    isExclusive: false,
+    rating: 4.9,
+    reactions: 1250, // количество лайков/реакций
+    publishedDate: "2024-01-01",
+    isNew: false, // новинка (опубликовано < 30 дней назад)
     content: `# Священный Коран
 
 ## Введение
@@ -195,6 +202,13 @@ const mockBooks = [
     cover: "https://images.unsplash.com/photo-1609706808980-8c37dadc0c15?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     isPro: false,
     category: "hadith",
+    genre: "hadith",
+    language: "ru",
+    isExclusive: false,
+    rating: 4.8,
+    reactions: 980,
+    publishedDate: "2024-02-15",
+    isNew: false,
     content: `# Сорок хадисов имама Ан-Навави
 
 ## О составителе
@@ -408,6 +422,13 @@ const mockBooks = [
     cover: "https://images.unsplash.com/photo-1564769625905-50e93615e769?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     isPro: false,
     category: "spiritual",
+    genre: "islam",
+    language: "ru",
+    isExclusive: false,
+    rating: 4.6,
+    reactions: 720,
+    publishedDate: "2024-09-10",
+    isNew: true,
     content: `# Путь к Аллаху
 ## Руководство по духовному развитию
 
@@ -462,6 +483,13 @@ const mockBooks = [
     cover: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     isPro: true,
     category: "education",
+    genre: "aqidah",
+    language: "ru",
+    isExclusive: true,
+    rating: 4.9,
+    reactions: 1450,
+    publishedDate: "2024-03-20",
+    isNew: false,
     content: `# 40 уроков о вере
 
 ## Урок 1: Основы веры (Акыда)
@@ -517,6 +545,13 @@ const mockBooks = [
     cover: "https://images.unsplash.com/photo-1591213954208-66b9e6ba0e44?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     isPro: true,
     category: "spiritual",
+    genre: "islam",
+    language: "ru",
+    isExclusive: true,
+    rating: 4.7,
+    reactions: 890,
+    publishedDate: "2024-09-25",
+    isNew: true,
     content: `# Плоды деяний
 ## Руководство по праведным поступкам
 
@@ -583,6 +618,13 @@ const mockBooks = [
     cover: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
     isPro: true,
     category: "education",
+    genre: "aqidah",
+    language: "ru",
+    isExclusive: false,
+    rating: 4.8,
+    reactions: 1100,
+    publishedDate: "2024-04-05",
+    isNew: false,
     content: `# Основы вероучения
 ## Фундаментальные принципы ислама
 

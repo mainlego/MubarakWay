@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchBooks, toggleFavorite } from '../store/slices/booksSlice';
 import BookCard from '../components/BookCard';
-import { Book, Heart, Search, Filter, Star, Lock, BookOpen, Crown } from 'lucide-react';
+import { Book, Heart, Search, Filter, Star, Lock, BookOpen, Crown, TrendingUp, Sparkles, Globe, Award } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
 
 const Library = () => {
@@ -17,6 +17,12 @@ const Library = () => {
   const [backgroundStyle, setBackgroundStyle] = useState({});
   const [recentSearches, setRecentSearches] = useState([]);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+
+  // Новые фильтры для каталога
+  const [sortBy, setSortBy] = useState('default'); // default, new, rating
+  const [genreFilter, setGenreFilter] = useState('all'); // all, quran, hadith, prophets, aqidah, tafsir, islam
+  const [languageFilter, setLanguageFilter] = useState('all'); // all, ru, ar, en
+  const [showExclusiveOnly, setShowExclusiveOnly] = useState(false);
 
   useEffect(() => {
     dispatch(fetchBooks());
@@ -62,6 +68,34 @@ const Library = () => {
     // Фильтр по избранному
     if (showFavorites) {
       filtered = filtered.filter(book => favorites.includes(book.id));
+    }
+
+    // Фильтр по жанру
+    if (genreFilter !== 'all') {
+      filtered = filtered.filter(book => book.genre === genreFilter);
+    }
+
+    // Фильтр по языку
+    if (languageFilter !== 'all') {
+      filtered = filtered.filter(book => book.language === languageFilter);
+    }
+
+    // Фильтр по эксклюзиву
+    if (showExclusiveOnly) {
+      filtered = filtered.filter(book => book.isExclusive);
+    }
+
+    // Сортировка
+    if (sortBy === 'new') {
+      // Сначала новинки (isNew = true), затем по дате публикации
+      filtered = [...filtered].sort((a, b) => {
+        if (a.isNew && !b.isNew) return -1;
+        if (!a.isNew && b.isNew) return 1;
+        return new Date(b.publishedDate) - new Date(a.publishedDate);
+      });
+    } else if (sortBy === 'rating') {
+      // По рейтингу (количество реакций)
+      filtered = [...filtered].sort((a, b) => (b.reactions || 0) - (a.reactions || 0));
     }
 
     return filtered;
@@ -128,29 +162,198 @@ const Library = () => {
             )}
           </form>
 
-          {/* Фильтры */}
-          <div className="flex flex-wrap gap-2 sm:gap-3 w-full">
-            <button
-              onClick={() => setShowFavorites(!showFavorites)}
-              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all text-xs sm:text-sm ${
-                showFavorites
-                  ? 'bg-red-500 text-white'
-                  : 'bg-white/80 text-gray-700 active:bg-white'
-              }`}
-            >
-              <Heart className={`w-3 h-3 sm:w-4 sm:h-4 ${showFavorites ? 'fill-current' : ''}`} />
-              Избранное
-            </button>
+          {/* Каталог - Сортировка */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 sm:p-4 w-full">
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="w-4 h-4 text-gray-600" />
+              <h3 className="text-sm font-semibold text-gray-700">Каталог</h3>
+            </div>
 
-            {(searchTerm || showFavorites) && (
+            {/* Сортировка */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-600 mb-2">Сортировка:</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSortBy('default')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    sortBy === 'default'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  <BookOpen className="w-3 h-3" />
+                  По умолчанию
+                </button>
+                <button
+                  onClick={() => setSortBy('new')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    sortBy === 'new'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Новинки
+                </button>
+                <button
+                  onClick={() => setSortBy('rating')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    sortBy === 'rating'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  <TrendingUp className="w-3 h-3" />
+                  По рейтингу
+                </button>
+              </div>
+            </div>
+
+            {/* Жанр */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-600 mb-2">Жанр:</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setGenreFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'all'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Все
+                </button>
+                <button
+                  onClick={() => setGenreFilter('quran')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'quran'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Коран
+                </button>
+                <button
+                  onClick={() => setGenreFilter('hadith')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'hadith'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Хадисы
+                </button>
+                <button
+                  onClick={() => setGenreFilter('islam')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'islam'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Про ислам
+                </button>
+                <button
+                  onClick={() => setGenreFilter('aqidah')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'aqidah'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Акыда
+                </button>
+              </div>
+            </div>
+
+            {/* Язык */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-600 mb-2">Язык:</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setLanguageFilter('all')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    languageFilter === 'all'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  <Globe className="w-3 h-3" />
+                  Все
+                </button>
+                <button
+                  onClick={() => setLanguageFilter('ru')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    languageFilter === 'ru'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Русский
+                </button>
+                <button
+                  onClick={() => setLanguageFilter('ar')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    languageFilter === 'ar'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  العربية
+                </button>
+                <button
+                  onClick={() => setLanguageFilter('en')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    languageFilter === 'en'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+
+            {/* Дополнительные фильтры */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setShowExclusiveOnly(!showExclusiveOnly)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                  showExclusiveOnly
+                    ? 'bg-yellow-500 text-white'
+                    : 'bg-white text-gray-700 active:bg-gray-100'
+                }`}
+              >
+                <Award className="w-3 h-3" />
+                Эксклюзив
+              </button>
+              <button
+                onClick={() => setShowFavorites(!showFavorites)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                  showFavorites
+                    ? 'bg-red-500 text-white'
+                    : 'bg-white text-gray-700 active:bg-gray-100'
+                }`}
+              >
+                <Heart className={`w-3 h-3 ${showFavorites ? 'fill-current' : ''}`} />
+                Избранное
+              </button>
+            </div>
+
+            {/* Кнопка сброса фильтров */}
+            {(searchTerm || showFavorites || sortBy !== 'default' || genreFilter !== 'all' || languageFilter !== 'all' || showExclusiveOnly) && (
               <button
                 onClick={() => {
                   setSearchTerm('');
                   setShowFavorites(false);
+                  setSortBy('default');
+                  setGenreFilter('all');
+                  setLanguageFilter('all');
+                  setShowExclusiveOnly(false);
                 }}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gray-500 text-white active:bg-gray-600 transition-all text-xs sm:text-sm"
+                className="mt-3 w-full bg-gray-500 text-white px-4 py-2 rounded-lg text-xs active:bg-gray-600 transition-all"
               >
-                Сбросить
+                Сбросить все фильтры
               </button>
             )}
           </div>
