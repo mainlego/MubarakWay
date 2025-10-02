@@ -83,27 +83,27 @@ const Library = () => {
 
   return (
     <div
-      className="p-6 min-h-screen bg-cover bg-center bg-no-repeat"
+      className="p-4 sm:p-6 min-h-screen bg-cover bg-center bg-no-repeat overflow-x-hidden"
       style={backgroundStyle}
     >
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-white mb-6">Библиотека</h1>
+      <div className="max-w-4xl mx-auto w-full">
+        <h1 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Библиотека</h1>
 
         {/* Поиск и фильтры */}
-        <div className="mb-6 space-y-4">
+        <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4 w-full">
           {/* Строка поиска */}
-          <form onSubmit={handleSearchSubmit} className="relative">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             </div>
             <input
               type="text"
-              placeholder="Поиск по названию, автору или описанию..."
+              placeholder="Поиск по названию, автору..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => setShowSearchSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white/90 backdrop-blur-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+              className="block w-full pl-9 sm:pl-10 pr-3 py-2 sm:py-3 border border-gray-300 rounded-xl leading-5 bg-white/90 backdrop-blur-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-xs sm:text-sm"
             />
 
             {/* Подсказки поиска */}
@@ -129,16 +129,16 @@ const Library = () => {
           </form>
 
           {/* Фильтры */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3 w-full">
             <button
               onClick={() => setShowFavorites(!showFavorites)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all text-xs sm:text-sm ${
                 showFavorites
                   ? 'bg-red-500 text-white'
-                  : 'bg-white/80 text-gray-700 hover:bg-white'
+                  : 'bg-white/80 text-gray-700 active:bg-white'
               }`}
             >
-              <Heart className={`w-4 h-4 ${showFavorites ? 'fill-current' : ''}`} />
+              <Heart className={`w-3 h-3 sm:w-4 sm:h-4 ${showFavorites ? 'fill-current' : ''}`} />
               Избранное
             </button>
 
@@ -148,9 +148,9 @@ const Library = () => {
                   setSearchTerm('');
                   setShowFavorites(false);
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-500 text-white hover:bg-gray-600 transition-all"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gray-500 text-white active:bg-gray-600 transition-all text-xs sm:text-sm"
               >
-                Сбросить фильтры
+                Сбросить
               </button>
             )}
           </div>
@@ -168,14 +168,14 @@ const Library = () => {
 
         {/* Free Books Section */}
         {freeBooks.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="w-5 h-5 text-white" />
-              <h2 className="text-xl font-semibold text-white">
+          <section className="mb-6 sm:mb-8 w-full">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <h2 className="text-lg sm:text-xl font-semibold text-white">
                 Бесплатные книги ({freeBooks.length})
               </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 w-full">
               {freeBooks.map(book => (
                 <BookCard key={book.id} book={book} />
               ))}
@@ -185,22 +185,22 @@ const Library = () => {
 
         {/* Pro Books Section */}
         {proBooks.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+          <section className="mb-6 sm:mb-8 w-full">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
               <div className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-yellow-400" />
-                <h2 className="text-xl font-semibold text-white">
+                <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
+                <h2 className="text-lg sm:text-xl font-semibold text-white">
                   Книги PRO ({proBooks.length})
                 </h2>
               </div>
               {subscription === 'free' && (
-                <button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all">
-                  <Lock className="w-4 h-4 inline mr-2" />
-                  Оформить подписку
+                <button className="bg-gradient-to-r from-green-500 to-green-600 active:from-green-600 active:to-green-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2">
+                  <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
+                  Подписка
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 w-full">
               {proBooks.map(book => (
                 <BookCard key={book.id} book={book} />
               ))}
@@ -235,12 +235,12 @@ const Library = () => {
 
         {/* Subscription Banner */}
         {subscription === 'free' && (
-          <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-6 text-white">
-            <h3 className="text-lg font-semibold mb-2">Хотите больше? Подписка открывает</h3>
-            <p className="text-green-100 mb-4">
+          <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-4 sm:p-6 text-white w-full">
+            <h3 className="text-base sm:text-lg font-semibold mb-2">Хотите больше? Подписка открывает</h3>
+            <p className="text-green-100 text-xs sm:text-sm mb-3 sm:mb-4">
               200+ книг, эксклюзивные лекции и персональные уроки
             </p>
-            <button className="bg-white text-green-600 px-6 py-2 rounded-lg font-medium hover:bg-green-50 transition-colors">
+            <button className="bg-white text-green-600 px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-medium active:bg-green-50 transition-colors w-full sm:w-auto">
               Оформить подписку
             </button>
           </div>

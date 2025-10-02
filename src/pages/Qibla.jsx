@@ -123,25 +123,25 @@ const Qibla = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat p-6"
+      className="min-h-screen bg-cover bg-center bg-no-repeat p-4 sm:p-6 overflow-x-hidden"
       style={backgroundStyle}
     >
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">Кибла и намаз</h1>
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Кибла и намаз</h1>
+          <div className="flex items-center gap-2">
             {isOnline ? (
-              <Wifi className="w-5 h-5 text-green-400" />
+              <Wifi className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
             ) : (
-              <WifiOff className="w-5 h-5 text-red-400" />
+              <WifiOff className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
             )}
             <button
               onClick={handleRefreshPrayerTimes}
               disabled={prayerTimesLoading || !userLocation}
-              className="p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-colors disabled:opacity-50"
+              className="p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white active:bg-white/30 transition-colors disabled:opacity-50"
             >
-              <RefreshCw className={`w-5 h-5 ${prayerTimesLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${prayerTimesLoading ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -178,9 +178,9 @@ const Qibla = () => {
         )}
 
         {/* Tab Navigation - Mobile Scrollable */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6 w-full">
           <div className="overflow-x-auto scrollbar-hide mobile-tabs smooth-scroll">
-            <div className="flex bg-white/20 backdrop-blur-sm rounded-xl p-1 min-w-max">
+            <div className="flex bg-white/20 backdrop-blur-sm rounded-xl p-1 gap-1 min-w-max">
               {[
                 { id: 'compass', label: 'Компас', icon: Navigation },
                 { id: 'map', label: 'Карта', icon: Map },
@@ -192,15 +192,14 @@ const Qibla = () => {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg transition-all whitespace-nowrap touch-manipulation ${
+                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg transition-all whitespace-nowrap touch-manipulation ${
                       activeTab === tab.id
                         ? 'bg-white text-gray-900 shadow-md'
-                        : 'text-white hover:bg-white/10 active:bg-white/20'
+                        : 'text-white active:bg-white/20'
                     }`}
-                    style={{ minWidth: 'max-content' }}
                   >
-                    <IconComponent className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-sm font-medium">{tab.label}</span>
+                    <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium">{tab.label}</span>
                   </button>
                 );
               })}
@@ -210,14 +209,14 @@ const Qibla = () => {
           {/* Tab Indicators */}
           <div className="flex justify-center mt-2 gap-1">
             {[
-              { id: 'compass', label: 'Компас' },
-              { id: 'map', label: 'Карта' },
-              { id: 'times', label: 'Время' },
-              { id: 'stats', label: 'Статистика' }
+              { id: 'compass' },
+              { id: 'map' },
+              { id: 'times' },
+              { id: 'stats' }
             ].map((tab) => (
               <div
                 key={tab.id}
-                className={`w-2 h-2 rounded-full transition-all ${
+                className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all ${
                   activeTab === tab.id ? 'bg-white' : 'bg-white/30'
                 }`}
               />
@@ -226,10 +225,10 @@ const Qibla = () => {
         </div>
 
         {/* Content */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 w-full">
           {activeTab === 'compass' && (
-            <div>
-              <h2 className="text-xl font-semibold text-white text-center mb-4">
+            <div className="w-full">
+              <h2 className="text-lg sm:text-xl font-semibold text-white text-center mb-3 sm:mb-4">
                 Интерактивный компас
               </h2>
               {locationLoading ? (

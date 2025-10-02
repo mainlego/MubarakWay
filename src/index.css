@@ -20,8 +20,15 @@
   box-sizing: border-box;
 }
 
-body {
+/* Prevent horizontal scroll globally */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
   margin: 0;
+  padding: 0;
+}
+
+body {
   min-width: 320px;
   min-height: 100vh;
   background: #f8fafc;
@@ -29,6 +36,16 @@ body {
   /* iOS Safari fixes */
   -webkit-touch-callout: none;
   -webkit-user-select: none;
+  /* Prevent content overflow */
+  position: relative;
+  width: 100%;
+}
+
+/* Prevent any element from causing horizontal scroll */
+#root {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
 }
 
 /* Custom scrollbar */

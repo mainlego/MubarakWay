@@ -51,23 +51,23 @@ const Nashids = () => {
 
   return (
     <div
-      className="p-6 min-h-screen bg-cover bg-center bg-no-repeat"
+      className="p-4 sm:p-6 min-h-screen bg-cover bg-center bg-no-repeat overflow-x-hidden"
       style={backgroundStyle}
     >
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between mb-4 sm:mb-6 w-full">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-colors"
+              className="p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white active:bg-white/30 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 text-green-400" />
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
             </button>
-            <h1 className="text-2xl font-bold text-white">Нашиды</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Нашиды</h1>
           </div>
-          <button className="p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white hover:bg-white/30 transition-colors">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <button className="p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white active:bg-white/30 transition-colors">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 3v9.28l-2.64-2.64-1.42 1.42L12 15.12l4.06-4.06-1.42-1.42L12 12.28V3z"/>
               <path d="M19 17v2H5v-2h14z"/>
             </svg>
@@ -75,40 +75,40 @@ const Nashids = () => {
         </div>
 
         {/* Статистика */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <Play className="w-6 h-6 text-white mx-auto mb-2" />
-            <p className="text-white font-semibold">{nashids.length}</p>
-            <p className="text-white/80 text-sm">Нашидов</p>
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 w-full">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 sm:p-4 text-center">
+            <Play className="w-4 h-4 sm:w-6 sm:h-6 text-white mx-auto mb-1 sm:mb-2" />
+            <p className="text-white font-semibold text-sm sm:text-base">{nashids.length}</p>
+            <p className="text-white/80 text-xs sm:text-sm">Нашидов</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <Heart className="w-6 h-6 text-white mx-auto mb-2" />
-            <p className="text-white font-semibold">{favoriteNashids.length}</p>
-            <p className="text-white/80 text-sm">Избранных</p>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 sm:p-4 text-center">
+            <Heart className="w-4 h-4 sm:w-6 sm:h-6 text-white mx-auto mb-1 sm:mb-2" />
+            <p className="text-white font-semibold text-sm sm:text-base">{favoriteNashids.length}</p>
+            <p className="text-white/80 text-xs sm:text-sm">Избранных</p>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-            <Download className="w-6 h-6 text-white mx-auto mb-2" />
-            <p className="text-white font-semibold">0</p>
-            <p className="text-white/80 text-sm">Офлайн</p>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 sm:p-4 text-center">
+            <Download className="w-4 h-4 sm:w-6 sm:h-6 text-white mx-auto mb-1 sm:mb-2" />
+            <p className="text-white font-semibold text-sm sm:text-base">0</p>
+            <p className="text-white/80 text-xs sm:text-sm">Офлайн</p>
           </div>
         </div>
 
         {/* Categories */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 w-full">
           {categories.map((category) => {
             const IconComponent = category.icon;
             return (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`flex items-center gap-3 p-4 rounded-xl transition-all ${
+                className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-4 rounded-xl transition-all ${
                   selectedCategory === category.id
                     ? 'bg-white/30 backdrop-blur-sm border border-white/20'
-                    : 'bg-white/10 backdrop-blur-sm hover:bg-white/20'
+                    : 'bg-white/10 backdrop-blur-sm active:bg-white/20'
                 }`}
               >
-                <IconComponent className="w-5 h-5 text-white" />
-                <span className="text-white font-medium">{category.name}</span>
+                <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" />
+                <span className="text-white font-medium text-xs sm:text-sm truncate">{category.name}</span>
               </button>
             );
           })}
@@ -116,19 +116,19 @@ const Nashids = () => {
           {/* Избранное */}
           <button
             onClick={() => setSelectedCategory('favorites')}
-            className={`flex items-center gap-3 p-4 rounded-xl transition-all ${
+            className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-4 rounded-xl transition-all ${
               selectedCategory === 'favorites'
                 ? 'bg-white/30 backdrop-blur-sm border border-white/20'
-                : 'bg-white/10 backdrop-blur-sm hover:bg-white/20'
+                : 'bg-white/10 backdrop-blur-sm active:bg-white/20'
             }`}
           >
-            <Heart className="w-5 h-5 text-white" />
-            <span className="text-white font-medium">Избранное ({favoriteNashids.length})</span>
+            <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" />
+            <span className="text-white font-medium text-xs sm:text-sm truncate">Избранное ({favoriteNashids.length})</span>
           </button>
         </div>
 
         {/* Nashids List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4 w-full">
           {selectedCategory === 'favorites' ? (
             favoriteNashids.length > 0 ? (
               favoriteNashids.map(nashid => (
@@ -154,12 +154,12 @@ const Nashids = () => {
         </div>
 
         {/* Статус сети */}
-        <div className="mt-8 p-4 bg-white/10 backdrop-blur-sm rounded-xl">
-          <div className="flex items-center justify-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${
+        <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-white/10 backdrop-blur-sm rounded-xl w-full">
+          <div className="flex items-center justify-center gap-2">
+            <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${
               isOnline ? 'bg-green-500' : 'bg-red-500'
             }`} />
-            <p className="text-white text-sm">
+            <p className="text-white text-xs sm:text-sm text-center">
               {isOnline
                 ? 'Подключено к интернету - стриминг доступен'
                 : 'Офлайн режим - доступны только скачанные нашиды'
