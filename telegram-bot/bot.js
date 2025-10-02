@@ -1,13 +1,78 @@
 require('dotenv').config();
 const { Telegraf, Markup } = require('telegraf');
 const { Coordinates, CalculationMethod, PrayerTimes } = require('adhan');
+const fs = require('fs');
+const path = require('path');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const WEB_APP_URL = process.env.WEB_APP_URL;
 
+// Путь к файлу с подписками
+const SUBSCRIPTIONS_FILE = path.join(__dirname, 'subscriptions.json');
+const NOTIFIED_FILE = path.join(__dirname, 'notified.json');
+
 // Хранилище пользователей для уведомлений
 const userSubscriptions = new Map();
 const notifiedPrayers = new Set();
+
+// Загрузка подписок из файла
+function loadSubscriptions() {
+  try {
+    if (fs.existsSync(SUBSCRIPTIONS_FILE)) {
+      const data = fs.readFileSync(SUBSCRIPTIONS_FILE, 'utf8');
+      const subscriptions = JSON.parse(data);
+
+      subscriptions.forEach(sub => {
+        userSubscriptions.set(sub.userId, sub);
+      });
+
+      console.log(`✅ Loaded ${userSubscriptions.size} subscriptions from file`);
+    } else {
+      console.log('📁 No subscriptions file found, starting fresh');
+    }
+  } catch (error) {
+    console.error('❌ Error loading subscriptions:', error);
+  }
+}
+
+// Загрузка уведомлений из файла
+function loadNotifiedPrayers() {
+  try {
+    if (fs.existsSync(NOTIFIED_FILE)) {
+      const data = fs.readFileSync(NOTIFIED_FILE, 'utf8');
+      const notified = JSON.parse(data);
+
+      notified.forEach(key => {
+        notifiedPrayers.add(key);
+      });
+
+      console.log(`✅ Loaded ${notifiedPrayers.size} notification records`);
+    }
+  } catch (error) {
+    console.error('❌ Error loading notified prayers:', error);
+  }
+}
+
+// Сохранение подписок в файл
+function saveSubscriptions() {
+  try {
+    const subscriptions = Array.from(userSubscriptions.values());
+    fs.writeFileSync(SUBSCRIPTIONS_FILE, JSON.stringify(subscriptions, null, 2), 'utf8');
+    console.log(`💾 Saved ${subscriptions.length} subscriptions to file`);
+  } catch (error) {
+    console.error('❌ Error saving subscriptions:', error);
+  }
+}
+
+// Сохранение уведомлений в файл
+function saveNotifiedPrayers() {
+  try {
+    const notified = Array.from(notifiedPrayers);
+    fs.writeFileSync(NOTIFIED_FILE, JSON.stringify(notified, null, 2), 'utf8');
+  } catch (error) {
+    console.error('❌ Error saving notified prayers:', error);
+  }
+}
 
 // Вспомогательная функция для парсинга длительности (3:45 -> 225 секунд)
 function parseDuration(durationStr) {
@@ -31,6 +96,7 @@ bot.start(async (ctx) => {
 
   // Автоматически подписываем пользователя на уведомления о молитвах
   subscribeUser(ctx.from.id);
+  saveSubscriptions();
 
   // Проверяем, есть ли параметр start (Deep Link)
   const startPayload = ctx.startPayload;
@@ -203,6 +269,7 @@ bot.start(async (ctx) => {
       Markup.button.callback('🧭 Кибла', 'qibla'),
       Markup.button.callback('⏰ Время намаза', 'prayer_times')
     ],
+    [Markup.button.callback('📍 Установить локацию', 'set_location')],
     [Markup.button.callback('ℹ️ О проекте', 'about')]
   ]);
 
@@ -315,6 +382,100 @@ _Версия: 1.0.0_`,
     ])
   );
 });
+
+// Обработчик установки локации
+bot.action('set_location', (ctx) => {
+  ctx.answerCbQuery();
+  ctx.replyWithMarkdown(
+    `📍 *Установка вашей локации*
+
+Для точного расчета времени молитв нам нужна ваша геолокация.
+
+Нажмите кнопку ниже, чтобы поделиться своим местоположением 👇`,
+    Markup.keyboard([
+      [Markup.button.locationRequest('📍 Отправить местоположение')]
+    ]).resize().oneTime()
+  );
+});
+
+// Обработчик получения локации
+bot.on('location', async (ctx) => {
+  const { latitude, longitude } = ctx.message.location;
+  const userId = ctx.from.id;
+
+  console.log(`📍 Received location from user ${userId}: ${latitude}, ${longitude}`);
+
+  // Определяем часовой пояс (примерно, по координатам)
+  // В идеале использовать API для точного определения, но для простоты используем UTC offset
+  const timezone = getTimezoneFromCoordinates(latitude, longitude);
+
+  // Обновляем подписку пользователя
+  subscribeUser(userId, { latitude, longitude }, timezone);
+  saveSubscriptions();
+
+  // Вычисляем время молитв для новой локации
+  const prayerTimes = calculatePrayerTimes({ latitude, longitude });
+
+  if (prayerTimes) {
+    const { currentPrayer, nextPrayer } = getCurrentAndNextPrayer(prayerTimes);
+
+    await ctx.replyWithMarkdown(
+      `✅ *Локация успешно сохранена!*
+
+📍 Координаты: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}
+🌍 Часовой пояс: ${timezone}
+
+⏰ *Время молитв на сегодня:*
+
+🌅 Фаджр: ${formatTime(prayerTimes.fajr, timezone)}
+🌄 Восход: ${formatTime(prayerTimes.sunrise, timezone)}
+☀️ Зухр: ${formatTime(prayerTimes.dhuhr, timezone)}
+🌤️ Аср: ${formatTime(prayerTimes.asr, timezone)}
+🌆 Магриб: ${formatTime(prayerTimes.maghrib, timezone)}
+🌙 Иша: ${formatTime(prayerTimes.isha, timezone)}
+
+${nextPrayer ? `\n📿 Следующая молитва: *${nextPrayer.name}* в ${formatTime(nextPrayer.time, timezone)}` : ''}
+
+🔔 Вы будете получать уведомления о времени молитв!`,
+      Markup.removeKeyboard()
+    );
+  } else {
+    await ctx.reply('❌ Не удалось рассчитать время молитв. Попробуйте еще раз.', Markup.removeKeyboard());
+  }
+});
+
+// Функция для определения часового пояса по координатам (упрощенная)
+function getTimezoneFromCoordinates(lat, lon) {
+  // Упрощенный метод: определяем по долготе
+  // Для точности нужно использовать API (например, Google Time Zone API)
+  const offset = Math.round(lon / 15);
+
+  // Популярные города и их часовые пояса
+  const timezones = {
+    'Europe/Moscow': { lat: [50, 60], lon: [30, 50] },
+    'Asia/Tashkent': { lat: [38, 45], lon: [60, 75] },
+    'Asia/Almaty': { lat: [42, 55], lon: [65, 85] },
+    'Europe/Istanbul': { lat: [38, 42], lon: [26, 45] },
+    'Asia/Dubai': { lat: [22, 27], lon: [50, 58] },
+    'Asia/Riyadh': { lat: [16, 32], lon: [34, 56] },
+    'Europe/London': { lat: [50, 60], lon: [-8, 2] },
+    'Europe/Paris': { lat: [42, 52], lon: [-5, 10] },
+    'Europe/Berlin': { lat: [47, 55], lon: [6, 15] },
+    'Asia/Jakarta': { lat: [-8, 6], lon: [95, 141] },
+    'Asia/Karachi': { lat: [23, 37], lon: [60, 78] },
+  };
+
+  // Проверяем, попадает ли в один из регионов
+  for (const [tz, bounds] of Object.entries(timezones)) {
+    if (lat >= bounds.lat[0] && lat <= bounds.lat[1] &&
+        lon >= bounds.lon[0] && lon <= bounds.lon[1]) {
+      return tz;
+    }
+  }
+
+  // Если не нашли точное совпадение, используем UTC offset
+  return offset >= 0 ? `Etc/GMT-${offset}` : `Etc/GMT+${Math.abs(offset)}`;
+}
 
 // Текстовые команды
 bot.command('library', (ctx) => {
@@ -465,11 +626,16 @@ const startBot = async () => {
     console.log('🔄 Выполняю первую проверку времени молитв...');
     await checkPrayerTimes();
 
+    // Загружаем сохраненные подписки и уведомления
+    loadSubscriptions();
+    loadNotifiedPrayers();
+
     // Очищаем старые уведомления раз в день (в полночь)
     setInterval(() => {
       const now = new Date();
       if (now.getHours() === 0 && now.getMinutes() === 0) {
         notifiedPrayers.clear();
+        saveNotifiedPrayers();
         console.log('🧹 Cleared old prayer notifications');
       }
     }, 60000);
@@ -602,6 +768,7 @@ async function checkPrayerTimes() {
               { parse_mode: 'HTML' }
             );
             notifiedPrayers.add(warningKey);
+            saveNotifiedPrayers();
             console.log(`📢 Sent 10-min warning to user ${userId} for ${nextPrayer.name}`);
           }
         }
@@ -618,6 +785,7 @@ async function checkPrayerTimes() {
               { parse_mode: 'HTML' }
             );
             notifiedPrayers.add(prayerKey);
+            saveNotifiedPrayers();
             console.log(`📢 Sent prayer notification to user ${userId} for ${nextPrayer.name}`);
 
             // Отправляем информацию о следующей молитве через 1 минуту

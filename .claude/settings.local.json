@@ -22,7 +22,8 @@
       "Bash(netstat:*)",
       "Bash(powershell:*)",
       "Bash(npm view:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(dir)"
     ],
     "deny": [],
     "ask": []
