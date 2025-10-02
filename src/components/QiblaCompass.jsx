@@ -1,30 +1,34 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getQiblaDirection } from '@masaajid/qibla';
-import { Navigation, Compass } from 'lucide-react';
+import { Navigation, Compass, MapPin, RefreshCw } from 'lucide-react';
 
 const QiblaCompass = () => {
-  // States
+  // ========== СОСТОЯНИЯ ==========
   const [qiblaData, setQiblaData] = useState(null);
-  const [compassHeading, setCompassHeading] = useState(0);
+  const [deviceHeading, setDeviceHeading] = useState(0); // Курс устройства
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [accuracy, setAccuracy] = useState(null); // Точность компаса
+  const [needsCalibration, setNeedsCalibration] = useState(false);
   const [isPointingToQibla, setIsPointingToQibla] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
 
-  // Refs
+  // ========== REFS ==========
+  const smoothHeadingRef = useRef(0); // Для плавной анимации
   const animationFrameRef = useRef(null);
+  const headingHistoryRef = useRef([]); // История для сглаживания
 
-  // Detect iOS
+  // ========== ОПРЕДЕЛЕНИЕ iOS ==========
   useEffect(() => {
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     setIsIOS(ios);
+    console.log('Platform:', ios ? 'iOS' : 'Android/Other');
   }, []);
 
-  // Get user location
+  // ========== ПОЛУЧЕНИЕ ГЕОЛОКАЦИИ ==========
   useEffect(() => {
     if (!navigator.geolocation) {
       setError('Геолокация не поддерживается вашим устройством');
@@ -40,7 +44,7 @@ const QiblaCompass = () => {
         };
         setUserLocation(location);
 
-        // Calculate Qibla direction using @masaajid/qibla
+        // Расчет направления на Киблу
         try {
           const result = getQiblaDirection(location, {
             bearingPrecision: 2,
@@ -49,7 +53,7 @@ const QiblaCompass = () => {
             includeMagneticDeclination: false
           });
 
-          console.log('Qibla calculation:', result);
+          console.log('Qibla direction calculated:', result);
           setQiblaData(result);
           setLoading(false);
         } catch (err) {
@@ -71,7 +75,7 @@ const QiblaCompass = () => {
     );
   }, []);
 
-  // Request device orientation permission (iOS)
+  // ========== ЗАПРОС РАЗРЕШЕНИЯ (iOS 13+) ==========
   const requestOrientationPermission = async () => {
     if (!isIOS) {
       setPermissionGranted(true);
@@ -87,7 +91,7 @@ const QiblaCompass = () => {
           setPermissionGranted(true);
           startCompass();
         } else {
-          setError('Доступ к компасу отклонен');
+          setError('Доступ к компасу отклонен. Разрешите доступ в настройках Safari.');
         }
       } else {
         setPermissionGranted(true);
@@ -99,54 +103,115 @@ const QiblaCompass = () => {
     }
   };
 
-  // Handle device orientation (based on dev.to article)
-  const handleOrientation = (event) => {
-    let compass = 0;
+  // ========== СГЛАЖИВАНИЕ ЗНАЧЕНИЙ (Moving Average) ==========
+  const smoothHeading = (newHeading) => {
+    const history = headingHistoryRef.current;
+    history.push(newHeading);
 
-    // Use webkitCompassHeading for iOS, or calculate from alpha
-    if (event.webkitCompassHeading) {
-      // iOS devices
-      compass = event.webkitCompassHeading;
-    } else {
-      // Android devices
-      compass = Math.abs(event.alpha - 360);
+    // Оставляем только последние 5 значений
+    if (history.length > 5) {
+      history.shift();
     }
 
-    // Update compass heading with animation frame for smooth performance
+    // Обработка перехода через 360/0
+    let adjusted = [...history];
+    const first = adjusted[0];
+    adjusted = adjusted.map(h => {
+      const diff = h - first;
+      if (diff > 180) return h - 360;
+      if (diff < -180) return h + 360;
+      return h;
+    });
+
+    // Среднее значение
+    const avg = adjusted.reduce((a, b) => a + b, 0) / adjusted.length;
+
+    // Нормализация 0-360
+    return (avg + 360) % 360;
+  };
+
+  // ========== ОБРАБОТКА ОРИЕНТАЦИИ УСТРОЙСТВА ==========
+  const handleOrientation = (event) => {
+    let heading = 0;
+
+    // iOS: используем webkitCompassHeading
+    if (event.webkitCompassHeading !== undefined) {
+      heading = event.webkitCompassHeading;
+    }
+    // Android: вычисляем из alpha
+    else if (event.alpha !== null) {
+      heading = 360 - event.alpha;
+    } else {
+      console.warn('No compass data available');
+      return;
+    }
+
+    // Точность (доступна только на некоторых устройствах)
+    if (event.webkitCompassAccuracy !== undefined) {
+      setAccuracy(event.webkitCompassAccuracy);
+      // Если точность низкая (> 20 градусов), нужна калибровка
+      if (event.webkitCompassAccuracy > 20 || event.webkitCompassAccuracy < 0) {
+        setNeedsCalibration(true);
+      } else {
+        setNeedsCalibration(false);
+      }
+    }
+
+    // Сглаживание для плавности
+    const smoothed = smoothHeading(heading);
+
+    // Используем requestAnimationFrame для плавной анимации
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
 
     animationFrameRef.current = requestAnimationFrame(() => {
-      setCompassHeading(compass);
+      // Интерполяция для еще более плавного движения
+      const current = smoothHeadingRef.current;
+      let diff = smoothed - current;
 
-      // Check if pointing to Qibla (within ±15 degrees)
+      // Выбираем кратчайший путь через 360/0
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+
+      // Плавное приближение (lerp)
+      const newHeading = current + diff * 0.3;
+      smoothHeadingRef.current = (newHeading + 360) % 360;
+
+      setDeviceHeading(smoothHeadingRef.current);
+
+      // Проверка направления на Киблу (±10 градусов)
       if (qiblaData) {
-        const diff = Math.abs(qiblaData.bearing - compass);
-        const isPointing = diff <= 15 || diff >= 345;
-        setIsPointingToQibla(isPointing);
+        const qiblaDiff = Math.abs(qiblaData.bearing - smoothHeadingRef.current);
+        const normalizedDiff = qiblaDiff > 180 ? 360 - qiblaDiff : qiblaDiff;
+        setIsPointingToQibla(normalizedDiff <= 10);
       }
     });
   };
 
-  // Start compass
+  // ========== ЗАПУСК КОМПАСА ==========
   const startCompass = () => {
     if (isIOS) {
       window.addEventListener('deviceorientation', handleOrientation, true);
     } else {
-      // Try deviceorientationabsolute first (Android)
-      window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-      // Fallback to regular deviceorientation
-      window.addEventListener('deviceorientation', handleOrientation, true);
+      // Android: пробуем deviceorientationabsolute (абсолютная ориентация)
+      if ('ondeviceorientationabsolute' in window) {
+        window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+      } else {
+        window.addEventListener('deviceorientation', handleOrientation, true);
+      }
     }
+    console.log('Compass started');
   };
 
-  // Request permission button handler
-  const handleEnableCompass = () => {
-    requestOrientationPermission();
+  // ========== КАЛИБРОВКА ==========
+  const handleCalibration = () => {
+    setNeedsCalibration(false);
+    headingHistoryRef.current = [];
+    smoothHeadingRef.current = 0;
   };
 
-  // Cleanup
+  // ========== CLEANUP ==========
   useEffect(() => {
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation, true);
@@ -157,7 +222,16 @@ const QiblaCompass = () => {
     };
   }, []);
 
-  // Loading state
+  // ========== РАСЧЕТ ОТНОСИТЕЛЬНОГО УГЛА ==========
+  const getRelativeQiblaAngle = () => {
+    if (!qiblaData) return 0;
+    // Угол Киблы относительно севера минус курс устройства
+    return (qiblaData.bearing - deviceHeading + 360) % 360;
+  };
+
+  const relativeQiblaAngle = getRelativeQiblaAngle();
+
+  // ========== LOADING STATE ==========
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] p-6">
@@ -167,7 +241,7 @@ const QiblaCompass = () => {
     );
   }
 
-  // Error state
+  // ========== ERROR STATE ==========
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] p-6">
@@ -184,7 +258,7 @@ const QiblaCompass = () => {
     );
   }
 
-  // Permission request state
+  // ========== PERMISSION REQUEST STATE ==========
   if (!permissionGranted) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] p-6">
@@ -195,7 +269,7 @@ const QiblaCompass = () => {
             Для определения направления на Киблу необходим доступ к компасу вашего устройства
           </p>
           <button
-            onClick={handleEnableCompass}
+            onClick={requestOrientationPermission}
             className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
           >
             Включить компас
@@ -205,147 +279,181 @@ const QiblaCompass = () => {
     );
   }
 
+  // ========== ГЛАВНЫЙ ИНТЕРФЕЙС ==========
   const distanceKm = qiblaData?.distance ? Math.round(qiblaData.distance / 1000) : '—';
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] p-6">
-      {/* Pointing to Qibla indicator */}
+      {/* Уведомление о направлении на Киблу */}
       {isPointingToQibla && (
         <div className="mb-4 bg-emerald-500/20 border border-emerald-500/50 rounded-xl p-4 max-w-md animate-pulse">
-          <p className="text-emerald-300 text-sm text-center font-semibold">
-            ✓ Вы направлены на Киблу!
+          <p className="text-emerald-300 text-sm text-center font-semibold flex items-center justify-center gap-2">
+            <Navigation className="w-5 h-5" />
+            Вы направлены на Киблу!
           </p>
         </div>
       )}
 
-      {/* Location info */}
+      {/* Предупреждение о калибровке */}
+      {needsCalibration && (
+        <div className="mb-4 bg-yellow-500/20 border border-yellow-500/50 rounded-xl p-4 max-w-md">
+          <p className="text-yellow-300 text-sm text-center mb-2">
+            Низкая точность компаса. Выполните калибровку:
+          </p>
+          <p className="text-yellow-200/80 text-xs text-center mb-3">
+            Поверните устройство восьмеркой в воздухе
+          </p>
+          <button
+            onClick={handleCalibration}
+            className="w-full bg-yellow-500/30 hover:bg-yellow-500/40 text-yellow-200 py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Сбросить калибровку
+          </button>
+        </div>
+      )}
+
+      {/* Информация о местоположении */}
       <div className="mb-6 text-center">
-        <p className="text-white/50 text-sm">
-          {userLocation?.latitude.toFixed(4)}°, {userLocation?.longitude.toFixed(4)}°
-        </p>
-        <p className="text-white/70 text-sm mt-1">
+        <div className="flex items-center justify-center gap-2 text-white/50 text-sm mb-1">
+          <MapPin className="w-4 h-4" />
+          <span>{userLocation?.latitude.toFixed(4)}°, {userLocation?.longitude.toFixed(4)}°</span>
+        </div>
+        <p className="text-white/70 text-sm">
           {qiblaData?.cardinalDirection} • {qiblaData?.bearing.toFixed(1)}° • {distanceKm} км до Мекки
         </p>
+        {accuracy !== null && (
+          <p className="text-white/50 text-xs mt-1">
+            Точность: ±{Math.abs(accuracy).toFixed(0)}°
+          </p>
+        )}
       </div>
 
-      {/* Compass container */}
+      {/* ========== КОМПАС ========== */}
       <div className="relative w-80 h-80 mb-6">
-        {/* Rotating compass (rotates based on device heading) */}
+        {/* Подвижное кольцо с градусами (вращается от курса устройства) */}
         <div
-          className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-2 border-emerald-500/30 shadow-2xl transition-transform duration-300 ease-out"
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-4 border-emerald-500/30 shadow-2xl transition-transform duration-100 ease-out"
           style={{
-            transform: `translate(-50%, -50%) rotate(${-compassHeading}deg)`,
-            top: '50%',
-            left: '50%'
+            transform: `rotate(${-deviceHeading}deg)`,
           }}
         >
-          {/* Cardinal directions */}
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 text-white font-bold text-xl">N</div>
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white/50 font-bold text-lg">S</div>
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 text-white/50 font-bold text-lg">W</div>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white/50 font-bold text-lg">E</div>
-
-          {/* Degree markers */}
+          {/* Градусные метки */}
           {[...Array(36)].map((_, i) => {
             const angle = i * 10;
             const isMajor = angle % 30 === 0;
             return (
               <div
                 key={i}
-                className="absolute left-1/2 top-0 origin-bottom"
+                className="absolute left-1/2 top-0 origin-bottom -translate-x-1/2"
                 style={{
                   height: '50%',
-                  transform: `rotate(${angle}deg)`
+                  transform: `rotate(${angle}deg)`,
                 }}
               >
-                <div
-                  className={`mx-auto ${isMajor ? 'w-0.5 h-4 bg-white/70' : 'w-0.5 h-2 bg-white/30'}`}
-                />
+                <div className={`mx-auto ${isMajor ? 'w-0.5 h-6 bg-white/80' : 'w-0.5 h-3 bg-white/40'}`} />
+                {angle % 90 === 0 && (
+                  <div
+                    className="absolute top-8 left-1/2 -translate-x-1/2 text-white font-bold text-sm"
+                    style={{ transform: `rotate(${-angle}deg)` }}
+                  >
+                    {angle === 0 ? 'N' : angle === 90 ? 'E' : angle === 180 ? 'S' : 'W'}
+                  </div>
+                )}
               </div>
             );
           })}
 
-          {/* Qibla direction marker on compass ring */}
+          {/* Стрелка СЕВЕР (всегда вверху кольца) */}
+          <div className="absolute left-1/2 top-0 origin-bottom -translate-x-1/2 pt-2">
+            <div className="flex flex-col items-center">
+              <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[20px] border-b-blue-400 drop-shadow-[0_0_6px_rgba(96,165,250,0.8)]" />
+              <div className="mt-1 text-blue-300 text-xs font-bold">N</div>
+            </div>
+          </div>
+
+          {/* Стрелка МЕККА (относительно севера) */}
           <div
-            className="absolute left-1/2 top-0 origin-bottom"
+            className="absolute left-1/2 top-0 origin-bottom -translate-x-1/2"
             style={{
               height: '50%',
-              transform: `rotate(${qiblaData?.bearing}deg)`
+              transform: `rotate(${qiblaData?.bearing || 0}deg)`,
             }}
           >
-            <div className={`mx-auto w-1 h-8 ${isPointingToQibla ? 'bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]' : 'bg-emerald-500'} transition-all duration-300`} />
+            <div className="flex flex-col items-center">
+              <div className={`w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[28px] transition-all duration-300 ${
+                isPointingToQibla
+                  ? 'border-b-emerald-400 drop-shadow-[0_0_12px_rgba(52,211,153,1)]'
+                  : 'border-b-emerald-500 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+              }`} />
+              <div className={`mt-1 text-xs font-bold transition-colors duration-300 ${
+                isPointingToQibla ? 'text-emerald-300' : 'text-emerald-400'
+              }`}>🕋</div>
+            </div>
           </div>
         </div>
 
-        {/* Static device pointer (red arrow at top) */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 pt-6 pointer-events-none">
+        {/* Статичная стрелка устройства (красная, всегда вверху) */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 pt-4 pointer-events-none z-10">
           <div className="flex flex-col items-center">
-            <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[24px] border-b-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-            <div className="mt-1 text-red-400 text-xs font-bold">ВЫ</div>
+            <div className="w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[32px] border-b-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]" />
+            <div className="mt-2 text-red-400 text-xs font-bold bg-slate-900/70 px-2 py-1 rounded">ВЫ</div>
           </div>
         </div>
 
-        {/* Center dot */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg z-10" />
+        {/* Центральная точка */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg border-2 border-slate-700 z-20" />
       </div>
 
-      {/* Direction indicator */}
-      <div className="text-center mb-4">
-        <p className="text-white/50 text-sm mb-1">Направление на Киблу</p>
-        <p className="text-4xl font-bold text-emerald-400">
-          {qiblaData?.bearing.toFixed(0)}°
-        </p>
-        <p className="text-white/50 text-xs mt-2">
-          Текущий курс: {compassHeading.toFixed(0)}°
-        </p>
+      {/* ========== ИНДИКАТОРЫ ========== */}
+      <div className="w-full max-w-md space-y-3">
+        {/* Направление на Киблу */}
+        <div className="bg-slate-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-emerald-500/30">
+          <p className="text-white/50 text-xs mb-1">Направление на Киблу</p>
+          <p className="text-3xl font-bold text-emerald-400">
+            {qiblaData?.bearing.toFixed(0)}°
+          </p>
+          <p className="text-white/50 text-xs mt-1">{qiblaData?.cardinalDirection}</p>
+        </div>
+
+        {/* Курс устройства */}
+        <div className="bg-slate-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-blue-500/30">
+          <p className="text-white/50 text-xs mb-1">Ваш курс</p>
+          <p className="text-2xl font-bold text-blue-400">
+            {deviceHeading.toFixed(0)}°
+          </p>
+        </div>
+
+        {/* Относительный угол */}
+        <div className="bg-slate-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-yellow-500/30">
+          <p className="text-white/50 text-xs mb-1">Поверните на</p>
+          <p className="text-2xl font-bold text-yellow-400">
+            {relativeQiblaAngle <= 180
+              ? `${relativeQiblaAngle.toFixed(0)}° вправо ↻`
+              : `${(360 - relativeQiblaAngle).toFixed(0)}° влево ↺`
+            }
+          </p>
+        </div>
       </div>
 
-      {/* Debug toggle */}
-      <button
-        onClick={() => setShowDebug(!showDebug)}
-        className="text-white/30 hover:text-white/50 text-xs mb-2 transition-colors"
-      >
-        {showDebug ? '▼' : '▶'} Отладка
-      </button>
-
-      {/* Debug panel */}
-      {showDebug && (
-        <div className="w-full max-w-md bg-black/80 backdrop-blur-sm rounded-xl p-4 text-left">
-          <h3 className="text-yellow-300 font-bold text-sm mb-2">📊 Панель отладки</h3>
-          <div className="bg-white/10 rounded p-3 text-xs font-mono space-y-1">
-            <div className="flex justify-between">
-              <span className="text-white/50">Qibla bearing:</span>
-              <span className="text-emerald-300">{qiblaData?.bearing.toFixed(2)}°</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white/50">Compass heading:</span>
-              <span className="text-blue-300">{compassHeading.toFixed(2)}°</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white/50">Difference:</span>
-              <span className="text-yellow-300">{Math.abs(qiblaData?.bearing - compassHeading).toFixed(2)}°</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white/50">Distance:</span>
-              <span className="text-white/70">{distanceKm} km</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white/50">Cardinal:</span>
-              <span className="text-white/70">{qiblaData?.cardinalDirection}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white/50">Platform:</span>
-              <span className="text-white/70">{isIOS ? 'iOS' : 'Android/Other'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white/50">Pointing to Qibla:</span>
-              <span className={isPointingToQibla ? 'text-emerald-300' : 'text-red-300'}>
-                {isPointingToQibla ? 'YES' : 'NO'}
-              </span>
-            </div>
+      {/* Легенда */}
+      <div className="mt-6 bg-slate-800/40 backdrop-blur-sm rounded-xl p-4 w-full max-w-md">
+        <p className="text-white/70 text-xs text-center mb-2 font-semibold">Обозначения:</p>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-1 bg-red-500" />
+            <span className="text-white/70">Ваше устройство (статичное)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-1 bg-blue-400" />
+            <span className="text-white/70">Север (вращается с компасом)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-1 bg-emerald-500" />
+            <span className="text-white/70">Направление на Мекку 🕋</span>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
