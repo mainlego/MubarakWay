@@ -19,7 +19,14 @@ const QiblaMap = ({ userLocation, qiblaDirection }) => {
         center: [userLocation.latitude, userLocation.longitude],
         zoom: 3,
         zoomControl: true,
-        attributionControl: false
+        attributionControl: false,
+        dragging: true,
+        touchZoom: true,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
+        keyboard: true,
+        tap: true
       });
 
       // Добавляем tile layer
@@ -190,16 +197,25 @@ const QiblaMap = ({ userLocation, qiblaDirection }) => {
         padding: [50, 50],
         maxZoom: 10
       });
-    }
 
-    // Cleanup при размонтировании
+      // Принудительно обновляем размер карты после рендера
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
+    }
+  }, [userLocation, qiblaDirection]);
+
+  // Cleanup только при размонтировании компонента
+  useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [userLocation, qiblaDirection]);
+  }, []);
 
   return (
     <>
