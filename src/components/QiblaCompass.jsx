@@ -19,6 +19,7 @@ const QiblaCompass = () => {
   const smoothHeadingRef = useRef(0); // Для плавной анимации
   const animationFrameRef = useRef(null);
   const headingHistoryRef = useRef([]); // История для сглаживания
+  const lastUpdateTimeRef = useRef(0); // Для throttling на iOS
 
   // ========== ОПРЕДЕЛЕНИЕ iOS ==========
   useEffect(() => {
@@ -108,8 +109,9 @@ const QiblaCompass = () => {
     const history = headingHistoryRef.current;
     history.push(newHeading);
 
-    // Оставляем только последние 5 значений
-    if (history.length > 5) {
+    // Для iOS используем больше значений для более плавной работы
+    const maxHistory = isIOS ? 8 : 5;
+    if (history.length > maxHistory) {
       history.shift();
     }
 
@@ -132,6 +134,15 @@ const QiblaCompass = () => {
 
   // ========== ОБРАБОТКА ОРИЕНТАЦИИ УСТРОЙСТВА ==========
   const handleOrientation = (event) => {
+    // Throttling для iOS - обновляем не чаще 60fps (16ms)
+    if (isIOS) {
+      const now = Date.now();
+      if (now - lastUpdateTimeRef.current < 16) {
+        return;
+      }
+      lastUpdateTimeRef.current = now;
+    }
+
     let heading = 0;
 
     // iOS: используем webkitCompassHeading
@@ -174,11 +185,16 @@ const QiblaCompass = () => {
       if (diff > 180) diff -= 360;
       if (diff < -180) diff += 360;
 
-      // Плавное приближение (lerp)
-      const newHeading = current + diff * 0.3;
+      // Плавное приближение (lerp) - для iOS более медленная интерполяция
+      const lerpFactor = isIOS ? 0.15 : 0.3;
+      const newHeading = current + diff * lerpFactor;
       smoothHeadingRef.current = (newHeading + 360) % 360;
 
-      setDeviceHeading(smoothHeadingRef.current);
+      // Обновляем состояние только если разница существенная (избегаем лишних ререндеров)
+      const headingDiff = Math.abs(smoothHeadingRef.current - deviceHeading);
+      if (headingDiff > 0.5) {
+        setDeviceHeading(smoothHeadingRef.current);
+      }
 
       // Проверка направления на Киблу (±10 градусов)
       if (qiblaData) {
@@ -283,11 +299,11 @@ const QiblaCompass = () => {
   const distanceKm = qiblaData?.distance ? Math.round(qiblaData.distance / 1000) : '—';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] p-6">
-      {/* Уведомление о направлении на Киблу */}
+    <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 relative">
+      {/* Уведомление о направлении на Киблу - ФИКСИРОВАННОЕ */}
       {isPointingToQibla && (
-        <div className="mb-4 bg-emerald-500/20 border border-emerald-500/50 rounded-xl p-4 max-w-md animate-pulse">
-          <p className="text-emerald-300 text-sm text-center font-semibold flex items-center justify-center gap-2">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500/90 backdrop-blur-md border border-emerald-400 rounded-xl p-3 px-6 shadow-lg animate-pulse max-w-xs w-auto">
+          <p className="text-white text-sm text-center font-semibold flex items-center justify-center gap-2">
             <Navigation className="w-5 h-5" />
             Вы направлены на Киблу!
           </p>
@@ -333,9 +349,11 @@ const QiblaCompass = () => {
       <div className="relative w-80 h-80 mb-6">
         {/* Подвижное кольцо с градусами (вращается от курса устройства) */}
         <div
-          className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-4 border-emerald-500/30 shadow-2xl transition-transform duration-100 ease-out"
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-4 border-emerald-500/30 shadow-2xl"
           style={{
             transform: `rotate(${-deviceHeading}deg)`,
+            transition: 'none', // Отключаем CSS transitions - используем только RAF
+            willChange: 'transform', // Оптимизация для GPU
           }}
         >
           {/* Градусные метки */}
