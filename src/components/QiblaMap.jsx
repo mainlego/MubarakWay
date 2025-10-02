@@ -256,12 +256,61 @@ const QiblaMap = ({ userLocation, qiblaDirection }) => {
           .leaflet-popup-tip {
             background: rgba(0, 0, 0, 0.8);
           }
+
+          .leaflet-container {
+            cursor: grab;
+          }
+
+          .leaflet-container.leaflet-drag-target {
+            cursor: grabbing;
+          }
+
+          .leaflet-interactive {
+            cursor: pointer;
+          }
+
+          /* Обеспечиваем правильную работу тач-событий */
+          .leaflet-container,
+          .leaflet-pane,
+          .leaflet-tile-pane {
+            touch-action: pan-x pan-y !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+          }
+
+          /* Разрешаем все события для карты */
+          .leaflet-container,
+          .leaflet-container * {
+            pointer-events: auto !important;
+          }
+
+          /* Убираем возможные конфликты */
+          .leaflet-container * {
+            -webkit-tap-highlight-color: transparent;
+          }
+
+          /* Drag handlers */
+          .leaflet-container.leaflet-touch-drag {
+            -ms-touch-action: pan-x pan-y;
+            touch-action: pan-x pan-y;
+          }
+
+          .leaflet-container.leaflet-touch-zoom {
+            -ms-touch-action: pinch-zoom;
+            touch-action: pinch-zoom;
+          }
         `}
       </style>
       <div
         ref={mapRef}
-        className="w-full h-full rounded-xl overflow-hidden"
-        style={{ minHeight: '400px' }}
+        className="w-full h-full"
+        style={{
+          minHeight: '400px',
+          height: '100%',
+          position: 'relative',
+          zIndex: 1,
+          touchAction: 'pan-x pan-y'
+        }}
       />
     </>
   );

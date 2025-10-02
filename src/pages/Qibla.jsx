@@ -287,7 +287,7 @@ const Qibla = () => {
 
               {/* Interactive Map */}
               {userLocation ? (
-                <div className="relative bg-white/10 rounded-xl overflow-hidden mb-4">
+                <div className="relative bg-white/10 rounded-xl overflow-hidden mb-4" style={{ height: '400px' }}>
                   <QiblaMap
                     userLocation={userLocation}
                     qiblaDirection={qiblaDirection}
