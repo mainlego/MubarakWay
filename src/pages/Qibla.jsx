@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import QiblaCompass from '../components/QiblaCompass';
+import QiblaMap from '../components/QiblaMap';
 import { Navigation, Map, Clock, Settings, MapPin, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
 import {
@@ -280,126 +281,17 @@ const Qibla = () => {
 
           {activeTab === 'map' && (
             <div>
-              <h2 className="text-xl font-semibold text-white text-center mb-4">
-                Карта направления
+              <h2 className="text-lg sm:text-xl font-semibold text-white text-center mb-3 sm:mb-4">
+                Интерактивная карта
               </h2>
-
-              {/* Map Provider Selection */}
-              <div className="flex bg-white/20 backdrop-blur-sm rounded-lg p-1 mb-4">
-                {[
-                  { id: 'osm', label: 'Карта', desc: 'OpenStreetMap' },
-                  { id: 'satellite', label: 'Спутник', desc: 'Спутниковый снимок' },
-                  { id: 'terrain', label: 'Рельеф', desc: 'Топографическая' }
-                ].map((provider) => (
-                  <button
-                    key={provider.id}
-                    onClick={() => setMapProvider(provider.id)}
-                    className={`flex-1 py-2 px-2 rounded-md text-center transition-all ${
-                      mapProvider === provider.id
-                        ? 'bg-white text-gray-900'
-                        : 'text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="text-sm font-medium">{provider.label}</div>
-                    <div className="text-xs opacity-80">{provider.desc}</div>
-                  </button>
-                ))}
-              </div>
 
               {/* Interactive Map */}
               {userLocation ? (
-                <div className="relative aspect-square bg-white/20 rounded-xl overflow-hidden mb-4">
-                  {/* Map Tile Display */}
-                  <div
-                    className="w-full h-full bg-cover bg-center"
-                    style={{
-                      backgroundImage: mapProvider === 'osm'
-                        ? `url(https://tile.openstreetmap.org/10/${Math.floor((userLocation.longitude + 180) * 1024 / 360)}/${Math.floor((1 - Math.log(Math.tan(userLocation.latitude * Math.PI / 180) + 1 / Math.cos(userLocation.latitude * Math.PI / 180)) / Math.PI) * 512)}.png)`
-                        : mapProvider === 'satellite'
-                        ? `url(https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/10/${Math.floor((1 - Math.log(Math.tan(userLocation.latitude * Math.PI / 180) + 1 / Math.cos(userLocation.latitude * Math.PI / 180)) / Math.PI) * 512)}/${Math.floor((userLocation.longitude + 180) * 1024 / 360)})`
-                        : `url(https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/10/${Math.floor((1 - Math.log(Math.tan(userLocation.latitude * Math.PI / 180) + 1 / Math.cos(userLocation.latitude * Math.PI / 180)) / Math.PI) * 512)}/${Math.floor((userLocation.longitude + 180) * 1024 / 360)})`
-                    }}
-                  >
-                    {/* Map Overlay */}
-                    <div className="absolute inset-0 bg-black/20">
-                      {/* Location Marker */}
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                        <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"></div>
-                        <div className="absolute top-1/2 left-1/2 w-8 h-8 bg-blue-500/20 rounded-full transform -translate-x-1/2 -translate-y-1/2 animate-ping"></div>
-                      </div>
-
-                      {/* Qibla Direction Line */}
-                      <div
-                        className="absolute top-1/2 left-1/2 w-0.5 bg-green-500 origin-bottom transform -translate-x-1/2 -translate-y-full"
-                        style={{
-                          height: '120px',
-                          transform: `translateX(-50%) translateY(-100%) rotate(${qiblaDirection || 0}deg)`
-                        }}
-                      >
-                        {/* Direction Arrow */}
-                        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                          <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[8px] border-l-transparent border-r-transparent border-b-green-500"></div>
-                        </div>
-                      </div>
-
-                      {/* Compass Rose */}
-                      <div className="absolute top-4 right-4 w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-red-400 font-bold text-xs">N</div>
-                        </div>
-                        <div
-                          className="absolute inset-0 flex items-center justify-center"
-                          style={{ transform: `rotate(${qiblaDirection || 0}deg)` }}
-                        >
-                          <div className="w-0 h-0 border-l-[3px] border-r-[3px] border-b-[6px] border-l-transparent border-r-transparent border-b-green-500 transform -translate-y-1"></div>
-                        </div>
-                      </div>
-
-                      {/* Мекка маркер (для справки) */}
-                      {userLocation && (
-                        <div
-                          className="absolute w-3 h-3 bg-green-600 rounded-full border-2 border-white shadow-lg"
-                          style={{
-                            // Простое приближенное позиционирование для демонстрации направления
-                            // В реальной карте используется проекция
-                            left: `${50 + Math.cos((qiblaDirection || 0) * Math.PI / 180) * 30}%`,
-                            top: `${50 - Math.sin((qiblaDirection || 0) * Math.PI / 180) * 30}%`,
-                            transform: 'translate(-50%, -50%)'
-                          }}
-                          title="Направление на Мекку"
-                        >
-                          <div className="absolute -top-1 -right-1 text-xs">🕋</div>
-                        </div>
-                      )}
-
-                      {/* Map Info */}
-                      <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg p-3">
-                        <div className="text-white text-sm font-medium">
-                          Направление на Мекку
-                        </div>
-                        <div className="text-white/80 text-xs">
-                          {qiblaDirection ? `${Math.round(qiblaDirection)}° от севера` : 'Вычисляется...'}
-                        </div>
-                        <div className="text-white/60 text-xs mt-1">
-                          Расстояние: ~{userLocation ? (() => {
-                            // Формула гаверсинуса для точного расчета расстояния
-                            const R = 6371; // Радиус Земли в км
-                            const lat1 = userLocation.latitude * Math.PI / 180;
-                            const lat2 = 21.4225 * Math.PI / 180;
-                            const deltaLat = (21.4225 - userLocation.latitude) * Math.PI / 180;
-                            const deltaLng = (39.8261 - userLocation.longitude) * Math.PI / 180;
-
-                            const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
-                                      Math.cos(lat1) * Math.cos(lat2) *
-                                      Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
-                            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-                            return Math.round(R * c);
-                          })() : 0} км
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="relative bg-white/10 rounded-xl overflow-hidden mb-4">
+                  <QiblaMap
+                    userLocation={userLocation}
+                    qiblaDirection={qiblaDirection}
+                  />
                 </div>
               ) : (
                 <div className="aspect-square bg-white/20 rounded-xl flex items-center justify-center mb-4">
@@ -411,23 +303,72 @@ const Qibla = () => {
                 </div>
               )}
 
+              {/* Map Info */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 mb-4">
+                <h3 className="text-white font-medium mb-2 text-sm sm:text-base">О маршруте</h3>
+                <div className="space-y-2 text-xs sm:text-sm">
+                  <div className="flex items-center justify-between text-white/80">
+                    <span>🧭 Направление:</span>
+                    <span className="font-medium text-white">
+                      {qiblaDirection ? `${Math.round(qiblaDirection)}° от севера` : 'Вычисляется...'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-white/80">
+                    <span>📏 Расстояние:</span>
+                    <span className="font-medium text-white">
+                      {userLocation ? (() => {
+                        const R = 6371;
+                        const lat1 = userLocation.latitude * Math.PI / 180;
+                        const lat2 = 21.4225 * Math.PI / 180;
+                        const deltaLat = (21.4225 - userLocation.latitude) * Math.PI / 180;
+                        const deltaLng = (39.8261 - userLocation.longitude) * Math.PI / 180;
+                        const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                                  Math.cos(lat1) * Math.cos(lat2) *
+                                  Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+                        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                        return `${Math.round(R * c).toLocaleString('ru-RU')} км`;
+                      })() : '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-white/80">
+                    <span>🕋 Кааба:</span>
+                    <span className="font-medium text-white">21.4225°N, 39.8261°E</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Map Instructions */}
+              <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-3 mb-4">
+                <div className="text-blue-200 text-xs sm:text-sm">
+                  <p className="font-medium mb-1">💡 Как пользоваться:</p>
+                  <ul className="space-y-1 list-disc list-inside text-blue-300">
+                    <li>Синяя точка — ваше местоположение</li>
+                    <li>🕋 — Кааба в Мекке</li>
+                    <li>Зеленая пунктирная линия — маршрут</li>
+                    <li>Стрелки показывают направление</li>
+                    <li>Используйте жесты для масштабирования</li>
+                  </ul>
+                </div>
+              </div>
+
               {/* Map Controls */}
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => setMapProvider(mapProvider === 'osm' ? 'satellite' : 'osm')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors text-sm"
+                  onClick={handleGetLocation}
+                  disabled={locationLoading}
+                  className="bg-blue-600 active:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors text-sm disabled:opacity-50"
                 >
-                  Сменить слой
+                  {locationLoading ? 'Обновление...' : '🔄 Обновить'}
                 </button>
                 <button
-                  className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors text-sm"
+                  className="bg-green-600 active:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors text-sm disabled:opacity-50"
                   onClick={() => window.open(
-                    `https://www.openstreetmap.org/?mlat=${userLocation?.latitude}&mlon=${userLocation?.longitude}&zoom=15`,
+                    `https://www.google.com/maps/dir/${userLocation?.latitude},${userLocation?.longitude}/21.4225,39.8261`,
                     '_blank'
                   )}
                   disabled={!userLocation}
                 >
-                  Полная карта
+                  📍 Google Maps
                 </button>
               </div>
             </div>
