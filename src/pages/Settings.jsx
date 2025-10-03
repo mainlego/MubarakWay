@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { ArrowLeft, User, Bell, Moon, Globe, CreditCard, LogOut, ChevronRight } from 'lucide-react';
+import { ArrowLeft, User, Bell, Globe, CreditCard, LogOut, ChevronRight } from 'lucide-react';
 import { selectUser } from '../store/slices/authSlice';
 import { logout } from '../store/slices/authSlice';
 
@@ -10,9 +10,38 @@ const Settings = () => {
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
 
+  // Local state for settings
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    user?.prayerSettings?.notifications?.enabled || false
+  );
+  const [selectedLanguage, setSelectedLanguage] = useState(
+    user?.languageCode || 'ru'
+  );
+
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
+  };
+
+  const handleNotificationsToggle = () => {
+    const newValue = !notificationsEnabled;
+    setNotificationsEnabled(newValue);
+    // TODO: Save to backend
+    console.log('Notifications:', newValue ? 'enabled' : 'disabled');
+  };
+
+  const handleLanguageChange = () => {
+    // Cycle through languages: ru -> en -> ar -> ru
+    const languages = { ru: 'en', en: 'ar', ar: 'ru' };
+    const newLang = languages[selectedLanguage];
+    setSelectedLanguage(newLang);
+    // TODO: Save to backend and apply i18n
+    console.log('Language changed to:', newLang);
+  };
+
+  const getLanguageLabel = (code) => {
+    const labels = { ru: 'Русский', en: 'English', ar: 'العربية' };
+    return labels[code] || 'Русский';
   };
 
   const settingsSections = [
@@ -41,20 +70,16 @@ const Settings = () => {
         {
           icon: Bell,
           label: 'Уведомления',
-          description: 'Напоминания о намазе',
-          onClick: () => alert('Функция настройки уведомлений будет добавлена')
-        },
-        {
-          icon: Moon,
-          label: 'Тема',
-          description: 'Светлая',
-          onClick: () => alert('Функция смены темы будет добавлена')
+          description: notificationsEnabled ? 'Включены' : 'Выключены',
+          onClick: handleNotificationsToggle,
+          showToggle: true,
+          toggleValue: notificationsEnabled
         },
         {
           icon: Globe,
           label: 'Язык',
-          description: 'Русский',
-          onClick: () => alert('Функция смены языка будет добавлена')
+          description: getLanguageLabel(selectedLanguage),
+          onClick: handleLanguageChange
         }
       ]
     }
@@ -120,7 +145,21 @@ const Settings = () => {
                       <div className="text-white font-medium">{item.label}</div>
                       <div className="text-sm text-white/60">{item.description}</div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-white/40" />
+                    {item.showToggle ? (
+                      <div
+                        className={`w-12 h-6 rounded-full transition-colors ${
+                          item.toggleValue ? 'bg-green-500' : 'bg-white/20'
+                        }`}
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-full bg-white transition-transform duration-200 ${
+                            item.toggleValue ? 'translate-x-6' : 'translate-x-0.5'
+                          } mt-0.5`}
+                        />
+                      </div>
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-white/40" />
+                    )}
                   </button>
                 );
               })}

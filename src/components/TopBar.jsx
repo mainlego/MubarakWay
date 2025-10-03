@@ -17,7 +17,13 @@ const TopBar = () => {
   };
 
   const telegramUser = getTelegramUser();
+
+  // Приоритет: сначала Redux user, потом Telegram, потом "Гость"
   const displayName = user?.firstName || telegramUser?.first_name || 'Гость';
+
+  console.log('TopBar - Redux user:', user);
+  console.log('TopBar - Telegram user:', telegramUser);
+  console.log('TopBar - Display name:', displayName);
 
   // Get avatar URL from Telegram
   const getAvatarUrl = () => {
