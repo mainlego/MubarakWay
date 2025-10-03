@@ -398,6 +398,123 @@ bot.action('set_location', (ctx) => {
   );
 });
 
+// Обработчик кнопки "Совершил намаз"
+bot.action(/^prayer_done_/, async (ctx) => {
+  await ctx.answerCbQuery('✅ Молодец! Да примет Аллах твой намаз!');
+  await ctx.reply(
+    '🤲 Не забудьте совершить дуа после намаза.\n\n' +
+    'Да сделает Аллах ваши молитвы принятыми! 🌟',
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📖 Дуа после намаза', callback_data: 'show_dua' }]
+        ]
+      }
+    }
+  );
+});
+
+// Обработчик кнопки "Направление киблы"
+bot.action('show_qibla', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from.id;
+  const subscription = userSubscriptions.get(userId);
+
+  if (!subscription || !subscription.location) {
+    await ctx.reply(
+      '📍 Сначала установите свою локацию для определения направления киблы.',
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📍 Установить локацию', callback_data: 'set_location' }]
+          ]
+        }
+      }
+    );
+    return;
+  }
+
+  // Открываем мини-приложение на вкладке Кибла
+  await ctx.reply(
+    '🕌 *Направление киблы*\n\nОткройте приложение для точного определения направления.',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🧭 Открыть компас', web_app: { url: `${WEB_APP_URL}#/qibla` } }]
+        ]
+      }
+    }
+  );
+});
+
+// Обработчик кнопки "Дуа после намаза"
+bot.action('show_dua', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.replyWithMarkdown(
+    `🤲 *Дуа после намаза*
+
+*أَسْتَغْفِرُ اللهَ* (3 раза)
+_Астагфируллаh_ (3 раза)
+«Прошу у Аллаха прощения»
+
+*اللَّهُمَّ أَنْتَ السَّلاَمُ وَمِنْكَ السَّلاَمُ، تَبَارَكْتَ يَا ذَا الْجَلاَلِ وَالإِكْرَامِ*
+
+_Аллахумма, Анта ас-салям, ва минка ас-салям, табаракта йа заль-джаляли валь-икрам_
+
+«О Аллах! Ты — Мир, и от Тебя — мир. Благословен Ты, о Обладатель величия и щедрости!»`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📖 Все дуа', web_app: { url: `${WEB_APP_URL}#/library` } }]
+        ]
+      }
+    }
+  );
+});
+
+// Обработчик кнопки "Расписание"
+bot.action('show_schedule', async (ctx) => {
+  await ctx.answerCbQuery();
+  const userId = ctx.from.id;
+  const subscription = userSubscriptions.get(userId);
+
+  if (!subscription || !subscription.location) {
+    await ctx.reply('📍 Сначала установите свою локацию.');
+    return;
+  }
+
+  const prayerTimes = calculatePrayerTimes(subscription.location);
+  if (!prayerTimes) {
+    await ctx.reply('❌ Не удалось рассчитать время молитв.');
+    return;
+  }
+
+  const today = new Date();
+  const todayStr = today.toLocaleDateString('ru-RU', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  let schedule = `📅 *Расписание намаза на ${todayStr}*\n\n`;
+  schedule += `🌅 Фаджр: ${formatTime(prayerTimes.fajr, subscription.timezone)}\n`;
+  schedule += `🌄 Восход: ${formatTime(prayerTimes.sunrise, subscription.timezone)}\n`;
+  schedule += `☀️ Зухр: ${formatTime(prayerTimes.dhuhr, subscription.timezone)}\n`;
+  schedule += `🌤 Аср: ${formatTime(prayerTimes.asr, subscription.timezone)}\n`;
+  schedule += `🌆 Магриб: ${formatTime(prayerTimes.maghrib, subscription.timezone)}\n`;
+  schedule += `🌙 Иша: ${formatTime(prayerTimes.isha, subscription.timezone)}\n`;
+
+  await ctx.replyWithMarkdown(schedule, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📅 Расписание на месяц', web_app: { url: `${WEB_APP_URL}#/qibla` } }]
+      ]
+    }
+  });
+});
+
 // Обработчик получения локации
 bot.on('location', async (ctx) => {
   const { latitude, longitude } = ctx.message.location;
@@ -505,14 +622,73 @@ bot.command('qibla', (ctx) => {
   );
 });
 
+// Команда /prayer для расписания намаза
+bot.command('prayer', async (ctx) => {
+  const userId = ctx.from.id;
+  const subscription = userSubscriptions.get(userId);
+
+  if (!subscription || !subscription.location) {
+    await ctx.reply('📍 Сначала установите свою локацию для расчета времени молитв.', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📍 Установить локацию', callback_data: 'set_location' }]
+        ]
+      }
+    });
+    return;
+  }
+
+  const prayerTimes = calculatePrayerTimes(subscription.location);
+  if (!prayerTimes) {
+    await ctx.reply('❌ Не удалось рассчитать время молитв.');
+    return;
+  }
+
+  const today = new Date();
+  const todayStr = today.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  let schedule = `🕌 *Время намаза на ${todayStr}*\n\n`;
+  schedule += `🌅 Фаджр: ${formatTime(prayerTimes.fajr, subscription.timezone)}\n`;
+  schedule += `🌄 Восход: ${formatTime(prayerTimes.sunrise, subscription.timezone)}\n`;
+  schedule += `☀️ Зухр: ${formatTime(prayerTimes.dhuhr, subscription.timezone)}\n`;
+  schedule += `🌤 Аср: ${formatTime(prayerTimes.asr, subscription.timezone)}\n`;
+  schedule += `🌆 Магриб: ${formatTime(prayerTimes.maghrib, subscription.timezone)}\n`;
+  schedule += `🌙 Иша: ${formatTime(prayerTimes.isha, subscription.timezone)}\n`;
+
+  await ctx.replyWithMarkdown(schedule, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📅 Расписание на месяц', web_app: { url: `${WEB_APP_URL}#/qibla` } }],
+        [{ text: '🧭 Направление киблы', callback_data: 'show_qibla' }]
+      ]
+    }
+  });
+});
+
+// Команда /location для установки геолокации
+bot.command('location', (ctx) => {
+  ctx.replyWithMarkdown(
+    `📍 *Установка локации*
+
+Для точного расчета времени молитв нам нужна ваша геолокация.
+
+Нажмите кнопку ниже, чтобы поделиться местоположением 👇`,
+    Markup.keyboard([
+      [Markup.button.locationRequest('📍 Отправить местоположение')]
+    ]).resize().oneTime()
+  );
+});
+
 bot.command('help', (ctx) => {
   ctx.replyWithMarkdown(`🆘 *Помощь по использованию*
 
 *Доступные команды:*
 /start - Главное меню
+/prayer - Время намаза
+/qibla - Направление киблы
 /library - Библиотека книг
 /nashids - Коллекция нашидов
-/qibla - Направление киблы
+/location - Установить локацию
 /help - Эта справка
 
 *Как пользоваться:*
@@ -629,6 +805,17 @@ const startBot = async () => {
     // Загружаем сохраненные подписки и уведомления
     loadSubscriptions();
     loadNotifiedPrayers();
+
+    // Устанавливаем постоянное меню бота
+    await bot.telegram.setMyCommands([
+      { command: 'start', description: '🏠 Главное меню' },
+      { command: 'prayer', description: '🕌 Время намаза' },
+      { command: 'qibla', description: '🧭 Направление киблы' },
+      { command: 'library', description: '📚 Библиотека' },
+      { command: 'nashids', description: '🎵 Нашиды' },
+      { command: 'location', description: '📍 Установить локацию' }
+    ]);
+    console.log('✅ Команды бота установлены');
 
     // Очищаем старые уведомления раз в день (в полночь)
     setInterval(() => {
@@ -782,7 +969,21 @@ async function checkPrayerTimes() {
               `🕌 <b>Наступило время молитвы ${nextPrayer.name}</b>\n\n` +
               `🕐 ${formatTime(nextPrayer.time, subscription.timezone)}\n\n` +
               `Не откладывайте намаз!`,
-              { parse_mode: 'HTML' }
+              {
+                parse_mode: 'HTML',
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      { text: '✅ Совершил намаз', callback_data: `prayer_done_${nextPrayer.key}` },
+                      { text: '🕌 Направление киблы', callback_data: 'show_qibla' }
+                    ],
+                    [
+                      { text: '📖 Дуа после намаза', callback_data: 'show_dua' },
+                      { text: '📅 Расписание', callback_data: 'show_schedule' }
+                    ]
+                  ]
+                }
+              }
             );
             notifiedPrayers.add(prayerKey);
             saveNotifiedPrayers();
