@@ -12,7 +12,7 @@ const Navigation = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-50">
-      <div className="flex justify-around items-center py-2">
+      <div className="flex justify-around items-center py-1">
         {navItems.map((item) => {
           const IconComponent = item.icon;
           return (
@@ -20,7 +20,7 @@ const Navigation = () => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex flex-col items-center py-2 px-3 rounded-lg transition-colors touch-manipulation ${
+                `flex flex-col items-center py-1.5 px-2 rounded-lg transition-colors touch-manipulation ${
                   isActive
                     ? 'text-green-600 bg-green-50'
                     : 'text-gray-500 hover:text-gray-700 active:bg-gray-100'
@@ -28,8 +28,8 @@ const Navigation = () => {
               }
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <IconComponent className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <IconComponent className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px] font-medium">{item.label}</span>
             </NavLink>
           );
         })}

@@ -11,8 +11,10 @@ import Library from './pages/Library';
 import Nashids from './pages/Nashids';
 import Qibla from './pages/Qibla';
 import Subscription from './pages/Subscription';
+import Settings from './pages/Settings';
 import EnhancedBookReader from './components/EnhancedBookReader';
 import Navigation from './components/Navigation';
+import TopBar from './components/TopBar';
 import AudioPlayerUI from './components/AudioPlayerUI';
 import ScrollToTop from './components/ScrollToTop';
 import OnboardingSlides from './components/OnboardingSlides';
@@ -109,6 +111,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <ScrollToTop />
+      <TopBar />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/library" element={<Library />} />
@@ -116,6 +119,7 @@ function AppContent() {
         <Route path="/nashids" element={<Nashids />} />
         <Route path="/qibla" element={<Qibla />} />
         <Route path="/subscription" element={<Subscription />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
       <Navigation />
 

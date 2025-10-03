@@ -264,6 +264,7 @@ select {
 /* Mobile optimizations */
 @media (max-width: 768px) {
   body {
-    padding-bottom: 80px; /* Space for bottom navigation */
+    padding-top: 52px; /* Space for top bar */
+    padding-bottom: 60px; /* Space for bottom navigation */
   }
 }
