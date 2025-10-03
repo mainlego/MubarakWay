@@ -140,8 +140,8 @@ const Library = () => {
       <div className="absolute inset-0 library-pattern pointer-events-none"></div>
 
       {/* Soft glowing orbs for depth */}
-      <div className="absolute top-32 right-20 w-80 h-80 bg-violet-500/8 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-32 left-20 w-72 h-72 bg-purple-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute top-32 -right-20 w-80 h-80 bg-violet-500/8 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-32 -left-20 w-72 h-72 bg-purple-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       <div className="absolute top-1/3 left-1/3 w-56 h-56 bg-indigo-500/6 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
 
       <div className="max-w-4xl mx-auto w-full relative z-10">

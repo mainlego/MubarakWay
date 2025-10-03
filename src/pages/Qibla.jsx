@@ -158,8 +158,8 @@ const Qibla = () => {
       </div>
 
       {/* Soft glowing orbs */}
-      <div className="absolute top-24 right-16 w-80 h-80 bg-amber-500/8 rounded-full blur-3xl" style={{ animation: 'prayerBlink 6s ease-in-out infinite' }}></div>
-      <div className="absolute bottom-24 left-16 w-72 h-72 bg-orange-500/8 rounded-full blur-3xl" style={{ animation: 'prayerBlink 8s ease-in-out infinite', animationDelay: '2s' }}></div>
+      <div className="absolute top-24 -right-20 w-80 h-80 bg-amber-500/8 rounded-full blur-3xl" style={{ animation: 'prayerBlink 6s ease-in-out infinite' }}></div>
+      <div className="absolute bottom-24 -left-20 w-72 h-72 bg-orange-500/8 rounded-full blur-3xl" style={{ animation: 'prayerBlink 8s ease-in-out infinite', animationDelay: '2s' }}></div>
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-500/6 rounded-full blur-3xl" style={{ animation: 'prayerBlink 10s ease-in-out infinite', animationDelay: '4s' }}></div>
 
       <div className="max-w-md mx-auto w-full relative z-10">
