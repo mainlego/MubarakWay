@@ -13,6 +13,7 @@ const Nashids = () => {
   const { nashids, loading, currentPlaying, favorites } = useSelector(state => state.nashids);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [backgroundStyle, setBackgroundStyle] = useState({});
+  const [showFilters, setShowFilters] = useState(true);
   const { isOnline } = useOffline();
 
   useEffect(() => {
@@ -114,35 +115,48 @@ const Nashids = () => {
             </button>
             <h1 className="text-xl sm:text-2xl font-bold text-white">Нашиды</h1>
           </div>
-          <button className="p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white active:bg-white/30 transition-colors">
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white active:bg-white/30 transition-all"
+          >
+            <svg
+              className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${showFilters ? '' : 'rotate-180'}`}
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path d="M12 3v9.28l-2.64-2.64-1.42 1.42L12 15.12l4.06-4.06-1.42-1.42L12 12.28V3z"/>
               <path d="M19 17v2H5v-2h14z"/>
             </svg>
           </button>
         </div>
 
-        {/* Статистика */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 w-full">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 sm:p-4 text-center">
-            <Play className="w-4 h-4 sm:w-6 sm:h-6 text-white mx-auto mb-1 sm:mb-2" />
-            <p className="text-white font-semibold text-sm sm:text-base">{nashids.length}</p>
-            <p className="text-white/80 text-xs sm:text-sm">Нашидов</p>
+        {/* Статистика и Categories - свернуты */}
+        <div
+          className={`transition-all duration-300 overflow-hidden ${
+            showFilters ? 'max-h-[1000px] opacity-100 mb-4 sm:mb-6' : 'max-h-0 opacity-0 mb-0'
+          }`}
+        >
+          {/* Статистика */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 w-full">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 sm:p-4 text-center">
+              <Play className="w-4 h-4 sm:w-6 sm:h-6 text-white mx-auto mb-1 sm:mb-2" />
+              <p className="text-white font-semibold text-sm sm:text-base">{nashids.length}</p>
+              <p className="text-white/80 text-xs sm:text-sm">Нашидов</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 sm:p-4 text-center">
+              <Heart className="w-4 h-4 sm:w-6 sm:h-6 text-white mx-auto mb-1 sm:mb-2" />
+              <p className="text-white font-semibold text-sm sm:text-base">{favoriteNashids.length}</p>
+              <p className="text-white/80 text-xs sm:text-sm">Избранных</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 sm:p-4 text-center">
+              <Download className="w-4 h-4 sm:w-6 sm:h-6 text-white mx-auto mb-1 sm:mb-2" />
+              <p className="text-white font-semibold text-sm sm:text-base">0</p>
+              <p className="text-white/80 text-xs sm:text-sm">Офлайн</p>
+            </div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 sm:p-4 text-center">
-            <Heart className="w-4 h-4 sm:w-6 sm:h-6 text-white mx-auto mb-1 sm:mb-2" />
-            <p className="text-white font-semibold text-sm sm:text-base">{favoriteNashids.length}</p>
-            <p className="text-white/80 text-xs sm:text-sm">Избранных</p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 sm:p-4 text-center">
-            <Download className="w-4 h-4 sm:w-6 sm:h-6 text-white mx-auto mb-1 sm:mb-2" />
-            <p className="text-white font-semibold text-sm sm:text-base">0</p>
-            <p className="text-white/80 text-xs sm:text-sm">Офлайн</p>
-          </div>
-        </div>
 
-        {/* Categories */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 w-full">
+          {/* Categories */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 w-full">
           {categories.map((category) => {
             const IconComponent = category.icon;
             return (
@@ -173,6 +187,7 @@ const Nashids = () => {
             <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" />
             <span className="text-white font-medium text-xs sm:text-sm truncate">Избранное ({favoriteNashids.length})</span>
           </button>
+          </div>
         </div>
 
         {/* Nashids List */}

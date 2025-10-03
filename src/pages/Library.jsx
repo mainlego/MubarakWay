@@ -23,6 +23,7 @@ const Library = () => {
   const [genreFilter, setGenreFilter] = useState('all'); // all, quran, hadith, prophets, aqidah, tafsir, islam
   const [languageFilter, setLanguageFilter] = useState('all'); // all, ru, ar, en
   const [showExclusiveOnly, setShowExclusiveOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
 
   useEffect(() => {
     dispatch(fetchBooks());
@@ -145,10 +146,31 @@ const Library = () => {
       <div className="absolute top-1/3 left-1/3 w-56 h-56 bg-indigo-500/6 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
-        <h1 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Библиотека</h1>
+        {/* Header with toggle */}
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Библиотека</h1>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white active:bg-white/30 transition-all"
+          >
+            <svg
+              className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${showFilters ? '' : 'rotate-180'}`}
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 3v9.28l-2.64-2.64-1.42 1.42L12 15.12l4.06-4.06-1.42-1.42L12 12.28V3z"/>
+              <path d="M19 17v2H5v-2h14z"/>
+            </svg>
+          </button>
+        </div>
 
         {/* Поиск и фильтры */}
-        <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4 w-full">
+        <div
+          className={`transition-all duration-300 overflow-hidden ${
+            showFilters ? 'max-h-[2000px] opacity-100 mb-4 sm:mb-6' : 'max-h-0 opacity-0 mb-0'
+          }`}
+        >
+        <div className="space-y-3 sm:space-y-4 w-full">
           {/* Строка поиска */}
           <form onSubmit={handleSearchSubmit} className="relative w-full">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -391,6 +413,7 @@ const Library = () => {
               </p>
             </div>
           )}
+        </div>
         </div>
 
         {/* Free Books Section */}
