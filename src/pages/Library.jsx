@@ -5,11 +5,23 @@ import { fetchBooks, toggleFavorite } from '../store/slices/booksSlice';
 import BookCard from '../components/BookCard';
 import { Book, Heart, Search, Filter, Star, Lock, BookOpen, Crown, TrendingUp, Sparkles, Globe, Award } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
+import {
+  selectCurrentSubscription,
+  selectCanAddFavoriteBook,
+  selectCanAddOfflineBook,
+  selectRemainingOfflineBooks,
+  selectRemainingFavoriteBooks
+} from '../store/slices/subscriptionSlice';
 
 const Library = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { books, favorites, loading } = useSelector(state => state.books);
+  const subscriptionConfig = useSelector(selectCurrentSubscription);
+  const canAddFavorite = useSelector(selectCanAddFavoriteBook);
+  const canAddOffline = useSelector(selectCanAddOfflineBook);
+  const remainingOffline = useSelector(selectRemainingOfflineBooks);
+  const remainingFavorites = useSelector(selectRemainingFavoriteBooks);
   const { subscription = 'free' } = useSelector(state => state.auth || {});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -57,6 +69,13 @@ const Library = () => {
   const filterBooks = (booksList) => {
     let filtered = booksList;
 
+    // Применяем ограничение доступа на основе подписки (40% для Basic)
+    const booksAccess = subscriptionConfig.features.books.access;
+    if (booksAccess < 1) {
+      const availableCount = Math.floor(booksList.length * booksAccess);
+      filtered = booksList.slice(0, availableCount);
+    }
+
     // Поиск по названию, автору и описанию
     if (searchTerm) {
       filtered = filtered.filter(book =>
@@ -81,9 +100,14 @@ const Library = () => {
       filtered = filtered.filter(book => book.language === languageFilter);
     }
 
-    // Фильтр по эксклюзиву
+    // Фильтр по эксклюзиву (доступно только для Premium)
     if (showExclusiveOnly) {
-      filtered = filtered.filter(book => book.isExclusive);
+      if (!subscriptionConfig.features.features.exclusiveContent) {
+        // Если нет доступа к эксклюзиву, показываем пустой список
+        filtered = [];
+      } else {
+        filtered = filtered.filter(book => book.isExclusive);
+      }
     }
 
     // Сортировка
@@ -483,15 +507,65 @@ const Library = () => {
           </div>
         )}
 
+        {/* Subscription Usage Stats */}
+        {subscriptionConfig && (
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 text-white w-full mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                {subscriptionConfig.id === 'muslim' && '📚'}
+                {subscriptionConfig.id === 'mutahsin' && '⭐'}
+                {subscriptionConfig.id === 'sahib_waqf' && '👑'}
+                {subscriptionConfig.name}
+              </h3>
+              <span className="text-xs sm:text-sm text-white/70">{subscriptionConfig.description}</span>
+            </div>
+
+            {/* Limits display */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <BookOpen className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm font-medium">Офлайн книги</span>
+                </div>
+                <p className="text-lg sm:text-xl font-bold">
+                  {remainingOffline === -1 ? '∞' : remainingOffline}
+                  {remainingOffline !== -1 && <span className="text-sm text-white/60"> осталось</span>}
+                </p>
+              </div>
+
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Heart className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm font-medium">Избранное</span>
+                </div>
+                <p className="text-lg sm:text-xl font-bold">
+                  {remainingFavorites === -1 ? '∞' : remainingFavorites}
+                  {remainingFavorites !== -1 && <span className="text-sm text-white/60"> осталось</span>}
+                </p>
+              </div>
+            </div>
+
+            {/* Catalog access info */}
+            {subscriptionConfig.features.books.access < 1 && (
+              <div className="mt-3 p-3 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                <p className="text-xs sm:text-sm text-yellow-100">
+                  ⚠️ Доступно {Math.floor(subscriptionConfig.features.books.access * 100)}% каталога ({Math.floor(books.length * subscriptionConfig.features.books.access)} из {books.length} книг)
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Subscription Banner */}
-        {subscription === 'free' && (
+        {subscriptionConfig.id === 'muslim' && (
           <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-4 sm:p-6 text-white w-full mb-20">
-            <h3 className="text-base sm:text-lg font-semibold mb-2">Хотите больше? Подписка открывает</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-2">Хотите больше? Улучшите подписку!</h3>
             <p className="text-green-100 text-xs sm:text-sm mb-3 sm:mb-4">
-              200+ книг, эксклюзивные лекции и персональные уроки
+              <strong>Мутахсин (PRO):</strong> Полный каталог, неограниченные офлайн книги и нашиды, заметки и синхронизация<br/>
+              <strong>Сахиб аль-Вакф (Premium):</strong> Всё из PRO + AI-помощник, семейный доступ, ранний доступ к новинкам
             </p>
             <button className="bg-white text-green-600 px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-medium active:bg-green-50 transition-colors w-full sm:w-auto">
-              Оформить подписку
+              Улучшить подписку
             </button>
           </div>
         )}

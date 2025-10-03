@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Calendar, Download } from 'lucide-react';
+import prayerTimesService from '../services/prayerTimesService';
 
 const MonthlyPrayerSchedule = ({ prayerTimes, userLocation }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
-  // Генерация расписания на месяц (заглушка - нужно будет рассчитать реальные времена)
-  const generateMonthlySchedule = () => {
+  // Генерация расписания на месяц с реальным расчетом
+  const generateMonthlySchedule = useMemo(() => {
+    if (!userLocation) return [];
+
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -13,21 +16,31 @@ const MonthlyPrayerSchedule = ({ prayerTimes, userLocation }) => {
     const schedule = [];
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
-      schedule.push({
-        date: day,
-        dayOfWeek: date.toLocaleDateString('ru-RU', { weekday: 'short' }),
-        fajr: '05:00',
-        sunrise: '07:00',
-        dhuhr: '13:20',
-        asr: '16:00',
-        maghrib: '18:00',
-        isha: '20:00'
-      });
+
+      // Рассчитываем время молитв для каждого дня
+      const dayPrayerTimes = prayerTimesService.calculatePrayerTimes(
+        date,
+        userLocation,
+        { calculationMethod: 'MuslimWorldLeague' }
+      );
+
+      if (dayPrayerTimes) {
+        schedule.push({
+          date: day,
+          dayOfWeek: date.toLocaleDateString('ru-RU', { weekday: 'short' }),
+          fajr: prayerTimesService.formatTime(dayPrayerTimes.fajr),
+          sunrise: prayerTimesService.formatTime(dayPrayerTimes.sunrise),
+          dhuhr: prayerTimesService.formatTime(dayPrayerTimes.dhuhr),
+          asr: prayerTimesService.formatTime(dayPrayerTimes.asr),
+          maghrib: prayerTimesService.formatTime(dayPrayerTimes.maghrib),
+          isha: prayerTimesService.formatTime(dayPrayerTimes.isha)
+        });
+      }
     }
     return schedule;
-  };
+  }, [selectedMonth, userLocation]);
 
-  const schedule = generateMonthlySchedule();
+  const schedule = generateMonthlySchedule;
 
   const monthNames = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Music, Navigation2, Clock, Crown } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { BookOpen, Music, Navigation2, Clock, Crown, Star, Zap, Sparkles } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
 import prayerTimesService from '../services/prayerTimesService';
+import { selectCurrentSubscription } from '../store/slices/subscriptionSlice';
 
 const Home = () => {
+  const subscriptionConfig = useSelector(selectCurrentSubscription);
   const [backgroundStyle, setBackgroundStyle] = useState({});
   const [nextPrayer, setNextPrayer] = useState(null);
   const [timeUntilPrayer, setTimeUntilPrayer] = useState(null);
@@ -169,17 +172,109 @@ const Home = () => {
           <p className="text-gray-500 text-xs">Коран 13:11</p>
         </div>
 
-        {/* Subscription Banner */}
-        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-2xl p-4 sm:p-6 text-center w-full mb-20">
-          <Crown className="w-6 h-6 sm:w-8 sm:h-8 text-white mx-auto mb-2 sm:mb-3" />
-          <h3 className="text-base sm:text-lg text-white font-semibold mb-2">Откройте больше возможностей</h3>
-          <p className="text-white/90 text-xs sm:text-sm mb-3 sm:mb-4">
-            200+ книг, эксклюзивные лекции и персональные уроки
-          </p>
-          <button className="bg-white text-yellow-600 px-4 sm:px-6 py-2 rounded-xl text-sm sm:text-base font-medium active:bg-yellow-50 transition-colors w-full sm:w-auto">
-            Оформить подписку
-          </button>
-        </div>
+        {/* Current Subscription Card */}
+        {subscriptionConfig && (
+          <div className={`rounded-2xl p-4 sm:p-6 w-full mb-4 ${
+            subscriptionConfig.id === 'muslim' ? 'bg-gradient-to-r from-slate-700 to-slate-800' :
+            subscriptionConfig.id === 'mutahsin' ? 'bg-gradient-to-r from-blue-600 to-indigo-700' :
+            'bg-gradient-to-r from-yellow-500 to-amber-600'
+          }`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                {subscriptionConfig.id === 'muslim' && <BookOpen className="w-6 h-6 text-white" />}
+                {subscriptionConfig.id === 'mutahsin' && <Star className="w-6 h-6 text-white" />}
+                {subscriptionConfig.id === 'sahib_waqf' && <Crown className="w-6 h-6 text-white" />}
+                <h3 className="text-lg sm:text-xl font-bold text-white">{subscriptionConfig.name}</h3>
+              </div>
+              <span className="text-xs sm:text-sm text-white/80">{subscriptionConfig.nameEn}</span>
+            </div>
+
+            <p className="text-white/90 text-xs sm:text-sm mb-4">{subscriptionConfig.description}</p>
+
+            {/* Key features */}
+            <div className="space-y-2 mb-4">
+              <div className="flex items-start gap-2 text-white">
+                <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p className="text-xs sm:text-sm">
+                  {subscriptionConfig.features.books.access === 1 ? 'Полный каталог книг' : `${Math.floor(subscriptionConfig.features.books.access * 100)}% каталога книг`}
+                </p>
+              </div>
+              <div className="flex items-start gap-2 text-white">
+                <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p className="text-xs sm:text-sm">
+                  {subscriptionConfig.features.nashids.count === -1 ? 'Все нашиды' : `${subscriptionConfig.features.nashids.count} нашидов`}
+                </p>
+              </div>
+              {subscriptionConfig.features.features.aiAssistant && (
+                <div className="flex items-start gap-2 text-white">
+                  <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm">AI-помощник для рекомендаций</p>
+                </div>
+              )}
+              {subscriptionConfig.features.features.familyAccess > 0 && (
+                <div className="flex items-start gap-2 text-white">
+                  <Star className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm">Семейный доступ ({subscriptionConfig.features.features.familyAccess} профиля)</p>
+                </div>
+              )}
+            </div>
+
+            {subscriptionConfig.id === 'muslim' && (
+              <button className="w-full bg-white text-slate-800 px-4 py-2 rounded-xl text-sm font-medium active:bg-slate-50 transition-colors">
+                Улучшить подписку
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Subscription Comparison (only for Basic users) */}
+        {subscriptionConfig?.id === 'muslim' && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 sm:p-6 mb-4 w-full">
+            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 text-center">Доступные подписки</h3>
+
+            <div className="space-y-3">
+              {/* PRO Tier */}
+              <div className="border-2 border-blue-200 rounded-xl p-4 bg-blue-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-blue-600" />
+                    <h4 className="font-bold text-blue-900">Мутахсин (PRO)</h4>
+                  </div>
+                  <span className="text-sm text-blue-700 font-semibold">₽499/мес</span>
+                </div>
+                <ul className="space-y-1 text-xs text-blue-800">
+                  <li>✓ Полный каталог книг и нашидов</li>
+                  <li>✓ Неограниченные офлайн и избранное</li>
+                  <li>✓ Заметки и синхронизация</li>
+                  <li>✓ Фоновое воспроизведение</li>
+                </ul>
+              </div>
+
+              {/* Premium Tier */}
+              <div className="border-2 border-yellow-300 rounded-xl p-4 bg-gradient-to-br from-yellow-50 to-amber-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-yellow-600" />
+                    <h4 className="font-bold text-yellow-900">Сахиб аль-Вакф (Premium)</h4>
+                  </div>
+                  <span className="text-sm text-yellow-700 font-semibold">₽999/мес</span>
+                </div>
+                <ul className="space-y-1 text-xs text-yellow-800">
+                  <li>✓ Все из PRO</li>
+                  <li>✓ AI-помощник для рекомендаций</li>
+                  <li>✓ Семейный доступ (3 профиля)</li>
+                  <li>✓ Ранний доступ к новинкам</li>
+                  <li>✓ Эксклюзивный контент</li>
+                  <li>✓ Экспорт заметок в PDF</li>
+                </ul>
+              </div>
+            </div>
+
+            <button className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-3 rounded-xl text-sm font-semibold active:opacity-90 transition-opacity">
+              Выбрать подписку
+            </button>
+          </div>
+        )}
 
         {/* Bottom spacing for navigation */}
         <div className="h-20" />
