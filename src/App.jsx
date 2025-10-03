@@ -13,11 +13,15 @@ import EnhancedBookReader from './components/EnhancedBookReader';
 import Navigation from './components/Navigation';
 import AudioPlayerUI from './components/AudioPlayerUI';
 import ScrollToTop from './components/ScrollToTop';
+import OnboardingSlides from './components/OnboardingSlides';
 
 function AppContent() {
   const { currentPlaying, nashids } = useSelector(state => state.nashids);
   const [showPlayer, setShowPlayer] = useState(false);
   const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('onboarding_completed');
+  });
 
   // Инициализация глобального аудио (один раз на весь App)
   const audioState = useGlobalAudio();
@@ -44,6 +48,15 @@ function AppContent() {
     console.log('Toggling player minimize state from', isPlayerMinimized, 'to', !isPlayerMinimized);
     setIsPlayerMinimized(!isPlayerMinimized);
   };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
+
+  // Show onboarding if not completed
+  if (showOnboarding) {
+    return <OnboardingSlides onComplete={handleOnboardingComplete} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
