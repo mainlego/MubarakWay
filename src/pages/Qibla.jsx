@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import QiblaCompass from '../components/QiblaCompass';
 import QiblaMap from '../components/QiblaMap';
-import { Navigation, Map, Clock, Settings, MapPin, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import MonthlyPrayerSchedule from '../components/MonthlyPrayerSchedule';
+import { Navigation, Map, Clock, Settings, MapPin, Wifi, WifiOff, RefreshCw, Calendar } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
 import {
   getCurrentLocation,
@@ -221,6 +222,7 @@ const Qibla = () => {
                 { id: 'times', label: 'Время', icon: Clock },
                 { id: 'compass', label: 'Кибла', icon: Navigation },
                 { id: 'map', label: 'Карта', icon: Map },
+                { id: 'schedule', label: 'Расписание', icon: Calendar },
                 { id: 'stats', label: 'Статистика', icon: Settings }
               ].map((tab) => {
                 const IconComponent = tab.icon;
@@ -248,6 +250,7 @@ const Qibla = () => {
               { id: 'times' },
               { id: 'compass' },
               { id: 'map' },
+              { id: 'schedule' },
               { id: 'stats' }
             ].map((tab) => (
               <div
@@ -499,6 +502,18 @@ const Qibla = () => {
             </div>
           )}
 
+          {activeTab === 'schedule' && (
+            <div>
+              <h2 className="text-xl font-semibold text-white text-center mb-4">
+                Расписание на месяц
+              </h2>
+              <MonthlyPrayerSchedule
+                prayerTimes={prayerTimes}
+                userLocation={userLocation}
+              />
+            </div>
+          )}
+
           {activeTab === 'stats' && (
             <div>
               <h2 className="text-xl font-semibold text-white text-center mb-6">
@@ -559,7 +574,7 @@ const Qibla = () => {
         </div>
 
         {/* Bottom spacing for navigation */}
-        <div className="h-20" />
+        <div className="h-32" />
       </div>
     </div>
   );
