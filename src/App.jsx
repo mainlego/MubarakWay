@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Provider, useSelector } from 'react-redux';
+import { Provider, useSelector, useDispatch } from 'react-redux';
 import { store } from './store/store';
 import { telegram } from './utils/telegram';
 import { useGlobalAudio } from './hooks/useGlobalAudio';
+import { loginUser } from './store/slices/authSlice';
 
 import Home from './pages/Home';
 import Library from './pages/Library';
@@ -88,6 +89,8 @@ function AppContent() {
 }
 
 function App() {
+  const dispatch = useDispatch();
+
   useEffect(() => {
     // Инициализация Telegram Mini App
     if (telegram.isMiniApp()) {
@@ -98,14 +101,42 @@ function App() {
       const user = telegram.getUser();
       if (user) {
         console.log('Telegram user:', user);
+
+        // Автоматическая регистрация/вход
+        dispatch(loginUser(user))
+          .unwrap()
+          .then((userData) => {
+            console.log('✅ User logged in successfully:', userData);
+          })
+          .catch((error) => {
+            console.error('❌ Auto-login failed:', error);
+          });
       }
     } else {
       console.log('Running in browser mode');
+
+      // В режиме разработки создаем тестового пользователя
+      const testUser = {
+        id: 123456789,
+        first_name: 'Test',
+        last_name: 'User',
+        username: 'testuser',
+        language_code: 'ru'
+      };
+
+      dispatch(loginUser(testUser))
+        .unwrap()
+        .then((userData) => {
+          console.log('✅ Test user logged in:', userData);
+        })
+        .catch((error) => {
+          console.error('❌ Test login failed:', error);
+        });
     }
 
     // Скроллить к началу страницы при навигации
     window.scrollTo(0, 0);
-  }, []);
+  }, [dispatch]);
 
   return (
     <Provider store={store}>

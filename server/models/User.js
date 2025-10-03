@@ -1,0 +1,197 @@
+const mongoose = require('mongoose');
+
+const userSchema = new mongoose.Schema({
+  // Telegram данные
+  telegramId: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  username: {
+    type: String,
+    default: null
+  },
+  firstName: {
+    type: String,
+    default: null
+  },
+  lastName: {
+    type: String,
+    default: null
+  },
+  languageCode: {
+    type: String,
+    default: 'ru'
+  },
+
+  // Подписка
+  subscription: {
+    tier: {
+      type: String,
+      enum: ['muslim', 'mutahsin', 'sahib_waqf'],
+      default: 'muslim'
+    },
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+    expiresAt: {
+      type: Date,
+      default: null
+    },
+    startedAt: {
+      type: Date,
+      default: Date.now
+    }
+  },
+
+  // Использование лимитов (сбрасывается каждый месяц)
+  usage: {
+    booksOffline: {
+      type: Number,
+      default: 0
+    },
+    booksFavorites: {
+      type: Number,
+      default: 0
+    },
+    nashidsOffline: {
+      type: Number,
+      default: 0
+    },
+    nashidsFavorites: {
+      type: Number,
+      default: 0
+    },
+    resetDate: {
+      type: Date,
+      default: Date.now
+    }
+  },
+
+  // Избранное
+  favorites: {
+    books: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Book'
+    }],
+    nashids: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Nashid'
+    }]
+  },
+
+  // Офлайн контент
+  offline: {
+    books: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Book'
+    }],
+    nashids: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Nashid'
+    }]
+  },
+
+  // Настройки молитв
+  prayerSettings: {
+    location: {
+      latitude: Number,
+      longitude: Number,
+      city: String,
+      country: String
+    },
+    calculationMethod: {
+      type: String,
+      default: 'MuslimWorldLeague'
+    },
+    notifications: {
+      enabled: {
+        type: Boolean,
+        default: true
+      },
+      minutesBefore: {
+        type: Number,
+        default: 0
+      }
+    }
+  },
+
+  // Прогресс чтения
+  readingProgress: {
+    type: Map,
+    of: Number,
+    default: {}
+  },
+
+  // История подписок
+  subscriptionHistory: [{
+    tier: String,
+    startedAt: Date,
+    expiresAt: Date,
+    cancelledAt: Date
+  }],
+
+  // Метаданные
+  lastActive: {
+    type: Date,
+    default: Date.now
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  onboardingCompleted: {
+    type: Boolean,
+    default: false
+  }
+}, {
+  timestamps: true
+});
+
+// Индексы для быстрого поиска
+userSchema.index({ telegramId: 1 });
+userSchema.index({ 'subscription.tier': 1 });
+userSchema.index({ createdAt: -1 });
+
+// Метод для проверки и сброса месячных лимитов
+userSchema.methods.checkAndResetMonthlyLimits = function() {
+  const now = new Date();
+  const lastReset = new Date(this.usage.resetDate);
+
+  // Проверяем, прошел ли месяц
+  if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+    this.usage.booksOffline = 0;
+    this.usage.nashidsOffline = 0;
+    this.usage.resetDate = now;
+    return true;
+  }
+  return false;
+};
+
+// Метод для проверки активности подписки
+userSchema.methods.checkSubscriptionStatus = function() {
+  if (!this.subscription.expiresAt) {
+    return this.subscription.isActive;
+  }
+
+  const now = new Date();
+  if (now > this.subscription.expiresAt) {
+    this.subscription.isActive = false;
+    this.subscription.tier = 'muslim'; // Вернуть к базовому тарифу
+    return false;
+  }
+
+  return this.subscription.isActive;
+};
+
+// Обновление времени последней активности
+userSchema.methods.updateLastActive = function() {
+  this.lastActive = new Date();
+  return this.save();
+};
+
+const User = mongoose.model('User', userSchema);
+
+module.exports = User;
