@@ -154,7 +154,7 @@ const Nashids = () => {
         </div>
 
         {/* Статус сети */}
-        <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-white/10 backdrop-blur-sm rounded-xl w-full">
+        <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-white/10 backdrop-blur-sm rounded-xl w-full mb-20">
           <div className="flex items-center justify-center gap-2">
             <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${
               isOnline ? 'bg-green-500' : 'bg-red-500'
@@ -167,6 +167,9 @@ const Nashids = () => {
             </p>
           </div>
         </div>
+
+        {/* Bottom spacing for navigation */}
+        <div className="h-20" />
       </div>
     </div>
   );

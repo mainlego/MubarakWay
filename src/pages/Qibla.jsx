@@ -507,7 +507,7 @@ const Qibla = () => {
         </div>
 
         {/* Footer Info */}
-        <div className="mt-6 text-center text-white/60 text-xs space-y-2">
+        <div className="mt-6 text-center text-white/60 text-xs space-y-2 mb-20">
           {userLocation ? (
             <>
               <p>Расчет основан на вашем местоположении</p>
@@ -522,6 +522,9 @@ const Qibla = () => {
             <p>Разрешите доступ к геолокации для точных расчетов</p>
           )}
         </div>
+
+        {/* Bottom spacing for navigation */}
+        <div className="h-20" />
       </div>
     </div>
   );

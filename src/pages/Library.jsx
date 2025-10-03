@@ -438,7 +438,7 @@ const Library = () => {
 
         {/* Subscription Banner */}
         {subscription === 'free' && (
-          <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-4 sm:p-6 text-white w-full">
+          <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-4 sm:p-6 text-white w-full mb-20">
             <h3 className="text-base sm:text-lg font-semibold mb-2">Хотите больше? Подписка открывает</h3>
             <p className="text-green-100 text-xs sm:text-sm mb-3 sm:mb-4">
               200+ книг, эксклюзивные лекции и персональные уроки
@@ -448,6 +448,9 @@ const Library = () => {
             </button>
           </div>
         )}
+
+        {/* Bottom spacing for navigation */}
+        <div className="h-20" />
       </div>
     </div>
   );

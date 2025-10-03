@@ -151,7 +151,7 @@ const Home = () => {
         </div>
 
         {/* Subscription Banner */}
-        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-2xl p-4 sm:p-6 text-center w-full">
+        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-2xl p-4 sm:p-6 text-center w-full mb-20">
           <Crown className="w-6 h-6 sm:w-8 sm:h-8 text-white mx-auto mb-2 sm:mb-3" />
           <h3 className="text-base sm:text-lg text-white font-semibold mb-2">Откройте больше возможностей</h3>
           <p className="text-white/90 text-xs sm:text-sm mb-3 sm:mb-4">
@@ -161,6 +161,9 @@ const Home = () => {
             Оформить подписку
           </button>
         </div>
+
+        {/* Bottom spacing for navigation */}
+        <div className="h-20" />
       </div>
     </div>
   );
