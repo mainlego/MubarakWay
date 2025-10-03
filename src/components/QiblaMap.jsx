@@ -15,6 +15,9 @@ const QiblaMap = ({ userLocation, qiblaDirection }) => {
 
     // Инициализация карты (только один раз)
     if (!mapInstanceRef.current) {
+      // iOS требует специальной настройки
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
       mapInstanceRef.current = L.map(mapRef.current, {
         center: [userLocation.latitude, userLocation.longitude],
         zoom: 3,
@@ -22,11 +25,18 @@ const QiblaMap = ({ userLocation, qiblaDirection }) => {
         attributionControl: false,
         dragging: true,
         touchZoom: true,
-        scrollWheelZoom: true,
+        scrollWheelZoom: !isIOS, // Отключаем для iOS
         doubleClickZoom: true,
         boxZoom: true,
         keyboard: true,
-        tap: true
+        tap: isIOS ? true : false, // Включаем tap для iOS
+        tapTolerance: isIOS ? 30 : 15, // Больше толерантность для iOS
+        // iOS-специфичные опции
+        ...(isIOS && {
+          bounceAtZoomLimits: false,
+          preferCanvas: true, // Лучше работает на iOS
+          renderer: L.canvas({ tolerance: 5 })
+        })
       });
 
       // Добавляем tile layer
@@ -202,6 +212,27 @@ const QiblaMap = ({ userLocation, qiblaDirection }) => {
       setTimeout(() => {
         if (mapInstanceRef.current) {
           mapInstanceRef.current.invalidateSize();
+
+          // iOS: принудительно активируем dragging
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+          if (isIOS && mapInstanceRef.current.dragging) {
+            mapInstanceRef.current.dragging.enable();
+
+            // Дополнительный фикс для iOS - отключаем passive listeners
+            const container = mapInstanceRef.current.getContainer();
+            if (container) {
+              container.addEventListener('touchstart', (e) => {
+                // Не preventDefault для самой карты, чтобы жесты работали
+              }, { passive: false });
+
+              container.addEventListener('touchmove', (e) => {
+                // Предотвращаем прокрутку страницы при драге карты
+                if (e.touches.length === 1) {
+                  e.preventDefault();
+                }
+              }, { passive: false });
+            }
+          }
         }
       }, 100);
     }
@@ -298,6 +329,35 @@ const QiblaMap = ({ userLocation, qiblaDirection }) => {
           .leaflet-container.leaflet-touch-zoom {
             -ms-touch-action: pinch-zoom;
             touch-action: pinch-zoom;
+          }
+
+          /* iOS-специфичные фиксы */
+          @supports (-webkit-touch-callout: none) {
+            .leaflet-container {
+              -webkit-transform: translate3d(0, 0, 0);
+              transform: translate3d(0, 0, 0);
+              -webkit-overflow-scrolling: touch;
+            }
+
+            .leaflet-pane,
+            .leaflet-tile-pane {
+              -webkit-transform: translate3d(0, 0, 0);
+              transform: translate3d(0, 0, 0);
+            }
+
+            /* Отключаем эластичное прокручивание Safari */
+            .leaflet-container {
+              overscroll-behavior: contain;
+              -webkit-overscroll-behavior: contain;
+            }
+
+            /* Принудительное включение hardware acceleration */
+            .leaflet-layer,
+            .leaflet-control {
+              -webkit-transform: translateZ(0);
+              transform: translateZ(0);
+              will-change: transform;
+            }
           }
         `}
       </style>
