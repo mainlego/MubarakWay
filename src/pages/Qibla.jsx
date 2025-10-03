@@ -123,64 +123,44 @@ const Qibla = () => {
   ] : [];
 
   return (
-    <div
-      className="min-h-screen p-4 sm:p-6 overflow-x-hidden relative"
-      style={{
-        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
-        animation: 'qiblaGradient 15s ease infinite'
-      }}
-    >
-      {/* Animated Background */}
+    <div className="min-h-screen p-4 sm:p-6 overflow-x-hidden relative bg-gradient-to-br from-amber-950 via-orange-900 to-yellow-900">
+      {/* Compass rose and prayer time pattern */}
       <style>{`
-        @keyframes qiblaGradient {
-          0%, 100% {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
-          }
-          50% {
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
-          }
+        @keyframes compassRose {
+          0%, 100% { opacity: 0.08; transform: rotate(0deg) scale(1); }
+          50% { opacity: 0.15; transform: rotate(5deg) scale(1.02); }
         }
-        @keyframes compassSpin {
-          0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.08; }
-          50% { transform: rotate(180deg) scale(1.1); opacity: 0.15; }
+        @keyframes rayRotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
-        @keyframes prayerPulse {
-          0%, 100% { transform: scale(1); opacity: 0.1; }
-          50% { transform: scale(1.3); opacity: 0.2; }
+        @keyframes prayerBlink {
+          0%, 100% { opacity: 0.03; }
+          50% { opacity: 0.08; }
+        }
+        .qibla-pattern {
+          background-image:
+            radial-gradient(circle at center, transparent 40%, rgba(251,191,36,.05) 40%, rgba(251,191,36,.05) 42%, transparent 42%),
+            repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(245,158,11,.04) 15deg, transparent 30deg);
+          animation: compassRose 12s ease-in-out infinite;
         }
       `}</style>
 
-      {/* Floating compass and prayer icons */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(4)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute text-white/10 text-6xl"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `compassSpin ${15 + Math.random() * 5}s linear infinite`,
-              animationDelay: `${Math.random() * 5}s`
-            }}
-          >
-            🧭
-          </div>
-        ))}
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={`prayer-${i}`}
-            className="absolute text-white/10 text-5xl"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `prayerPulse ${8 + Math.random() * 4}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`
-            }}
-          >
-            🕌
-          </div>
-        ))}
+      {/* Pattern Overlay */}
+      <div className="absolute inset-0 qibla-pattern pointer-events-none"></div>
+
+      {/* Rotating compass rays */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ animation: 'rayRotate 60s linear infinite' }}>
+        <div className="absolute top-1/2 left-1/2 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent transform -translate-y-1/2"></div>
+        <div className="absolute top-1/2 left-1/2 w-full h-1 bg-gradient-to-r from-transparent via-orange-500/5 to-transparent transform -translate-y-1/2 rotate-45"></div>
+        <div className="absolute top-1/2 left-1/2 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500/5 to-transparent transform -translate-y-1/2 rotate-90"></div>
+        <div className="absolute top-1/2 left-1/2 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent transform -translate-y-1/2 rotate-[135deg]"></div>
       </div>
+
+      {/* Soft glowing orbs */}
+      <div className="absolute top-24 right-16 w-80 h-80 bg-amber-500/8 rounded-full blur-3xl" style={{ animation: 'prayerBlink 6s ease-in-out infinite' }}></div>
+      <div className="absolute bottom-24 left-16 w-72 h-72 bg-orange-500/8 rounded-full blur-3xl" style={{ animation: 'prayerBlink 8s ease-in-out infinite', animationDelay: '2s' }}></div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-500/6 rounded-full blur-3xl" style={{ animation: 'prayerBlink 10s ease-in-out infinite', animationDelay: '4s' }}></div>
 
       <div className="max-w-md mx-auto w-full relative z-10">
         {/* Header */}

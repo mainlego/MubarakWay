@@ -116,46 +116,33 @@ const Library = () => {
   }
 
   return (
-    <div
-      className="p-4 sm:p-6 min-h-screen overflow-x-hidden relative"
-      style={{
-        background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%)',
-        animation: 'libraryGradient 15s ease infinite'
-      }}
-    >
-      {/* Animated Background */}
+    <div className="p-4 sm:p-6 min-h-screen overflow-x-hidden relative bg-gradient-to-br from-indigo-950 via-purple-900 to-violet-900">
+      {/* Book shelf pattern background */}
       <style>{`
-        @keyframes libraryGradient {
-          0%, 100% {
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%);
-          }
-          50% {
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
-          }
+        @keyframes bookShelf {
+          0%, 100% { opacity: 0.04; }
+          50% { opacity: 0.08; }
         }
-        @keyframes bookFloat {
-          0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.08; }
-          50% { transform: translateY(-25px) rotate(5deg); opacity: 0.15; }
+        @keyframes pageFlip {
+          0%, 100% { transform: perspective(400px) rotateY(0deg); opacity: 0.1; }
+          50% { transform: perspective(400px) rotateY(10deg); opacity: 0.2; }
+        }
+        .library-pattern {
+          background-image:
+            linear-gradient(90deg, rgba(139,92,246,.05) 1px, transparent 1px),
+            linear-gradient(rgba(139,92,246,.05) 1px, transparent 1px);
+          background-size: 80px 120px;
+          animation: bookShelf 8s ease-in-out infinite;
         }
       `}</style>
 
-      {/* Floating book icons */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(6)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute text-white/10 text-5xl"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `bookFloat ${10 + Math.random() * 5}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`
-            }}
-          >
-            📚
-          </div>
-        ))}
-      </div>
+      {/* Pattern Overlay */}
+      <div className="absolute inset-0 library-pattern pointer-events-none"></div>
+
+      {/* Soft glowing orbs for depth */}
+      <div className="absolute top-32 right-20 w-80 h-80 bg-violet-500/8 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-32 left-20 w-72 h-72 bg-purple-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute top-1/3 left-1/3 w-56 h-56 bg-indigo-500/6 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
 
       <div className="max-w-4xl mx-auto w-full relative z-10">
         <h1 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Библиотека</h1>

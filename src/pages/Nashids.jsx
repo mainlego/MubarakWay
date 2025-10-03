@@ -50,46 +50,57 @@ const Nashids = () => {
   }
 
   return (
-    <div
-      className="p-4 sm:p-6 min-h-screen overflow-x-hidden relative"
-      style={{
-        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
-        animation: 'nashidsGradient 15s ease infinite'
-      }}
-    >
-      {/* Animated Background */}
+    <div className="p-4 sm:p-6 min-h-screen overflow-x-hidden relative bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
+      {/* Audio waveform pattern background */}
       <style>{`
-        @keyframes nashidsGradient {
-          0%, 100% {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
-          }
-          50% {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
-          }
+        @keyframes waveMove {
+          0%, 100% { transform: translateX(0); opacity: 0.06; }
+          50% { transform: translateX(-20px); opacity: 0.12; }
         }
-        @keyframes musicWave {
-          0%, 100% { transform: translateY(0px) scaleY(1); opacity: 0.1; }
-          50% { transform: translateY(-15px) scaleY(1.2); opacity: 0.2; }
+        @keyframes soundPulse {
+          0%, 100% { transform: scaleY(0.5); opacity: 0.05; }
+          50% { transform: scaleY(1); opacity: 0.1; }
+        }
+        .nashids-pattern {
+          background-image:
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 10px,
+              rgba(59,130,246,.04) 10px,
+              rgba(59,130,246,.04) 12px,
+              transparent 12px,
+              transparent 20px,
+              rgba(99,102,241,.04) 20px,
+              rgba(99,102,241,.04) 23px
+            );
+          animation: waveMove 6s linear infinite;
         }
       `}</style>
 
-      {/* Floating music notes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(10)].map((_, i) => (
+      {/* Pattern Overlay */}
+      <div className="absolute inset-0 nashids-pattern pointer-events-none"></div>
+
+      {/* Vertical sound bars effect */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {[...Array(15)].map((_, i) => (
           <div
             key={i}
-            className="absolute text-white/10 text-4xl"
+            className="absolute bottom-0 bg-blue-500/10 rounded-t-lg"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `musicWave ${6 + Math.random() * 4}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`
+              left: `${i * 7}%`,
+              width: '20px',
+              height: `${30 + Math.random() * 40}%`,
+              animation: `soundPulse ${1.5 + Math.random() * 2}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`
             }}
-          >
-            {i % 2 === 0 ? '♪' : '♫'}
-          </div>
+          />
         ))}
       </div>
+
+      {/* Soft glowing orbs */}
+      <div className="absolute top-20 right-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-20 left-20 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
 
       <div className="max-w-4xl mx-auto w-full relative z-10">
         {/* Header */}

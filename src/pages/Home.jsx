@@ -79,46 +79,29 @@ const Home = () => {
   ];
 
   return (
-    <div
-      className="min-h-screen p-4 sm:p-6 overflow-x-hidden relative"
-      style={{
-        background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)',
-        animation: 'gradientShift 15s ease infinite'
-      }}
-    >
-      {/* Animated Background */}
+    <div className="min-h-screen p-4 sm:p-6 overflow-x-hidden relative bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900">
+      {/* Islamic Geometric Pattern Background */}
       <style>{`
-        @keyframes gradientShift {
-          0%, 100% {
-            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
-          }
-          50% {
-            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 50%, #0f766e 100%);
-          }
+        @keyframes patternPulse {
+          0%, 100% { opacity: 0.05; transform: scale(1); }
+          50% { opacity: 0.12; transform: scale(1.02); }
         }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.1; }
-          50% { transform: translateY(-20px) rotate(180deg); opacity: 0.2; }
+        .islamic-pattern-home {
+          background-image:
+            repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(16,185,129,.06) 40px, rgba(16,185,129,.06) 80px),
+            repeating-linear-gradient(-45deg, transparent, transparent 40px, rgba(20,184,166,.06) 40px, rgba(20,184,166,.06) 80px);
+          animation: patternPulse 10s ease-in-out infinite;
         }
       `}</style>
 
-      {/* Floating particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute text-white/10 text-6xl"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `float ${8 + Math.random() * 4}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`
-            }}
-          >
-            ✦
-          </div>
-        ))}
-      </div>
+      {/* Pattern Overlay */}
+      <div className="absolute inset-0 islamic-pattern-home pointer-events-none"></div>
+
+      {/* Soft glowing orbs */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '3s' }}></div>
+
       <div className="max-w-md mx-auto pt-4 sm:pt-8 w-full relative z-10">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
