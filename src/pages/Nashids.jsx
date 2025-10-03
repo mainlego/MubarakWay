@@ -227,7 +227,10 @@ const Nashids = () => {
               <strong>Мутахсин (PRO):</strong> Все нашиды, неограниченные офлайн и избранное, фоновое воспроизведение<br/>
               <strong>Сахиб аль-Вакф (Premium):</strong> Всё из PRO + AI-рекомендации и эксклюзивный контент
             </p>
-            <button className="bg-white text-blue-600 px-4 sm:px-6 py-2 rounded-lg text-sm font-medium active:bg-blue-50 transition-colors">
+            <button
+              onClick={() => navigate('/subscription')}
+              className="bg-white text-blue-600 px-4 sm:px-6 py-2 rounded-lg text-sm font-medium active:bg-blue-50 transition-colors"
+            >
               Улучшить подписку
             </button>
           </div>

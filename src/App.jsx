@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import Library from './pages/Library';
 import Nashids from './pages/Nashids';
 import Qibla from './pages/Qibla';
+import Subscription from './pages/Subscription';
 import EnhancedBookReader from './components/EnhancedBookReader';
 import Navigation from './components/Navigation';
 import AudioPlayerUI from './components/AudioPlayerUI';
@@ -67,6 +68,7 @@ function AppContent() {
         <Route path="/book/:id" element={<EnhancedBookReader />} />
         <Route path="/nashids" element={<Nashids />} />
         <Route path="/qibla" element={<Qibla />} />
+        <Route path="/subscription" element={<Subscription />} />
       </Routes>
       <Navigation />
 

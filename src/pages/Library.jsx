@@ -537,7 +537,10 @@ const Library = () => {
               <strong>Мутахсин (PRO):</strong> Полный каталог, неограниченные офлайн книги и нашиды, заметки и синхронизация<br/>
               <strong>Сахиб аль-Вакф (Premium):</strong> Всё из PRO + AI-помощник, семейный доступ, ранний доступ к новинкам
             </p>
-            <button className="bg-white text-green-600 px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-medium active:bg-green-50 transition-colors w-full sm:w-auto">
+            <button
+              onClick={() => navigate('/subscription')}
+              className="bg-white text-green-600 px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-medium active:bg-green-50 transition-colors w-full sm:w-auto"
+            >
               Улучшить подписку
             </button>
           </div>

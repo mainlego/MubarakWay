@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { BookOpen, Music, Navigation2, Clock, Crown, Star, Zap, Sparkles } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
@@ -7,6 +7,7 @@ import prayerTimesService from '../services/prayerTimesService';
 import { selectCurrentSubscription } from '../store/slices/subscriptionSlice';
 
 const Home = () => {
+  const navigate = useNavigate();
   const subscriptionConfig = useSelector(selectCurrentSubscription);
   const [backgroundStyle, setBackgroundStyle] = useState({});
   const [nextPrayer, setNextPrayer] = useState(null);
@@ -198,7 +199,10 @@ const Home = () => {
             </div>
 
             {subscriptionConfig.id === 'muslim' && (
-              <button className="w-full bg-white text-slate-800 px-4 py-2 rounded-xl text-sm font-medium active:bg-slate-50 transition-colors">
+              <button
+                onClick={() => navigate('/subscription')}
+                className="w-full bg-white text-slate-800 px-4 py-2 rounded-xl text-sm font-medium active:bg-slate-50 transition-colors"
+              >
                 Улучшить подписку
               </button>
             )}
@@ -248,7 +252,10 @@ const Home = () => {
               </div>
             </div>
 
-            <button className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-3 rounded-xl text-sm font-semibold active:opacity-90 transition-opacity">
+            <button
+              onClick={() => navigate('/subscription')}
+              className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-3 rounded-xl text-sm font-semibold active:opacity-90 transition-opacity"
+            >
               Выбрать подписку
             </button>
           </div>
