@@ -50,7 +50,7 @@ const Nashids = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 min-h-screen overflow-x-hidden relative bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
+    <div className="py-4 sm:py-6 min-h-screen overflow-x-hidden relative bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
       {/* Audio waveform pattern background */}
       <style>{`
         @keyframes waveMove {
@@ -102,7 +102,7 @@ const Nashids = () => {
       <div className="absolute top-20 -right-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
       <div className="absolute bottom-20 -left-20 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
 
-      <div className="max-w-4xl mx-auto w-full relative z-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 w-full relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-6 w-full">
           <div className="flex items-center gap-2 sm:gap-3">

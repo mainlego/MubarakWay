@@ -79,7 +79,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 overflow-x-hidden relative bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900">
+    <div className="min-h-screen py-4 sm:py-6 overflow-x-hidden relative bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900">
       {/* Islamic Geometric Pattern Background */}
       <style>{`
         @keyframes patternPulse {
@@ -102,7 +102,7 @@ const Home = () => {
       <div className="absolute bottom-20 -right-20 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '3s' }}></div>
 
-      <div className="max-w-md mx-auto pt-4 sm:pt-8 w-full relative z-10">
+      <div className="max-w-md mx-auto px-4 sm:px-6 pt-4 sm:pt-8 w-full relative z-10">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">MubarakWay</h1>
