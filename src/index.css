@@ -218,6 +218,12 @@ select {
   scroll-behavior: smooth;
 }
 
+/* Touch pan for horizontal scrolling */
+.touch-pan-x {
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Mobile tab optimization */
 .mobile-tabs {
   scroll-snap-type: x mandatory;

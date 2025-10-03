@@ -110,17 +110,17 @@ const MonthlyPrayerSchedule = ({ prayerTimes, userLocation }) => {
 
       {/* Schedule Table */}
       <div className="bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto scrollbar-hide smooth-scroll touch-pan-x">
+          <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="bg-white/20">
-                <th className="px-2 py-2 text-left text-white font-medium">День</th>
-                <th className="px-2 py-2 text-center text-white font-medium">Фаджр</th>
-                <th className="px-2 py-2 text-center text-white font-medium">Восход</th>
-                <th className="px-2 py-2 text-center text-white font-medium">Зухр</th>
-                <th className="px-2 py-2 text-center text-white font-medium">Аср</th>
-                <th className="px-2 py-2 text-center text-white font-medium">Магриб</th>
-                <th className="px-2 py-2 text-center text-white font-medium">Иша</th>
+                <th className="px-3 py-2 text-left text-white font-medium sticky left-0 bg-white/20 z-10">День</th>
+                <th className="px-3 py-2 text-center text-white font-medium whitespace-nowrap">Фаджр</th>
+                <th className="px-3 py-2 text-center text-white font-medium whitespace-nowrap">Восход</th>
+                <th className="px-3 py-2 text-center text-white font-medium whitespace-nowrap">Зухр</th>
+                <th className="px-3 py-2 text-center text-white font-medium whitespace-nowrap">Аср</th>
+                <th className="px-3 py-2 text-center text-white font-medium whitespace-nowrap">Магриб</th>
+                <th className="px-3 py-2 text-center text-white font-medium whitespace-nowrap">Иша</th>
               </tr>
             </thead>
             <tbody>
@@ -134,23 +134,30 @@ const MonthlyPrayerSchedule = ({ prayerTimes, userLocation }) => {
                     key={index}
                     className={`border-t border-white/10 ${isToday ? 'bg-green-500/20' : ''}`}
                   >
-                    <td className="px-2 py-2 text-white">
+                    <td className="px-3 py-2 text-white sticky left-0 z-10" style={{
+                      background: isToday ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.1)'
+                    }}>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{day.date}</span>
                         <span className="text-xs text-white/60">{day.dayOfWeek}</span>
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-center text-white/90 text-xs">{day.fajr}</td>
-                    <td className="px-2 py-2 text-center text-white/70 text-xs">{day.sunrise}</td>
-                    <td className="px-2 py-2 text-center text-white/90 text-xs">{day.dhuhr}</td>
-                    <td className="px-2 py-2 text-center text-white/90 text-xs">{day.asr}</td>
-                    <td className="px-2 py-2 text-center text-white/90 text-xs">{day.maghrib}</td>
-                    <td className="px-2 py-2 text-center text-white/90 text-xs">{day.isha}</td>
+                    <td className="px-3 py-2 text-center text-white/90 text-xs whitespace-nowrap">{day.fajr}</td>
+                    <td className="px-3 py-2 text-center text-white/70 text-xs whitespace-nowrap">{day.sunrise}</td>
+                    <td className="px-3 py-2 text-center text-white/90 text-xs whitespace-nowrap">{day.dhuhr}</td>
+                    <td className="px-3 py-2 text-center text-white/90 text-xs whitespace-nowrap">{day.asr}</td>
+                    <td className="px-3 py-2 text-center text-white/90 text-xs whitespace-nowrap">{day.maghrib}</td>
+                    <td className="px-3 py-2 text-center text-white/90 text-xs whitespace-nowrap">{day.isha}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Scroll hint for mobile */}
+        <div className="md:hidden bg-white/5 px-3 py-2 text-center text-white/60 text-xs border-t border-white/10">
+          👉 Проведите пальцем для просмотра всех данных
         </div>
       </div>
 
