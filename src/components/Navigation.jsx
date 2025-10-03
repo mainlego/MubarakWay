@@ -7,7 +7,7 @@ const Navigation = () => {
     { to: '/', icon: Home, label: 'Главная' },
     { to: '/library', icon: BookOpen, label: 'Библиотека' },
     { to: '/nashids', icon: Music, label: 'Нашиды' },
-    { to: '/qibla', icon: Navigation2, label: 'Кибла' },
+    { to: '/qibla', icon: Navigation2, label: 'Намаз' },
   ];
 
   return (

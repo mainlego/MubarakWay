@@ -15,7 +15,7 @@ import { useOffline } from '../hooks/useOffline';
 
 const Qibla = () => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState('compass');
+  const [activeTab, setActiveTab] = useState('times');
   const [backgroundStyle, setBackgroundStyle] = useState({});
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isAnimating, setIsAnimating] = useState(false);
@@ -130,7 +130,7 @@ const Qibla = () => {
       <div className="max-w-md mx-auto w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Кибла и намаз</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Намаз-ассистент</h1>
           <div className="flex items-center gap-2">
             {isOnline ? (
               <Wifi className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
@@ -183,9 +183,9 @@ const Qibla = () => {
           <div className="overflow-x-auto scrollbar-hide mobile-tabs smooth-scroll">
             <div className="flex bg-white/20 backdrop-blur-sm rounded-xl p-1 gap-1 min-w-max">
               {[
-                { id: 'compass', label: 'Компас', icon: Navigation },
-                { id: 'map', label: 'Карта', icon: Map },
                 { id: 'times', label: 'Время', icon: Clock },
+                { id: 'compass', label: 'Кибла', icon: Navigation },
+                { id: 'map', label: 'Карта', icon: Map },
                 { id: 'stats', label: 'Статистика', icon: Settings }
               ].map((tab) => {
                 const IconComponent = tab.icon;
@@ -210,9 +210,9 @@ const Qibla = () => {
           {/* Tab Indicators */}
           <div className="flex justify-center mt-2 gap-1">
             {[
+              { id: 'times' },
               { id: 'compass' },
               { id: 'map' },
-              { id: 'times' },
               { id: 'stats' }
             ].map((tab) => (
               <div
