@@ -162,7 +162,7 @@ const Qibla = () => {
       <div className="absolute bottom-24 -left-20 w-72 h-72 bg-orange-500/8 rounded-full blur-3xl" style={{ animation: 'prayerBlink 8s ease-in-out infinite', animationDelay: '2s' }}></div>
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-500/6 rounded-full blur-3xl" style={{ animation: 'prayerBlink 10s ease-in-out infinite', animationDelay: '4s' }}></div>
 
-      <div className="max-w-md mx-auto px-4 sm:px-6 w-full relative z-10">
+      <div className="max-w-md mx-auto px-4 sm:px-6 relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <h1 className="text-xl sm:text-2xl font-bold text-white">Намаз-ассистент</h1>

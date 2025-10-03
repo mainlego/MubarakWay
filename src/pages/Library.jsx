@@ -144,7 +144,7 @@ const Library = () => {
       <div className="absolute bottom-32 -left-20 w-72 h-72 bg-purple-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       <div className="absolute top-1/3 left-1/3 w-56 h-56 bg-indigo-500/6 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 w-full relative z-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
         <h1 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Библиотека</h1>
 
         {/* Поиск и фильтры */}
