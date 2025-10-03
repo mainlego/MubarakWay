@@ -18,6 +18,7 @@ import ScrollToTop from './components/ScrollToTop';
 import OnboardingSlides from './components/OnboardingSlides';
 
 function AppContent() {
+  const dispatch = useDispatch();
   const { currentPlaying, nashids } = useSelector(state => state.nashids);
   const [showPlayer, setShowPlayer] = useState(false);
   const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
@@ -27,6 +28,51 @@ function AppContent() {
 
   // Инициализация глобального аудио (один раз на весь App)
   const audioState = useGlobalAudio();
+
+  // Автоматическая регистрация при загрузке приложения
+  useEffect(() => {
+    // Инициализация Telegram Mini App
+    if (telegram.isMiniApp()) {
+      telegram.init();
+      console.log('Telegram Mini App initialized');
+
+      // Получаем пользователя и логируем
+      const user = telegram.getUser();
+      if (user) {
+        console.log('Telegram user:', user);
+
+        // Автоматическая регистрация/вход
+        dispatch(loginUser(user))
+          .unwrap()
+          .then((userData) => {
+            console.log('✅ User logged in successfully:', userData);
+          })
+          .catch((error) => {
+            console.error('❌ Auto-login failed:', error);
+          });
+      }
+    } else {
+      console.log('Running in browser mode');
+
+      // В режиме разработки создаем тестового пользователя
+      const testUser = {
+        id: 123456789,
+        first_name: 'Test',
+        last_name: 'User',
+        username: 'testuser',
+        language_code: 'ru'
+      };
+
+      dispatch(loginUser(testUser))
+        .unwrap()
+        .then((userData) => {
+          console.log('✅ Test user logged in:', userData);
+        })
+        .catch((error) => {
+          console.error('❌ Test login failed:', error);
+        });
+    }
+  }, [dispatch]);
 
   useEffect(() => {
     if (currentPlaying) {
@@ -89,54 +135,10 @@ function AppContent() {
 }
 
 function App() {
-  const dispatch = useDispatch();
-
   useEffect(() => {
-    // Инициализация Telegram Mini App
-    if (telegram.isMiniApp()) {
-      telegram.init();
-      console.log('Telegram Mini App initialized');
-
-      // Получаем пользователя и логируем
-      const user = telegram.getUser();
-      if (user) {
-        console.log('Telegram user:', user);
-
-        // Автоматическая регистрация/вход
-        dispatch(loginUser(user))
-          .unwrap()
-          .then((userData) => {
-            console.log('✅ User logged in successfully:', userData);
-          })
-          .catch((error) => {
-            console.error('❌ Auto-login failed:', error);
-          });
-      }
-    } else {
-      console.log('Running in browser mode');
-
-      // В режиме разработки создаем тестового пользователя
-      const testUser = {
-        id: 123456789,
-        first_name: 'Test',
-        last_name: 'User',
-        username: 'testuser',
-        language_code: 'ru'
-      };
-
-      dispatch(loginUser(testUser))
-        .unwrap()
-        .then((userData) => {
-          console.log('✅ Test user logged in:', userData);
-        })
-        .catch((error) => {
-          console.error('❌ Test login failed:', error);
-        });
-    }
-
     // Скроллить к началу страницы при навигации
     window.scrollTo(0, 0);
-  }, [dispatch]);
+  }, []);
 
   return (
     <Provider store={store}>
