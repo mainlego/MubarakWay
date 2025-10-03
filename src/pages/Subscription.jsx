@@ -149,7 +149,7 @@ const Subscription = () => {
         </div>
 
         {/* Subscription Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
           {tiers.map((tier) => {
             const Icon = tier.icon;
             const isCurrentTier = currentSubscription?.id === tier.id;
