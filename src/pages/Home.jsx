@@ -83,28 +83,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen py-4 sm:py-6 overflow-x-hidden relative bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900">
-      {/* Islamic Geometric Pattern Background */}
-      <style>{`
-        @keyframes patternPulse {
-          0%, 100% { opacity: 0.05; transform: scale(1); }
-          50% { opacity: 0.12; transform: scale(1.02); }
-        }
-        .islamic-pattern-home {
-          background-image:
-            repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(16,185,129,.06) 40px, rgba(16,185,129,.06) 80px),
-            repeating-linear-gradient(-45deg, transparent, transparent 40px, rgba(20,184,166,.06) 40px, rgba(20,184,166,.06) 80px);
-          animation: patternPulse 10s ease-in-out infinite;
-        }
-      `}</style>
-
-      {/* Pattern Overlay */}
-      <div className="absolute inset-0 islamic-pattern-home pointer-events-none"></div>
-
-      {/* Soft glowing orbs */}
-      <div className="absolute top-20 -left-20 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 -right-20 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '3s' }}></div>
-
       <div className="max-w-md mx-auto px-4 sm:px-6 pt-4 sm:pt-8 relative z-10">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">

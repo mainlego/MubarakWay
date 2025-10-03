@@ -142,33 +142,6 @@ const Library = () => {
 
   return (
     <div className="py-4 sm:py-6 min-h-screen overflow-x-hidden relative bg-gradient-to-br from-indigo-950 via-purple-900 to-violet-900">
-      {/* Book shelf pattern background */}
-      <style>{`
-        @keyframes bookShelf {
-          0%, 100% { opacity: 0.04; }
-          50% { opacity: 0.08; }
-        }
-        @keyframes pageFlip {
-          0%, 100% { transform: perspective(400px) rotateY(0deg); opacity: 0.1; }
-          50% { transform: perspective(400px) rotateY(10deg); opacity: 0.2; }
-        }
-        .library-pattern {
-          background-image:
-            linear-gradient(90deg, rgba(139,92,246,.05) 1px, transparent 1px),
-            linear-gradient(rgba(139,92,246,.05) 1px, transparent 1px);
-          background-size: 80px 120px;
-          animation: bookShelf 8s ease-in-out infinite;
-        }
-      `}</style>
-
-      {/* Pattern Overlay */}
-      <div className="absolute inset-0 library-pattern pointer-events-none"></div>
-
-      {/* Soft glowing orbs for depth */}
-      <div className="absolute top-32 -right-20 w-80 h-80 bg-violet-500/8 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-32 -left-20 w-72 h-72 bg-purple-500/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-      <div className="absolute top-1/3 left-1/3 w-56 h-56 bg-indigo-500/6 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
-
       <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
         {/* Header with toggle */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">

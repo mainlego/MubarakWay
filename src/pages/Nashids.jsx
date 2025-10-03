@@ -77,57 +77,6 @@ const Nashids = () => {
 
   return (
     <div className="py-4 sm:py-6 min-h-screen overflow-x-hidden relative bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
-      {/* Audio waveform pattern background */}
-      <style>{`
-        @keyframes waveMove {
-          0%, 100% { transform: translateX(0); opacity: 0.06; }
-          50% { transform: translateX(-20px); opacity: 0.12; }
-        }
-        @keyframes soundPulse {
-          0%, 100% { transform: scaleY(0.5); opacity: 0.05; }
-          50% { transform: scaleY(1); opacity: 0.1; }
-        }
-        .nashids-pattern {
-          background-image:
-            repeating-linear-gradient(
-              90deg,
-              transparent,
-              transparent 10px,
-              rgba(59,130,246,.04) 10px,
-              rgba(59,130,246,.04) 12px,
-              transparent 12px,
-              transparent 20px,
-              rgba(99,102,241,.04) 20px,
-              rgba(99,102,241,.04) 23px
-            );
-          animation: waveMove 6s linear infinite;
-        }
-      `}</style>
-
-      {/* Pattern Overlay */}
-      <div className="absolute inset-0 nashids-pattern pointer-events-none"></div>
-
-      {/* Vertical sound bars effect */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute bottom-0 bg-blue-500/10 rounded-t-lg"
-            style={{
-              left: `${i * 7}%`,
-              width: '20px',
-              height: `${30 + Math.random() * 40}%`,
-              animation: `soundPulse ${1.5 + Math.random() * 2}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 2}s`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Soft glowing orbs */}
-      <div className="absolute top-20 -right-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 -left-20 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-
       <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-6 w-full">
