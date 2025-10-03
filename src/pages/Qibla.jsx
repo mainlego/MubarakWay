@@ -124,10 +124,65 @@ const Qibla = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat p-4 sm:p-6 overflow-x-hidden"
-      style={backgroundStyle}
+      className="min-h-screen p-4 sm:p-6 overflow-x-hidden relative"
+      style={{
+        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
+        animation: 'qiblaGradient 15s ease infinite'
+      }}
     >
-      <div className="max-w-md mx-auto w-full">
+      {/* Animated Background */}
+      <style>{`
+        @keyframes qiblaGradient {
+          0%, 100% {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+          }
+          50% {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+          }
+        }
+        @keyframes compassSpin {
+          0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.08; }
+          50% { transform: rotate(180deg) scale(1.1); opacity: 0.15; }
+        }
+        @keyframes prayerPulse {
+          0%, 100% { transform: scale(1); opacity: 0.1; }
+          50% { transform: scale(1.3); opacity: 0.2; }
+        }
+      `}</style>
+
+      {/* Floating compass and prayer icons */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(4)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute text-white/10 text-6xl"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `compassSpin ${15 + Math.random() * 5}s linear infinite`,
+              animationDelay: `${Math.random() * 5}s`
+            }}
+          >
+            🧭
+          </div>
+        ))}
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={`prayer-${i}`}
+            className="absolute text-white/10 text-5xl"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `prayerPulse ${8 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`
+            }}
+          >
+            🕌
+          </div>
+        ))}
+      </div>
+
+      <div className="max-w-md mx-auto w-full relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <h1 className="text-xl sm:text-2xl font-bold text-white">Намаз-ассистент</h1>

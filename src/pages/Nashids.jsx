@@ -51,10 +51,47 @@ const Nashids = () => {
 
   return (
     <div
-      className="p-4 sm:p-6 min-h-screen bg-cover bg-center bg-no-repeat overflow-x-hidden"
-      style={backgroundStyle}
+      className="p-4 sm:p-6 min-h-screen overflow-x-hidden relative"
+      style={{
+        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
+        animation: 'nashidsGradient 15s ease infinite'
+      }}
     >
-      <div className="max-w-4xl mx-auto w-full">
+      {/* Animated Background */}
+      <style>{`
+        @keyframes nashidsGradient {
+          0%, 100% {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+          }
+          50% {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
+          }
+        }
+        @keyframes musicWave {
+          0%, 100% { transform: translateY(0px) scaleY(1); opacity: 0.1; }
+          50% { transform: translateY(-15px) scaleY(1.2); opacity: 0.2; }
+        }
+      `}</style>
+
+      {/* Floating music notes */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(10)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute text-white/10 text-4xl"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `musicWave ${6 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`
+            }}
+          >
+            {i % 2 === 0 ? '♪' : '♫'}
+          </div>
+        ))}
+      </div>
+
+      <div className="max-w-4xl mx-auto w-full relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 sm:mb-6 w-full">
           <div className="flex items-center gap-2 sm:gap-3">

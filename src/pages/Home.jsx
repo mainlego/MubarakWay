@@ -80,10 +80,46 @@ const Home = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat p-4 sm:p-6 overflow-x-hidden"
-      style={backgroundStyle}
+      className="min-h-screen p-4 sm:p-6 overflow-x-hidden relative"
+      style={{
+        background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)',
+        animation: 'gradientShift 15s ease infinite'
+      }}
     >
-      <div className="max-w-md mx-auto pt-4 sm:pt-8 w-full">
+      {/* Animated Background */}
+      <style>{`
+        @keyframes gradientShift {
+          0%, 100% {
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+          }
+          50% {
+            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 50%, #0f766e 100%);
+          }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.1; }
+          50% { transform: translateY(-20px) rotate(180deg); opacity: 0.2; }
+        }
+      `}</style>
+
+      {/* Floating particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute text-white/10 text-6xl"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `float ${8 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`
+            }}
+          >
+            ✦
+          </div>
+        ))}
+      </div>
+      <div className="max-w-md mx-auto pt-4 sm:pt-8 w-full relative z-10">
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">MubarakWay</h1>
