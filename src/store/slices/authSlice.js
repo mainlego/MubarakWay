@@ -9,8 +9,12 @@ export const loginUser = createAsyncThunk(
       console.log('[authSlice] loginUser called with:', telegramUser);
       const response = await authAPI.login(telegramUser);
       console.log('[authSlice] API response:', response);
-      console.log('[authSlice] Returning user:', response.user);
-      return response.user;
+      console.log('[authSlice] Response type:', typeof response);
+      console.log('[authSlice] Response keys:', response ? Object.keys(response) : 'null');
+      console.log('[authSlice] Response.success:', response?.success);
+      console.log('[authSlice] Response.user:', response?.user);
+      console.log('[authSlice] Returning user:', response?.user);
+      return response?.user;
     } catch (error) {
       console.error('[authSlice] Login error:', error);
       return rejectWithValue(error.response?.data || { message: error.message });
