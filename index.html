@@ -35,12 +35,14 @@
 
     <!-- Cache Busting for Development -->
     <script>
-      // Clear cache on version change (only in development)
-      const APP_VERSION = 'v3.2.0-auth-fix';
+      // Clear cache on version change
+      const APP_VERSION = 'v3.2.2';
       const savedVersion = localStorage.getItem('app_version');
 
+      console.log('[Cache] Checking version:', { current: APP_VERSION, saved: savedVersion });
+
       if (savedVersion !== APP_VERSION) {
-        console.log('New version detected, clearing cache...');
+        console.log('[Cache] New version detected, clearing cache and reloading...');
 
         // Clear Service Worker caches
         if ('caches' in window) {
