@@ -51,7 +51,7 @@ const TelegramLogin = () => {
     // Создаем скрипт для Telegram Widget
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', 'YOUR_BOT_USERNAME'); // TODO: Заменить на реальное имя бота
+    script.setAttribute('data-telegram-login', 'MubarakWayApp_bot');
     script.setAttribute('data-size', 'large');
     script.setAttribute('data-radius', '8');
     script.setAttribute('data-onauth', 'onTelegramAuth(user)');
