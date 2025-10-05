@@ -43,6 +43,8 @@ function AppContent() {
   // Инициализация глобального аудио (один раз на весь App)
   const audioState = useGlobalAudio();
 
+  console.log('[AppContent] Before useEffect, dispatch exists:', !!dispatch);
+
   // Функция загрузки данных пользователя
   const loadUserData = (userData) => {
     console.log('📥 Loading user data:', userData);

@@ -255,13 +255,18 @@ export class TelegramWebApp {
 
   // Проверка, является ли приложение Mini App
   isMiniApp() {
+    // Кэшируем результат чтобы не логировать каждый раз
+    if (this._isMiniAppCached !== undefined) {
+      return this._isMiniAppCached;
+    }
+
     // Проверяем не только наличие WebApp, но и наличие initData
     // initData существует только когда приложение реально запущено в Telegram
     const hasInitData = !!this.webApp?.initData;
     const hasUser = !!this.webApp?.initDataUnsafe?.user;
     const result = !!this.webApp && (hasInitData || hasUser);
 
-    console.log('[Telegram] isMiniApp check:', {
+    console.log('[Telegram] isMiniApp check (first call):', {
       webApp: !!this.webApp,
       hasInitData,
       hasUser,
@@ -270,6 +275,8 @@ export class TelegramWebApp {
       windowTelegram: !!window.Telegram,
       windowTelegramWebApp: !!window.Telegram?.WebApp
     });
+
+    this._isMiniAppCached = result;
     return result;
   }
 
