@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Settings } from 'lucide-react';
-import { selectUser } from '../store/slices/authSlice';
+import { selectUser, loginUser } from '../store/slices/authSlice';
+import { setFavorites as setBooksFavorites } from '../store/slices/booksSlice';
+import { setFavorites as setNashidsFavorites } from '../store/slices/nashidsSlice';
 
 const TopBar = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const user = useSelector(selectUser);
+  const loginAttempted = useRef(false);
 
   // Get Telegram user data
   const getTelegramUser = () => {
@@ -17,6 +21,42 @@ const TopBar = () => {
   };
 
   const telegramUser = getTelegramUser();
+
+  // Auto-login если есть Telegram user но нет Redux user
+  useEffect(() => {
+    if (telegramUser && !user && !loginAttempted.current) {
+      loginAttempted.current = true;
+      console.log('[TopBar] Auto-login triggered with Telegram user:', telegramUser);
+
+      const userData = {
+        id: telegramUser.id,
+        first_name: telegramUser.first_name,
+        last_name: telegramUser.last_name,
+        username: telegramUser.username,
+        language_code: telegramUser.language_code,
+        is_premium: telegramUser.is_premium,
+        photo_url: telegramUser.photo_url
+      };
+
+      dispatch(loginUser(userData))
+        .unwrap()
+        .then((responseData) => {
+          console.log('[TopBar] Login successful:', responseData);
+          if (responseData.favorites) {
+            if (responseData.favorites.books) {
+              dispatch(setBooksFavorites(responseData.favorites.books));
+            }
+            if (responseData.favorites.nashids) {
+              dispatch(setNashidsFavorites(responseData.favorites.nashids));
+            }
+          }
+        })
+        .catch((error) => {
+          console.error('[TopBar] Login failed:', error);
+          loginAttempted.current = false; // Позволяем повторную попытку
+        });
+    }
+  }, [telegramUser, user, dispatch]);
 
   // Приоритет: сначала Redux user, потом Telegram, потом "Гость"
   const displayName = user?.firstName || telegramUser?.first_name || 'Гость';
