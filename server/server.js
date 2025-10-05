@@ -89,6 +89,14 @@ app.listen(PORT, () => {
   console.log(`🏥 Health check: http://localhost:${PORT}/api/health\n`);
 });
 
+// Start Telegram Bot
+try {
+  require('./bot.js');
+  console.log('🤖 Telegram Bot initialized\n');
+} catch (error) {
+  console.error('❌ Failed to initialize Telegram Bot:', error.message);
+}
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM signal received: closing HTTP server');
