@@ -242,9 +242,17 @@ export class TelegramWebApp {
 
   // Проверка, является ли приложение Mini App
   isMiniApp() {
-    const result = !!this.webApp;
+    // Проверяем не только наличие WebApp, но и наличие initData
+    // initData существует только когда приложение реально запущено в Telegram
+    const hasInitData = !!this.webApp?.initData;
+    const hasUser = !!this.webApp?.initDataUnsafe?.user;
+    const result = !!this.webApp && (hasInitData || hasUser);
+
     console.log('[Telegram] isMiniApp check:', {
       webApp: !!this.webApp,
+      hasInitData,
+      hasUser,
+      initData: this.webApp?.initData?.substring(0, 50) + '...',
       result,
       windowTelegram: !!window.Telegram,
       windowTelegramWebApp: !!window.Telegram?.WebApp
