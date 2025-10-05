@@ -16,7 +16,8 @@ import {
   List,
   Minimize2
 } from 'lucide-react';
-import { playNashid, pauseNashid, stopNashid, toggleFavorite } from '../store/slices/nashidsSlice';
+import { playNashid, pauseNashid, stopNashid, toggleFavorite, toggleFavoriteNashid } from '../store/slices/nashidsSlice';
+import { selectUser } from '../store/slices/authSlice';
 import { useOfflineNashids } from '../hooks/useOffline';
 import { telegram } from '../utils/telegram';
 
@@ -27,6 +28,7 @@ import { telegram } from '../utils/telegram';
 const AudioPlayerUI = ({ nashid, playlist = [], onClose, isMinimized, onToggleMinimize, audioState }) => {
   const dispatch = useDispatch();
   const { favorites, isPlaying } = useSelector(state => state.nashids);
+  const user = useSelector(selectUser);
   const { saveNashidOffline, isNashidAvailableOffline } = useOfflineNashids();
 
   const [volume, setVolume] = useState(1);
@@ -119,10 +121,27 @@ const AudioPlayerUI = ({ nashid, playlist = [], onClose, isMinimized, onToggleMi
   }, [repeatMode]);
 
   const handleFavorite = useCallback(() => {
-    if (nashid) {
-      dispatch(toggleFavorite(nashid.id));
+    if (!nashid) return;
+
+    console.log('[AudioPlayerUI] handleFavorite clicked', {
+      nashidId: nashid.id,
+      nashidTitle: nashid.title,
+      user: user,
+      userTelegramId: user?.telegramId,
+      isAuthenticated: !!user
+    });
+
+    // Используем MongoDB thunk если пользователь авторизован
+    if (user?.telegramId) {
+      console.log('[AudioPlayerUI] Dispatching toggleFavoriteNashid');
+      dispatch(toggleFavoriteNashid({
+        telegramId: user.telegramId,
+        nashidId: nashid.id
+      }));
+    } else {
+      console.warn('[AudioPlayerUI] User not logged in, favorites not saved to MongoDB', { user });
     }
-  }, [nashid, dispatch]);
+  }, [nashid, user, dispatch]);
 
   const handleDownload = useCallback(async () => {
     if (!nashid) return;
