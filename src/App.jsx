@@ -65,6 +65,9 @@ function AppContent() {
   useEffect(() => {
     console.log('[App useEffect] Effect triggered, dispatch:', !!dispatch, 'authInitialized:', authInitialized);
 
+    // Форсируем показ сообщения для отладки
+    console.error('[DEBUG] useEffect IS RUNNING!');
+
     if (authInitialized) {
       console.log('[App useEffect] Already initialized, skipping');
       return;
@@ -72,6 +75,7 @@ function AppContent() {
 
     const initAuth = async () => {
       console.log('[App] 🚀 Starting authentication initialization...');
+      console.error('[DEBUG] initAuth function called');
       setAuthInitialized(true);
 
       // Проверяем Telegram Mini App
