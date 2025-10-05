@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { booksAPI } from '../../services/api';
 
 // Mock data for books with real content
 const mockBooks = [
@@ -700,6 +701,32 @@ export const fetchBooks = createAsyncThunk(
   }
 );
 
+// Async thunk для сохранения избранного в MongoDB
+export const toggleFavoriteBook = createAsyncThunk(
+  'books/toggleFavorite',
+  async ({ telegramId, bookId }, { rejectWithValue }) => {
+    try {
+      const response = await booksAPI.toggleFavorite(telegramId, bookId);
+      return { bookId, favorites: response.favorites };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: error.message });
+    }
+  }
+);
+
+// Async thunk для сохранения прогресса чтения
+export const saveReadingProgress = createAsyncThunk(
+  'books/saveProgress',
+  async ({ telegramId, bookId, progress }, { rejectWithValue }) => {
+    try {
+      await booksAPI.updateProgress(telegramId, bookId, progress);
+      return { bookId, progress };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: error.message });
+    }
+  }
+);
+
 // Загрузка favorites из localStorage
 const loadFavorites = () => {
   try {
@@ -728,7 +755,7 @@ const booksSlice = createSlice({
       } else {
         state.favorites.push(bookId);
       }
-      // Сохраняем в localStorage
+      // Сохраняем в localStorage для быстрого доступа
       try {
         localStorage.setItem('bookFavorites', JSON.stringify(state.favorites));
       } catch (error) {
@@ -738,6 +765,15 @@ const booksSlice = createSlice({
     updateReadingProgress: (state, action) => {
       const { bookId, progress } = action.payload;
       state.readingProgress[bookId] = progress;
+    },
+    // Загрузка избранного из MongoDB
+    setFavorites: (state, action) => {
+      state.favorites = action.payload;
+      try {
+        localStorage.setItem('bookFavorites', JSON.stringify(state.favorites));
+      } catch (error) {
+        console.error('Error saving favorites to localStorage:', error);
+      }
     }
   },
   extraReducers: (builder) => {
@@ -753,9 +789,28 @@ const booksSlice = createSlice({
       .addCase(fetchBooks.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
+      })
+      // Toggle favorite
+      .addCase(toggleFavoriteBook.fulfilled, (state, action) => {
+        state.favorites = action.payload.favorites;
+        try {
+          localStorage.setItem('bookFavorites', JSON.stringify(state.favorites));
+        } catch (error) {
+          console.error('Error saving favorites:', error);
+        }
+      })
+      .addCase(toggleFavoriteBook.rejected, (state, action) => {
+        console.error('Failed to toggle favorite:', action.payload);
+      })
+      // Save progress
+      .addCase(saveReadingProgress.fulfilled, (state, action) => {
+        state.readingProgress[action.payload.bookId] = action.payload.progress;
+      })
+      .addCase(saveReadingProgress.rejected, (state, action) => {
+        console.error('Failed to save progress:', action.payload);
       });
   }
 });
 
-export const { toggleFavorite, updateReadingProgress } = booksSlice.actions;
+export const { toggleFavorite, updateReadingProgress, setFavorites } = booksSlice.actions;
 export default booksSlice.reducer;

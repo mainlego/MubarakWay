@@ -21,7 +21,12 @@ connectDB();
 
 // Routes
 const authRoutes = require('./routes/auth');
+const booksRoutes = require('./routes/books');
+const nashidsRoutes = require('./routes/nashids');
+
 app.use('/api/auth', authRoutes);
+app.use('/api/books', booksRoutes);
+app.use('/api/nashids', nashidsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

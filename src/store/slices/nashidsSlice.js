@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { nashidsAPI } from '../../services/api';
 
 // Mock data for nashids
 const mockNashids = [
@@ -73,6 +74,19 @@ export const fetchNashids = createAsyncThunk(
   }
 );
 
+// Async thunk для сохранения избранного в MongoDB
+export const toggleFavoriteNashid = createAsyncThunk(
+  'nashids/toggleFavorite',
+  async ({ telegramId, nashidId }, { rejectWithValue }) => {
+    try {
+      const response = await nashidsAPI.toggleFavorite(telegramId, nashidId);
+      return { nashidId, favorites: response.favorites };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: error.message });
+    }
+  }
+);
+
 const nashidsSlice = createSlice({
   name: 'nashids',
   initialState: {
@@ -92,6 +106,10 @@ const nashidsSlice = createSlice({
       } else {
         state.favorites.push(nashidId);
       }
+    },
+    // Загрузка избранного из MongoDB
+    setFavorites: (state, action) => {
+      state.favorites = action.payload;
     },
     playNashid: (state, action) => {
       console.log('Redux: playNashid called with', action.payload.title);
@@ -131,9 +149,16 @@ const nashidsSlice = createSlice({
       .addCase(fetchNashids.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
+      })
+      // Toggle favorite
+      .addCase(toggleFavoriteNashid.fulfilled, (state, action) => {
+        state.favorites = action.payload.favorites;
+      })
+      .addCase(toggleFavoriteNashid.rejected, (state, action) => {
+        console.error('Failed to toggle favorite nashid:', action.payload);
       });
   }
 });
 
-export const { toggleFavorite, playNashid, pauseNashid, stopNashid, createPlaylist } = nashidsSlice.actions;
+export const { toggleFavorite, setFavorites, playNashid, pauseNashid, stopNashid, createPlaylist } = nashidsSlice.actions;
 export default nashidsSlice.reducer;
