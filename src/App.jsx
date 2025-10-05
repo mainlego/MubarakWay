@@ -24,10 +24,15 @@ import TelegramLogin from './components/TelegramLogin';
 import DebugPanel from './components/DebugPanel';
 
 function AppContent() {
+  console.log('[AppContent] Component rendering...');
+
   const dispatch = useDispatch();
   const { currentPlaying, nashids } = useSelector(state => state.nashids);
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
+
+  console.log('[AppContent] Current state:', { user, isAuthenticated });
+
   const [showPlayer, setShowPlayer] = useState(false);
   const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -55,6 +60,8 @@ function AppContent() {
 
   // Автоматическая авторизация при загрузке приложения
   useEffect(() => {
+    console.log('[App useEffect] Effect triggered, dispatch:', !!dispatch);
+
     const initAuth = async () => {
       console.log('[App] 🚀 Starting authentication initialization...');
 
