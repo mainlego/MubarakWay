@@ -19,8 +19,21 @@ const Settings = () => {
   );
 
   const handleLogout = () => {
+    // Очищаем Redux state
     dispatch(logout());
+
+    // Очищаем localStorage (кроме onboarding)
+    const onboarding = localStorage.getItem('onboarding_completed');
+    localStorage.clear();
+    if (onboarding) {
+      localStorage.setItem('onboarding_completed', onboarding);
+    }
+
+    // Перенаправляем на главную (покажется экран входа)
     navigate('/');
+
+    // Перезагружаем страницу для сброса состояния
+    window.location.reload();
   };
 
   const handleNotificationsToggle = () => {

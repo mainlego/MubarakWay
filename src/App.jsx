@@ -4,7 +4,7 @@ import { Provider, useSelector, useDispatch } from 'react-redux';
 import { store } from './store/store';
 import { telegram } from './utils/telegram';
 import { useGlobalAudio } from './hooks/useGlobalAudio';
-import { loginUser } from './store/slices/authSlice';
+import { loginUser, selectUser, selectIsAuthenticated } from './store/slices/authSlice';
 import { setFavorites as setBooksFavorites } from './store/slices/booksSlice';
 import { setFavorites as setNashidsFavorites } from './store/slices/nashidsSlice';
 
@@ -20,89 +20,91 @@ import TopBar from './components/TopBar';
 import AudioPlayerUI from './components/AudioPlayerUI';
 import ScrollToTop from './components/ScrollToTop';
 import OnboardingSlides from './components/OnboardingSlides';
+import TelegramLogin from './components/TelegramLogin';
 
 function AppContent() {
   const dispatch = useDispatch();
   const { currentPlaying, nashids } = useSelector(state => state.nashids);
+  const user = useSelector(selectUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
   const [showPlayer, setShowPlayer] = useState(false);
   const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem('onboarding_completed');
   });
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   // Инициализация глобального аудио (один раз на весь App)
   const audioState = useGlobalAudio();
 
-  // Автоматическая регистрация при загрузке приложения
-  useEffect(() => {
-    // Инициализация Telegram Mini App
-    if (telegram.isMiniApp()) {
-      telegram.init();
-      console.log('Telegram Mini App initialized');
+  // Функция загрузки данных пользователя
+  const loadUserData = (userData) => {
+    console.log('📥 Loading user data:', userData);
 
-      // Получаем пользователя и логируем
-      const user = telegram.getUser();
-      if (user) {
-        console.log('Telegram user:', user);
-
-        // Автоматическая регистрация/вход
-        dispatch(loginUser(user))
-          .unwrap()
-          .then((userData) => {
-            console.log('✅ User logged in successfully:', userData);
-
-            // Загружаем избранное из MongoDB
-            if (userData.favorites) {
-              if (userData.favorites.books) {
-                dispatch(setBooksFavorites(userData.favorites.books));
-              }
-              if (userData.favorites.nashids) {
-                dispatch(setNashidsFavorites(userData.favorites.nashids));
-              }
-            }
-          })
-          .catch((error) => {
-            console.error('❌ Auto-login failed:', error);
-          });
+    // Загружаем избранное из MongoDB
+    if (userData.favorites) {
+      if (userData.favorites.books) {
+        dispatch(setBooksFavorites(userData.favorites.books));
       }
-    } else {
-      console.log('Running in browser mode');
-
-      // В режиме разработки создаем тестового пользователя
-      const testUser = {
-        id: 123456789,
-        first_name: 'Test',
-        last_name: 'User',
-        username: 'testuser',
-        language_code: 'ru'
-      };
-
-      dispatch(loginUser(testUser))
-        .unwrap()
-        .then((userData) => {
-          console.log('✅ Test user logged in:', userData);
-
-          // Загружаем избранное из MongoDB
-          if (userData.favorites) {
-            if (userData.favorites.books) {
-              dispatch(setBooksFavorites(userData.favorites.books));
-            }
-            if (userData.favorites.nashids) {
-              dispatch(setNashidsFavorites(userData.favorites.nashids));
-            }
-          }
-        })
-        .catch((error) => {
-          console.error('❌ Test login failed:', error);
-        });
+      if (userData.favorites.nashids) {
+        dispatch(setNashidsFavorites(userData.favorites.nashids));
+      }
     }
+  };
+
+  // Автоматическая авторизация при загрузке приложения
+  useEffect(() => {
+    const initAuth = async () => {
+      // Проверяем Telegram Mini App
+      if (telegram.isMiniApp()) {
+        telegram.init();
+        console.log('🔵 Telegram Mini App detected');
+
+        const telegramUser = telegram.getUser();
+        if (telegramUser) {
+          console.log('👤 Telegram user found:', telegramUser);
+
+          try {
+            const userData = await dispatch(loginUser(telegramUser)).unwrap();
+            console.log('✅ Auto-login successful:', userData);
+            loadUserData(userData);
+          } catch (error) {
+            console.error('❌ Auto-login failed:', error);
+          }
+        }
+        setIsAuthChecking(false);
+      } else {
+        console.log('🌐 Running in browser mode');
+
+        // Проверяем сохраненную авторизацию
+        const savedAuth = localStorage.getItem('telegram_auth');
+        if (savedAuth) {
+          try {
+            const telegramUser = JSON.parse(savedAuth);
+            console.log('🔑 Restoring session for user:', telegramUser.id);
+
+            const userData = await dispatch(loginUser(telegramUser)).unwrap();
+            console.log('✅ Session restored:', userData);
+            loadUserData(userData);
+            setIsAuthChecking(false);
+          } catch (error) {
+            console.error('❌ Session restore failed:', error);
+            localStorage.removeItem('telegram_auth');
+            setIsAuthChecking(false);
+          }
+        } else {
+          // Нет сохраненной авторизации - показываем экран входа
+          setIsAuthChecking(false);
+        }
+      }
+    };
+
+    initAuth();
   }, [dispatch]);
 
   useEffect(() => {
     if (currentPlaying) {
       setShowPlayer(true);
-      // Открываем полный плеер только при смене нашида, но не при изменении состояния play/pause
-      // Используем ID для отслеживания смены трека
       const prevNashidId = sessionStorage.getItem('currentNashidId');
       if (prevNashidId !== String(currentPlaying.id)) {
         setIsPlayerMinimized(false);
@@ -125,6 +127,23 @@ function AppContent() {
     setShowOnboarding(false);
   };
 
+  // Показываем загрузку пока проверяем авторизацию
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Если не в Telegram Mini App и не авторизован - показываем экран входа
+  if (!telegram.isMiniApp() && !isAuthenticated) {
+    return <TelegramLogin />;
+  }
+
   // Show onboarding if not completed
   if (showOnboarding) {
     return <OnboardingSlides onComplete={handleOnboardingComplete} />;
@@ -145,7 +164,7 @@ function AppContent() {
       </Routes>
       <Navigation />
 
-      {/* Глобальный аудиоплеер (только UI, аудио элемент управляется через useGlobalAudio) */}
+      {/* Глобальный аудиоплеер */}
       {showPlayer && currentPlaying && (
         <AudioPlayerUI
           nashid={currentPlaying}
@@ -162,7 +181,6 @@ function AppContent() {
 
 function App() {
   useEffect(() => {
-    // Скроллить к началу страницы при навигации
     window.scrollTo(0, 0);
   }, []);
 
