@@ -79,9 +79,13 @@ export const toggleFavoriteNashid = createAsyncThunk(
   'nashids/toggleFavorite',
   async ({ telegramId, nashidId }, { rejectWithValue }) => {
     try {
+      console.log('[nashidsSlice] toggleFavoriteNashid called with:', { telegramId, nashidId });
       const response = await nashidsAPI.toggleFavorite(telegramId, nashidId);
+      console.log('[nashidsSlice] API response:', response);
+      console.log('[nashidsSlice] Returning:', { nashidId, favorites: response.favorites });
       return { nashidId, favorites: response.favorites };
     } catch (error) {
+      console.error('[nashidsSlice] toggleFavoriteNashid error:', error);
       return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
@@ -151,11 +155,16 @@ const nashidsSlice = createSlice({
         state.error = action.error.message;
       })
       // Toggle favorite
+      .addCase(toggleFavoriteNashid.pending, (state) => {
+        console.log('[nashidsSlice] toggleFavoriteNashid.pending');
+      })
       .addCase(toggleFavoriteNashid.fulfilled, (state, action) => {
+        console.log('[nashidsSlice] toggleFavoriteNashid.fulfilled - payload:', action.payload);
         state.favorites = action.payload.favorites;
+        console.log('[nashidsSlice] Updated favorites:', state.favorites);
       })
       .addCase(toggleFavoriteNashid.rejected, (state, action) => {
-        console.error('Failed to toggle favorite nashid:', action.payload);
+        console.error('[nashidsSlice] toggleFavoriteNashid.rejected:', action.payload);
       });
   }
 });

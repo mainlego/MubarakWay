@@ -39,14 +39,28 @@ const NashidCard = ({ nashid, onPlay }) => {
   const handleFavorite = (e) => {
     e.stopPropagation();
 
+    console.log('[NashidCard] handleFavorite clicked', {
+      nashidId: nashid.id,
+      nashidTitle: nashid.title,
+      user: user,
+      userTelegramId: user?.telegramId,
+      userFirstName: user?.firstName,
+      isAuthenticated: !!user,
+      currentFavorites: favorites
+    });
+
     // Используем MongoDB thunk если пользователь авторизован
     if (user?.telegramId) {
+      console.log('[NashidCard] Dispatching toggleFavoriteNashid with:', {
+        telegramId: user.telegramId,
+        nashidId: nashid.id
+      });
       dispatch(toggleFavoriteNashid({
         telegramId: user.telegramId,
         nashidId: nashid.id
       }));
     } else {
-      console.warn('User not logged in, favorites not saved to MongoDB');
+      console.warn('[NashidCard] User not logged in, favorites not saved to MongoDB', { user });
     }
   };
 

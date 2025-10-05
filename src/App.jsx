@@ -21,6 +21,7 @@ import AudioPlayerUI from './components/AudioPlayerUI';
 import ScrollToTop from './components/ScrollToTop';
 import OnboardingSlides from './components/OnboardingSlides';
 import TelegramLogin from './components/TelegramLogin';
+import DebugPanel from './components/DebugPanel';
 
 function AppContent() {
   const dispatch = useDispatch();
@@ -182,6 +183,9 @@ function AppContent() {
           audioState={audioState}
         />
       )}
+
+      {/* Debug панель */}
+      <DebugPanel />
     </div>
   );
 }
