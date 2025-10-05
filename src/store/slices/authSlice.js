@@ -8,6 +8,7 @@ export const loginUser = createAsyncThunk(
     try {
       console.log('[authSlice] loginUser called with:', telegramUser);
       const response = await authAPI.login(telegramUser);
+      console.log('[authSlice] API response RAW:', JSON.stringify(response));
       console.log('[authSlice] API response:', response);
       console.log('[authSlice] Response type:', typeof response);
       console.log('[authSlice] Response keys:', response ? Object.keys(response) : 'null');

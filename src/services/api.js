@@ -20,6 +20,9 @@ export const authAPI = {
   // Автоматический вход/регистрация через Telegram
   login: async (telegramUser) => {
     try {
+      const url = `${API_BASE_URL}/auth/login`;
+      console.log('[API] Making POST request to:', url);
+
       const response = await api.post('/auth/login', {
         telegramId: telegramUser.id.toString(),
         username: telegramUser.username,
@@ -27,6 +30,11 @@ export const authAPI = {
         lastName: telegramUser.last_name,
         languageCode: telegramUser.language_code
       });
+
+      console.log('[API] Response status:', response.status);
+      console.log('[API] Response data type:', typeof response.data);
+      console.log('[API] Response data:', response.data);
+
       return response.data;
     } catch (error) {
       console.error('Login API error:', error);
