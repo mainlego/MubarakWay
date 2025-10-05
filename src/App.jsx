@@ -39,12 +39,11 @@ function AppContent() {
     return !localStorage.getItem('onboarding_completed');
   });
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [authInitialized, setAuthInitialized] = useState(false);
 
   // Инициализация глобального аудио (один раз на весь App)
   const audioState = useGlobalAudio();
 
-  console.log('[AppContent] Before useEffect, dispatch exists:', !!dispatch, 'authInitialized:', authInitialized);
+  console.log('[AppContent] Before useEffect, dispatch exists:', !!dispatch);
 
   // Функция загрузки данных пользователя
   const loadUserData = (userData) => {
@@ -63,20 +62,12 @@ function AppContent() {
 
   // Автоматическая авторизация при загрузке приложения
   useEffect(() => {
-    console.log('[App useEffect] Effect triggered, dispatch:', !!dispatch, 'authInitialized:', authInitialized);
-
-    // Форсируем показ сообщения для отладки
+    console.log('[App useEffect] Effect triggered, dispatch:', !!dispatch);
     console.error('[DEBUG] useEffect IS RUNNING!');
-
-    if (authInitialized) {
-      console.log('[App useEffect] Already initialized, skipping');
-      return;
-    }
 
     const initAuth = async () => {
       console.log('[App] 🚀 Starting authentication initialization...');
       console.error('[DEBUG] initAuth function called');
-      setAuthInitialized(true);
 
       // Проверяем Telegram Mini App
       if (telegram.isMiniApp()) {
