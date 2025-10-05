@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Play, Pause, Heart, Download, HardDrive, CloudDownload } from 'lucide-react';
-import { playNashid, pauseNashid, toggleFavorite } from '../store/slices/nashidsSlice';
+import { playNashid, pauseNashid, toggleFavoriteNashid } from '../store/slices/nashidsSlice';
+import { selectUser } from '../store/slices/authSlice';
 import { useOfflineNashids } from '../hooks/useOffline';
 import { telegram } from '../utils/telegram';
 
 const NashidCard = ({ nashid, onPlay }) => {
   const dispatch = useDispatch();
   const { currentPlaying, isPlaying, favorites } = useSelector(state => state.nashids);
+  const user = useSelector(selectUser);
   const { saveNashidOffline, isNashidAvailableOffline } = useOfflineNashids();
   const [isOfflineAvailable, setIsOfflineAvailable] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -36,7 +38,16 @@ const NashidCard = ({ nashid, onPlay }) => {
 
   const handleFavorite = (e) => {
     e.stopPropagation();
-    dispatch(toggleFavorite(nashid.id));
+
+    // Используем MongoDB thunk если пользователь авторизован
+    if (user?.telegramId) {
+      dispatch(toggleFavoriteNashid({
+        telegramId: user.telegramId,
+        nashidId: nashid.id
+      }));
+    } else {
+      console.warn('User not logged in, favorites not saved to MongoDB');
+    }
   };
 
   const handleDownload = async (e) => {

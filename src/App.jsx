@@ -5,6 +5,8 @@ import { store } from './store/store';
 import { telegram } from './utils/telegram';
 import { useGlobalAudio } from './hooks/useGlobalAudio';
 import { loginUser } from './store/slices/authSlice';
+import { setFavorites as setBooksFavorites } from './store/slices/booksSlice';
+import { setFavorites as setNashidsFavorites } from './store/slices/nashidsSlice';
 
 import Home from './pages/Home';
 import Library from './pages/Library';
@@ -48,6 +50,16 @@ function AppContent() {
           .unwrap()
           .then((userData) => {
             console.log('✅ User logged in successfully:', userData);
+
+            // Загружаем избранное из MongoDB
+            if (userData.favorites) {
+              if (userData.favorites.books) {
+                dispatch(setBooksFavorites(userData.favorites.books));
+              }
+              if (userData.favorites.nashids) {
+                dispatch(setNashidsFavorites(userData.favorites.nashids));
+              }
+            }
           })
           .catch((error) => {
             console.error('❌ Auto-login failed:', error);
@@ -69,6 +81,16 @@ function AppContent() {
         .unwrap()
         .then((userData) => {
           console.log('✅ Test user logged in:', userData);
+
+          // Загружаем избранное из MongoDB
+          if (userData.favorites) {
+            if (userData.favorites.books) {
+              dispatch(setBooksFavorites(userData.favorites.books));
+            }
+            if (userData.favorites.nashids) {
+              dispatch(setNashidsFavorites(userData.favorites.nashids));
+            }
+          }
         })
         .catch((error) => {
           console.error('❌ Test login failed:', error);
