@@ -24,7 +24,9 @@
       "Bash(npm view:*)",
       "Bash(node:*)",
       "Bash(dir)",
-      "Bash(curl -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d \"{\"\"telegramId\"\":\"\"123456789\"\",\"\"username\"\":\"\"testuser\"\",\"\"firstName\"\":\"\"Test\"\",\"\"lastName\"\":\"\"User\"\",\"\"languageCode\"\":\"\"ru\"\"}\")"
+      "Bash(curl -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d \"{\"\"telegramId\"\":\"\"123456789\"\",\"\"username\"\":\"\"testuser\"\",\"\"firstName\"\":\"\"Test\"\",\"\"lastName\"\":\"\"User\"\",\"\"languageCode\"\":\"\"ru\"\"}\")",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []

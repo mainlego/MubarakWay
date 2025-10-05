@@ -70,27 +70,23 @@ const userSchema = new mongoose.Schema({
     }
   },
 
-  // Избранное
+  // Избранное (хранятся ID из mock data, не ObjectId)
   favorites: {
     books: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Book'
+      type: Number
     }],
     nashids: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Nashid'
+      type: Number
     }]
   },
 
-  // Офлайн контент
+  // Офлайн контент (хранятся ID из mock data, не ObjectId)
   offline: {
     books: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Book'
+      type: Number
     }],
     nashids: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Nashid'
+      type: Number
     }]
   },
 
