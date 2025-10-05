@@ -1,7 +1,12 @@
 import axios from 'axios';
 
-// API Base URL - в продакшене будет другой URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// API Base URL - автоматически определяется
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  (window.location.hostname === 'localhost'
+    ? 'http://localhost:3001/api'
+    : `${window.location.protocol}//${window.location.hostname}/api`);
+
+console.log('[API] Base URL configured:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
