@@ -75,18 +75,26 @@ export class TelegramWebApp {
 
   // Получение данных пользователя
   getUser() {
-    if (!this.webApp?.initDataUnsafe?.user) return null;
+    if (!this.webApp?.initDataUnsafe?.user) {
+      console.log('[Telegram] No user data in initDataUnsafe');
+      return null;
+    }
 
     const user = this.webApp.initDataUnsafe.user;
-    return {
+    console.log('[Telegram] Raw user data:', user);
+
+    const userData = {
       id: user.id,
-      firstName: user.first_name,
-      lastName: user.last_name,
+      first_name: user.first_name,  // Сохраняем как first_name для совместимости
+      last_name: user.last_name,
       username: user.username,
-      languageCode: user.language_code,
-      isPremium: user.is_premium,
-      photoUrl: user.photo_url
+      language_code: user.language_code,
+      is_premium: user.is_premium,
+      photo_url: user.photo_url
     };
+
+    console.log('[Telegram] Formatted user data:', userData);
+    return userData;
   }
 
   // Получение данных инициализации
