@@ -40,7 +40,7 @@ const Qibla = () => {
   } = useSelector(state => state.qibla);
 
   useEffect(() => {
-    setBackgroundStyle(getBackgroundWithOverlay('qibla', 0.4));
+    // Убираем анимированный фон, используем только статический градиент
     dispatch(loadPrayerSettings());
   }, [dispatch]);
 
@@ -147,21 +147,7 @@ const Qibla = () => {
         }
       `}</style>
 
-      {/* Pattern Overlay */}
-      <div className="absolute inset-0 qibla-pattern pointer-events-none"></div>
-
-      {/* Rotating compass rays */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ animation: 'rayRotate 60s linear infinite' }}>
-        <div className="absolute top-1/2 left-1/2 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent transform -translate-y-1/2"></div>
-        <div className="absolute top-1/2 left-1/2 w-full h-1 bg-gradient-to-r from-transparent via-orange-500/5 to-transparent transform -translate-y-1/2 rotate-45"></div>
-        <div className="absolute top-1/2 left-1/2 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500/5 to-transparent transform -translate-y-1/2 rotate-90"></div>
-        <div className="absolute top-1/2 left-1/2 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent transform -translate-y-1/2 rotate-[135deg]"></div>
-      </div>
-
-      {/* Soft glowing orbs */}
-      <div className="absolute top-24 -right-20 w-80 h-80 bg-amber-500/8 rounded-full blur-3xl" style={{ animation: 'prayerBlink 6s ease-in-out infinite' }}></div>
-      <div className="absolute bottom-24 -left-20 w-72 h-72 bg-orange-500/8 rounded-full blur-3xl" style={{ animation: 'prayerBlink 8s ease-in-out infinite', animationDelay: '2s' }}></div>
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-yellow-500/6 rounded-full blur-3xl" style={{ animation: 'prayerBlink 10s ease-in-out infinite', animationDelay: '4s' }}></div>
+      {/* Убраны все анимации - только статический фон */}
 
       <div className="max-w-md mx-auto px-4 sm:px-6 relative z-10">
         {/* Header */}

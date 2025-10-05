@@ -110,7 +110,7 @@ const MonthlyPrayerSchedule = ({ prayerTimes, userLocation }) => {
 
       {/* Schedule Table */}
       <div className="bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden">
-        <div className="overflow-x-auto scrollbar-hide smooth-scroll touch-pan-x">
+        <div className="overflow-x-auto overflow-y-visible scrollbar-hide smooth-scroll" style={{ touchAction: 'pan-x pan-y' }}>
           <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="bg-white/20">
