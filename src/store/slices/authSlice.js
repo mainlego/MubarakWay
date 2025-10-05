@@ -6,9 +6,13 @@ export const loginUser = createAsyncThunk(
   'auth/login',
   async (telegramUser, { rejectWithValue }) => {
     try {
+      console.log('[authSlice] loginUser called with:', telegramUser);
       const response = await authAPI.login(telegramUser);
+      console.log('[authSlice] API response:', response);
+      console.log('[authSlice] Returning user:', response.user);
       return response.user;
     } catch (error) {
+      console.error('[authSlice] Login error:', error);
       return rejectWithValue(error.response?.data || { message: error.message });
     }
   }
@@ -86,10 +90,15 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
+        console.log('[authSlice] loginUser.fulfilled - payload:', action.payload);
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
         state.error = null;
+        console.log('[authSlice] State updated:', {
+          user: state.user,
+          isAuthenticated: state.isAuthenticated
+        });
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;

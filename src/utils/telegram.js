@@ -242,7 +242,14 @@ export class TelegramWebApp {
 
   // Проверка, является ли приложение Mini App
   isMiniApp() {
-    return !!this.webApp;
+    const result = !!this.webApp;
+    console.log('[Telegram] isMiniApp check:', {
+      webApp: !!this.webApp,
+      result,
+      windowTelegram: !!window.Telegram,
+      windowTelegramWebApp: !!window.Telegram?.WebApp
+    });
+    return result;
   }
 
   // Получение версии API

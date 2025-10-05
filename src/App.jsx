@@ -55,26 +55,33 @@ function AppContent() {
   // Автоматическая авторизация при загрузке приложения
   useEffect(() => {
     const initAuth = async () => {
+      console.log('[App] 🚀 Starting authentication initialization...');
+
       // Проверяем Telegram Mini App
       if (telegram.isMiniApp()) {
         telegram.init();
-        console.log('🔵 Telegram Mini App detected');
+        console.log('[App] 🔵 Telegram Mini App detected');
 
         const telegramUser = telegram.getUser();
+        console.log('[App] 👤 Telegram user data:', telegramUser);
+
         if (telegramUser) {
-          console.log('👤 Telegram user found:', telegramUser);
+          console.log('[App] ✅ Telegram user found, calling loginUser...');
 
           try {
+            console.log('[App] 📤 Dispatching loginUser with:', telegramUser);
             const userData = await dispatch(loginUser(telegramUser)).unwrap();
-            console.log('✅ Auto-login successful:', userData);
+            console.log('[App] ✅ Auto-login successful, user data:', userData);
             loadUserData(userData);
           } catch (error) {
-            console.error('❌ Auto-login failed:', error);
+            console.error('[App] ❌ Auto-login failed:', error);
           }
+        } else {
+          console.warn('[App] ⚠️ No Telegram user data available');
         }
         setIsAuthChecking(false);
       } else {
-        console.log('🌐 Running in browser mode');
+        console.log('[App] 🌐 Running in browser mode');
 
         // Проверяем сохраненную авторизацию
         const savedAuth = localStorage.getItem('telegram_auth');
