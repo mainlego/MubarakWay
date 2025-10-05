@@ -72,6 +72,16 @@ const DebugPanel = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => {
+              const logsText = logs.map(log => `[${log.time}] ${log.type}: ${log.message}`).join('\n');
+              navigator.clipboard.writeText(logsText);
+              alert('Логи скопированы в буфер обмена!');
+            }}
+            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-[10px]"
+          >
+            Copy
+          </button>
+          <button
             onClick={clearLogs}
             className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-[10px]"
           >

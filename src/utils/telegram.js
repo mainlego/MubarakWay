@@ -75,17 +75,30 @@ export class TelegramWebApp {
 
   // Получение данных пользователя
   getUser() {
-    if (!this.webApp?.initDataUnsafe?.user) {
-      console.log('[Telegram] No user data in initDataUnsafe');
+    // Пробуем получить данные из разных источников
+    let user = null;
+
+    // Способ 1: через this.webApp
+    if (this.webApp?.initDataUnsafe?.user) {
+      user = this.webApp.initDataUnsafe.user;
+      console.log('[Telegram] User from this.webApp:', user);
+    }
+    // Способ 2: напрямую из window.Telegram
+    else if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      user = window.Telegram.WebApp.initDataUnsafe.user;
+      console.log('[Telegram] User from window.Telegram:', user);
+    }
+
+    if (!user) {
+      console.log('[Telegram] No user data available in either source');
       return null;
     }
 
-    const user = this.webApp.initDataUnsafe.user;
     console.log('[Telegram] Raw user data:', user);
 
     const userData = {
       id: user.id,
-      first_name: user.first_name,  // Сохраняем как first_name для совместимости
+      first_name: user.first_name,
       last_name: user.last_name,
       username: user.username,
       language_code: user.language_code,
