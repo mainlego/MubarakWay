@@ -1,11 +1,13 @@
 const mongoose = require('mongoose');
 const Admin = require('../models/Admin');
-require('dotenv').config();
+
+// MongoDB URI (same as in database.js)
+const MONGODB_URI = 'mongodb+srv://vladmelbiz:xMnlBJJFDtcdDGqU@tg-game-2.zsxexae.mongodb.net/islam-bot?retryWrites=true&w=majority&appName=tg-game-2';
 
 const createAdmin = async () => {
   try {
     // Подключение к MongoDB
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(MONGODB_URI);
     console.log('📦 Connected to MongoDB');
 
     // Данные админа
