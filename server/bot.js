@@ -740,15 +740,19 @@ const startBot = async (expressApp = null) => {
       const webhookPath = '/webhook';
       const webhookUrl = `${WEB_APP_URL.replace('mubarak-way.onrender.com', 'mubarak-way-bot.onrender.com')}${webhookPath}`;
 
-      // ВАЖНО: webhookCallback() вызываем БЕЗ параметров для обработки всех обновлений
-      expressApp.post(webhookPath, async (req, res) => {
-        console.log('🔔 Webhook received, processing...');
+      // Создаём webhook handler
+      const webhookHandler = bot.webhookCallback(webhookPath);
+
+      // Регистрируем webhook с логированием
+      expressApp.post(webhookPath, async (req, res, next) => {
+        console.log('🔔 Webhook received');
+        console.log('📝 Update type:', req.body.message ? 'message' : req.body.callback_query ? 'callback_query' : 'other');
         try {
-          await bot.handleUpdate(req.body, res);
-          console.log('✅ Update processed successfully');
+          await webhookHandler(req, res, next);
+          console.log('✅ Webhook handled');
         } catch (error) {
-          console.error('❌ Error processing update:', error);
-          res.sendStatus(500);
+          console.error('❌ Webhook error:', error);
+          next(error);
         }
       });
 
