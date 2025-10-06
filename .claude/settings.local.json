@@ -27,7 +27,10 @@
       "Bash(curl -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d \"{\"\"telegramId\"\":\"\"123456789\"\",\"\"username\"\":\"\"testuser\"\",\"\"firstName\"\":\"\"Test\"\",\"\"lastName\"\":\"\"User\"\",\"\"languageCode\"\":\"\"ru\"\"}\")",
       "Bash(curl:*)",
       "Bash(taskkill:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(test:*)",
+      "Bash(cat:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []
