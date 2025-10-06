@@ -1,7 +1,7 @@
 services:
   # Frontend Static Site
   - type: web
-    name: mubarak-way
+    name: mubarakway-frontend
     env: static
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
@@ -22,26 +22,27 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20.17.0"
-      - key: VITE_APP_URL
-        value: https://mubarak-way.onrender.com
 
-  # Backend API + Telegram Bot Service
+  # Backend API + Telegram Bot (Unified Service)
   - type: web
-    name: mubarak-way-bot
+    name: mubarakway-backend
     env: node
+    region: frankfurt
+    plan: free
     rootDir: server
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
+    healthCheckPath: /api/health
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: NODE_VERSION
         value: "20.17.0"
       - key: MONGODB_URI
-        value: "mongodb+srv://vladmelbiz:xMnlBJJFDtcdDGqU@tg-game-2.zsxexae.mongodb.net/islam-bot?retryWrites=true&w=majority&appName=tg-game-2"
+        sync: false
       - key: BOT_TOKEN
-        value: "8257886464:AAHrJ525tcZV2WzbNWX-HWFc85T4OlJrgu0"
+        sync: false
       - key: WEB_APP_URL
-        value: https://mubarak-way.onrender.com
-      - key: BOT_USERNAME
-        value: "@mubarakway_bot"
+        value: https://mubarakway-frontend.onrender.com
       - key: PORT
         value: "10000"

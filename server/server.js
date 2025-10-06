@@ -10,7 +10,8 @@ const corsOptions = {
   origin: [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://mubarak-way.onrender.com',
+    'https://mubarakway-frontend.onrender.com',
+    'https://mubarak-way.onrender.com', // Old frontend (временно)
     'https://t.me'
   ],
   credentials: true,
@@ -23,7 +24,10 @@ app.use(cors(corsOptions));
 
 // Additional CORS headers
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://mubarak-way.onrender.com');
+  const origin = req.headers.origin;
+  if (corsOptions.origin.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');

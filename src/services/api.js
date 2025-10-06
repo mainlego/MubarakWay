@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
   (window.location.hostname === 'localhost'
     ? 'http://localhost:3001/api'
-    : 'https://mubarak-way-bot.onrender.com/api');
+    : 'https://mubarakway-backend.onrender.com/api');
 
 console.log('[API] Base URL configured:', API_BASE_URL);
 

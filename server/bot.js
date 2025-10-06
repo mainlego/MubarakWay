@@ -738,7 +738,11 @@ const startBot = async (expressApp = null) => {
 
       // Устанавливаем новый webhook
       const webhookPath = '/webhook';
-      const webhookUrl = `${WEB_APP_URL.replace('mubarak-way.onrender.com', 'mubarak-way-bot.onrender.com')}${webhookPath}`;
+      // Определяем URL бэкенда на основе WEB_APP_URL
+      const backendUrl = WEB_APP_URL.includes('mubarakway-frontend')
+        ? 'https://mubarakway-backend.onrender.com'
+        : process.env.BACKEND_URL || 'https://mubarakway-backend.onrender.com';
+      const webhookUrl = `${backendUrl}${webhookPath}`;
 
       // Создаём webhook handler
       const webhookHandler = bot.webhookCallback(webhookPath);
