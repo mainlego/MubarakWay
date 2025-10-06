@@ -144,7 +144,6 @@ const Home = () => {
 
         {/* Daily Quote */}
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 shadow-lg w-full">
-          <h3 className="text-base sm:text-lg text-gray-800 font-semibold mb-2 sm:mb-3">Хадис дня</h3>
           <p className="text-gray-700 text-xs sm:text-sm leading-relaxed mb-2 sm:mb-3">
             "Поистине, Аллах не изменит положения людей, пока они не изменят самих себя."
           </p>
