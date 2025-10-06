@@ -22,7 +22,6 @@ import AudioPlayerUI from './components/AudioPlayerUI';
 import ScrollToTop from './components/ScrollToTop';
 import OnboardingSlides from './components/OnboardingSlides';
 import TelegramLogin from './components/TelegramLogin';
-import DebugPanel from './components/DebugPanel';
 import LocationRequest from './components/LocationRequest';
 
 // Admin imports
@@ -257,9 +256,6 @@ function AppContent() {
           audioState={audioState}
         />
       )}
-
-      {/* Debug панель */}
-      <DebugPanel />
 
       {/* Location Request Modal */}
       {user && (
