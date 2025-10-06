@@ -7,13 +7,25 @@ const PORT = process.env.PORT || 3001;
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://mubarakway-frontend.onrender.com',
-    'https://mubarak-way.onrender.com', // Old frontend (временно)
-    'https://t.me'
-  ],
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://mubarakway-frontend.onrender.com',
+      'https://mubarak-way.onrender.com',
+    ];
+
+    // Allow Telegram domains (web.telegram.org, etc.)
+    if (!origin ||
+        allowedOrigins.includes(origin) ||
+        origin.includes('telegram.org') ||
+        origin.includes('t.me')) {
+      callback(null, true);
+    } else {
+      console.log('⛔ CORS blocked origin:', origin);
+      callback(null, false);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -25,14 +37,29 @@ app.use(cors(corsOptions));
 // Additional CORS headers
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (corsOptions.origin.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
+
+  // Check if origin is allowed
+  if (origin) {
+    const allowed = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://mubarakway-frontend.onrender.com',
+      'https://mubarak-way.onrender.com',
+    ];
+
+    if (allowed.includes(origin) ||
+        origin.includes('telegram.org') ||
+        origin.includes('t.me')) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
   }
-  res.header('Access-Control-Allow-Credentials', 'true');
+
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS preflight request');
+    console.log('✅ OPTIONS preflight from:', origin);
     return res.sendStatus(200);
   }
   next();
