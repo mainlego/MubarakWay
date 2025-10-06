@@ -73,24 +73,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
-
 // Initialize bot and start server
 const startServer = async () => {
   try {
@@ -98,6 +80,25 @@ const startServer = async () => {
     const { startBot } = require('./bot.js');
     await startBot(app);
     console.log('🤖 Telegram Bot initialized\n');
+
+    // ВАЖНО: 404 и Error handlers добавляем ПОСЛЕ webhook route
+    // 404 handler
+    app.use((req, res) => {
+      res.status(404).json({
+        success: false,
+        message: 'Route not found'
+      });
+    });
+
+    // Error handler
+    app.use((err, req, res, next) => {
+      console.error('Server error:', err);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    });
 
     // Start server after bot is initialized
     app.listen(PORT, () => {
