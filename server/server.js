@@ -83,19 +83,21 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api`);
   console.log(`🏥 Health check: http://localhost:${PORT}/api/health\n`);
-});
 
-// Start Telegram Bot
-try {
-  require('./bot.js');
-  console.log('🤖 Telegram Bot initialized\n');
-} catch (error) {
-  console.error('❌ Failed to initialize Telegram Bot:', error.message);
-}
+  // Start Telegram Bot after server is running
+  try {
+    const { startBot } = require('./bot.js');
+    await startBot(app); // Передаём Express app для webhook
+    console.log('🤖 Telegram Bot initialized\n');
+  } catch (error) {
+    console.error('❌ Failed to initialize Telegram Bot:', error.message);
+    console.error(error.stack);
+  }
+});
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

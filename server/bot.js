@@ -723,37 +723,13 @@ bot.catch((err, ctx) => {
   ctx.reply('Произошла ошибка. Попробуйте позже или обратитесь в поддержку.');
 });
 
-// HTTP сервер для Render (обязательно для web service)
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.json({
-    status: 'MubarakWay Bot is running',
-    timestamp: new Date().toISOString(),
-    webApp: WEB_APP_URL
-  });
-});
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
 // Запуск бота
-const startBot = async () => {
+const startBot = async (expressApp = null) => {
   try {
-    // ВАЖНО: Сначала запускаем HTTP сервер для Render
-    const server = app.listen(PORT, () => {
-      console.log(`🌐 HTTP server запущен на порту ${PORT}`);
-      console.log('✅ Render может подключиться к боту');
-    });
-
     // На продакшене используем Webhook вместо Polling
     const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
 
-    if (isProduction && WEB_APP_URL) {
+    if (isProduction && WEB_APP_URL && expressApp) {
       console.log('🔧 Режим: Webhook (Production)');
 
       // Удаляем старые webhook и обновления
@@ -764,7 +740,7 @@ const startBot = async () => {
       const webhookPath = '/webhook';
       const webhookUrl = `${WEB_APP_URL.replace('mubarak-way.onrender.com', 'mubarak-way-bot.onrender.com')}${webhookPath}`;
 
-      app.use(bot.webhookCallback(webhookPath));
+      expressApp.use(bot.webhookCallback(webhookPath));
 
       await bot.telegram.setWebhook(webhookUrl, {
         drop_pending_updates: true,
@@ -1064,4 +1040,5 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-startBot();
+// Экспортируем функцию запуска бота для вызова из server.js
+module.exports = { startBot, bot };
