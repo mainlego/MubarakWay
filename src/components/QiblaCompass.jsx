@@ -51,7 +51,7 @@ const QiblaCompass = () => {
             bearingPrecision: 2,
             distancePrecision: 0,
             includeCardinalDirection: true,
-            includeMagneticDeclination: false
+            includeMagneticDeclination: true // Включаем магнитное склонение для точности
           });
 
           console.log('Qibla direction calculated:', result);
@@ -109,8 +109,8 @@ const QiblaCompass = () => {
     const history = headingHistoryRef.current;
     history.push(newHeading);
 
-    // Для iOS используем больше значений для более плавной работы
-    const maxHistory = isIOS ? 8 : 5;
+    // Уменьшено количество значений для более быстрого отклика
+    const maxHistory = isIOS ? 3 : 2;
     if (history.length > maxHistory) {
       history.shift();
     }
@@ -134,24 +134,15 @@ const QiblaCompass = () => {
 
   // ========== ОБРАБОТКА ОРИЕНТАЦИИ УСТРОЙСТВА ==========
   const handleOrientation = (event) => {
-    // Throttling для iOS - обновляем не чаще 60fps (16ms)
-    if (isIOS) {
-      const now = Date.now();
-      if (now - lastUpdateTimeRef.current < 16) {
-        return;
-      }
-      lastUpdateTimeRef.current = now;
-    }
-
     let heading = 0;
 
-    // iOS: используем webkitCompassHeading
+    // iOS: используем webkitCompassHeading (уже с магнитным склонением)
     if (event.webkitCompassHeading !== undefined) {
       heading = event.webkitCompassHeading;
     }
-    // Android: вычисляем из alpha
+    // Android/другие: используем alpha напрямую
     else if (event.alpha !== null) {
-      heading = 360 - event.alpha;
+      heading = event.alpha;
     } else {
       console.warn('No compass data available');
       return;
@@ -177,7 +168,7 @@ const QiblaCompass = () => {
     }
 
     animationFrameRef.current = requestAnimationFrame(() => {
-      // Интерполяция для еще более плавного движения
+      // Интерполяция для плавного движения без рывков
       const current = smoothHeadingRef.current;
       let diff = smoothed - current;
 
@@ -185,14 +176,14 @@ const QiblaCompass = () => {
       if (diff > 180) diff -= 360;
       if (diff < -180) diff += 360;
 
-      // Плавное приближение (lerp) - для iOS более медленная интерполяция
-      const lerpFactor = isIOS ? 0.15 : 0.3;
+      // Более быстрая интерполяция для лучшего отклика
+      const lerpFactor = isIOS ? 0.4 : 0.5;
       const newHeading = current + diff * lerpFactor;
       smoothHeadingRef.current = (newHeading + 360) % 360;
 
-      // Обновляем состояние только если разница существенная (избегаем лишних ререндеров)
+      // Обновляем состояние чаще для более плавной анимации
       const headingDiff = Math.abs(smoothHeadingRef.current - deviceHeading);
-      if (headingDiff > 0.5) {
+      if (headingDiff > 0.1) {
         setDeviceHeading(smoothHeadingRef.current);
       }
 
@@ -352,7 +343,7 @@ const QiblaCompass = () => {
           className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-4 border-emerald-500/30 shadow-2xl"
           style={{
             transform: `rotate(${-deviceHeading}deg)`,
-            transition: 'none', // Отключаем CSS transitions - используем только RAF
+            transition: 'transform 0.05s linear', // Быстрая плавная анимация
             willChange: 'transform', // Оптимизация для GPU
           }}
         >
