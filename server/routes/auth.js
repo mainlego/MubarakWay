@@ -176,4 +176,56 @@ router.put('/onboarding/:telegramId', async (req, res) => {
   }
 });
 
+// PUT /api/auth/location/:telegramId - Сохранить геолокацию пользователя
+router.put('/location/:telegramId', async (req, res) => {
+  console.log('📍 Location update request');
+  console.log('📦 Body:', req.body);
+
+  try {
+    const { telegramId } = req.params;
+    const { latitude, longitude, city, country } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude and longitude are required'
+      });
+    }
+
+    const user = await User.findOne({ telegramId });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.prayerSettings.location = {
+      latitude,
+      longitude,
+      city: city || null,
+      country: country || null
+    };
+
+    await user.save();
+
+    console.log(`✅ Location saved for user ${telegramId}: ${latitude}, ${longitude}`);
+
+    res.json({
+      success: true,
+      message: 'Location saved',
+      location: user.prayerSettings.location
+    });
+
+  } catch (error) {
+    console.error('❌ Location save error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

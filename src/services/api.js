@@ -62,6 +62,22 @@ export const authAPI = {
       console.error('Complete onboarding API error:', error);
       throw error;
     }
+  },
+
+  // Сохранить геолокацию пользователя
+  saveLocation: async (telegramId, latitude, longitude, city = null, country = null) => {
+    try {
+      const response = await api.put(`/auth/location/${telegramId}`, {
+        latitude,
+        longitude,
+        city,
+        country
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Save location API error:', error);
+      throw error;
+    }
   }
 };
 

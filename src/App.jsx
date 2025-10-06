@@ -22,6 +22,7 @@ import ScrollToTop from './components/ScrollToTop';
 import OnboardingSlides from './components/OnboardingSlides';
 import TelegramLogin from './components/TelegramLogin';
 import DebugPanel from './components/DebugPanel';
+import LocationRequest from './components/LocationRequest';
 
 function AppContent() {
   console.log('[AppContent] Component rendering...');
@@ -39,6 +40,7 @@ function AppContent() {
     return !localStorage.getItem('onboarding_completed');
   });
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [showLocationRequest, setShowLocationRequest] = useState(false);
 
   // Инициализация глобального аудио (один раз на весь App)
   const audioState = useGlobalAudio();
@@ -121,6 +123,32 @@ function AppContent() {
     initAuth();
   }, []); // Пустой массив зависимостей - вызовется только один раз
 
+  // Проверка наличия геолокации после авторизации
+  useEffect(() => {
+    if (isAuthenticated && user && !isAuthChecking) {
+      console.log('🔍 Checking user location:', user.prayerSettings?.location);
+
+      // Проверяем есть ли геолокация
+      const hasLocation = user.prayerSettings?.location?.latitude &&
+                         user.prayerSettings?.location?.longitude;
+
+      // Проверяем не отклонял ли пользователь запрос ранее
+      const dismissed = localStorage.getItem('location_request_dismissed');
+
+      if (!hasLocation && !dismissed) {
+        console.log('📍 No location found, requesting...');
+        // Показываем запрос геолокации через 1 секунду после входа
+        setTimeout(() => {
+          setShowLocationRequest(true);
+        }, 1000);
+      } else if (hasLocation) {
+        console.log('✅ User has location:', user.prayerSettings.location);
+      } else {
+        console.log('⏭️ Location request was dismissed previously');
+      }
+    }
+  }, [isAuthenticated, user, isAuthChecking]);
+
   useEffect(() => {
     if (currentPlaying) {
       setShowPlayer(true);
@@ -144,6 +172,17 @@ function AppContent() {
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
+  };
+
+  const handleLocationSet = (location) => {
+    console.log('✅ Location set:', location);
+    // Можно обновить пользователя в store если нужно
+  };
+
+  const handleLocationClose = () => {
+    setShowLocationRequest(false);
+    // Сохраняем что пользователь закрыл запрос
+    localStorage.setItem('location_request_dismissed', 'true');
   };
 
   // Показываем загрузку пока проверяем авторизацию
@@ -197,6 +236,16 @@ function AppContent() {
 
       {/* Debug панель */}
       <DebugPanel />
+
+      {/* Location Request Modal */}
+      {user && (
+        <LocationRequest
+          isOpen={showLocationRequest}
+          onClose={handleLocationClose}
+          onLocationSet={handleLocationSet}
+          telegramId={user.telegramId}
+        />
+      )}
     </div>
   );
 }
