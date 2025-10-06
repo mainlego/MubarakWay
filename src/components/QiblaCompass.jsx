@@ -182,7 +182,10 @@ const QiblaCompass = () => {
       smoothHeadingRef.current = (newHeading + 360) % 360;
 
       // Обновляем состояние чаще для более плавной анимации
-      const headingDiff = Math.abs(smoothHeadingRef.current - deviceHeading);
+      // Правильная проверка разницы с учётом перехода через 0°/360°
+      let headingDiff = Math.abs(smoothHeadingRef.current - deviceHeading);
+      if (headingDiff > 180) headingDiff = 360 - headingDiff;
+
       if (headingDiff > 0.1) {
         setDeviceHeading(smoothHeadingRef.current);
       }
@@ -343,7 +346,6 @@ const QiblaCompass = () => {
           className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-4 border-emerald-500/30 shadow-2xl"
           style={{
             transform: `rotate(${-deviceHeading}deg)`,
-            transition: 'transform 0.05s linear', // Быстрая плавная анимация
             willChange: 'transform', // Оптимизация для GPU
           }}
         >
