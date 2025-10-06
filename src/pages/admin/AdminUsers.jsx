@@ -15,7 +15,10 @@ import {
   BookOpen,
   Music,
   Heart,
-  Download
+  Download,
+  Edit,
+  X,
+  Save
 } from 'lucide-react';
 
 const AdminUsers = () => {
@@ -31,6 +34,14 @@ const AdminUsers = () => {
     active: 0,
     premium: 0,
     conversion: 0
+  });
+
+  // Subscription modal state
+  const [showSubModal, setShowSubModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [subFormData, setSubFormData] = useState({
+    tier: 'muslim',
+    expiresAt: ''
   });
 
   const subscriptionTiers = [
@@ -146,6 +157,55 @@ const AdminUsers = () => {
           icon: <Shield className="w-3 h-3" />,
           className: 'bg-green-500/20 text-green-300 border-green-500/30'
         };
+    }
+  };
+
+  const handleOpenSubModal = (user) => {
+    setEditingUser(user);
+
+    // Set default expiration (30 days from now)
+    const defaultExpiry = new Date();
+    defaultExpiry.setDate(defaultExpiry.getDate() + 30);
+    const expiryString = defaultExpiry.toISOString().split('T')[0];
+
+    setSubFormData({
+      tier: user.subscription.tier || 'muslim',
+      expiresAt: user.subscription.expiresAt
+        ? new Date(user.subscription.expiresAt).toISOString().split('T')[0]
+        : expiryString
+    });
+    setShowSubModal(true);
+  };
+
+  const handleCloseSubModal = () => {
+    setShowSubModal(false);
+    setEditingUser(null);
+  };
+
+  const handleSubInputChange = (e) => {
+    const { name, value } = e.target;
+    setSubFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdateSubscription = async (e) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+      await axios.patch(
+        `${API_URL}/api/admin/users/${editingUser._id}/subscription`,
+        subFormData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      handleCloseSubModal();
+      fetchUsers();
+      fetchStats();
+    } catch (error) {
+      console.error('Failed to update subscription:', error);
+      alert('Ошибка при изменении подписки');
     }
   };
 
@@ -266,6 +326,7 @@ const AdminUsers = () => {
                     <th className="px-6 py-4 text-left text-sm font-semibold text-white">Активность</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-white">Статистика</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-white">Регистрация</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-white">Действия</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
@@ -327,6 +388,19 @@ const AdminUsers = () => {
                             {formatDate(user.createdAt)}
                           </p>
                         </td>
+
+                        {/* Actions */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleOpenSubModal(user)}
+                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                              title="Изменить подписку"
+                            >
+                              <Edit className="w-4 h-4 text-emerald-400" />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -361,6 +435,103 @@ const AdminUsers = () => {
           </>
         )}
       </div>
+
+      {/* Subscription Modal */}
+      {showSubModal && editingUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-2xl max-w-md w-full border border-white/20">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <h2 className="text-xl font-bold text-white">
+                Изменить подписку
+              </h2>
+              <button
+                onClick={handleCloseSubModal}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleUpdateSubscription} className="p-6 space-y-4">
+              {/* User Info */}
+              <div className="p-4 bg-white/5 rounded-lg">
+                <p className="text-white font-medium">
+                  {editingUser.firstName} {editingUser.lastName}
+                </p>
+                <p className="text-white/50 text-sm">
+                  @{editingUser.username || 'no_username'} • ID: {editingUser.telegramId}
+                </p>
+              </div>
+
+              {/* Subscription Tier */}
+              <div>
+                <label className="block text-white/80 text-sm font-medium mb-2">
+                  Тип подписки *
+                </label>
+                <select
+                  name="tier"
+                  value={subFormData.tier}
+                  onChange={handleSubInputChange}
+                  required
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-400"
+                >
+                  <option value="muslim" className="bg-slate-800">Muslim (Бесплатно)</option>
+                  <option value="mutahsin" className="bg-slate-800">Mutahsin (Pro)</option>
+                  <option value="sahib" className="bg-slate-800">Sahib (Premium)</option>
+                </select>
+              </div>
+
+              {/* Expiration Date (only for paid tiers) */}
+              {(subFormData.tier === 'mutahsin' || subFormData.tier === 'sahib') && (
+                <div>
+                  <label className="block text-white/80 text-sm font-medium mb-2">
+                    Действует до
+                  </label>
+                  <input
+                    type="date"
+                    name="expiresAt"
+                    value={subFormData.expiresAt}
+                    onChange={handleSubInputChange}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-emerald-400"
+                  />
+                  <p className="text-white/40 text-xs mt-1">
+                    Если не указано, будет установлено +30 дней от сегодня
+                  </p>
+                </div>
+              )}
+
+              {/* Info message for free tier */}
+              {subFormData.tier === 'muslim' && (
+                <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <p className="text-sm text-blue-300">
+                    Бесплатная подписка не имеет срока действия
+                  </p>
+                </div>
+              )}
+
+              {/* Modal Footer */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={handleCloseSubModal}
+                  className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl transition-all"
+                >
+                  <Save className="w-4 h-4" />
+                  Сохранить
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -514,4 +514,76 @@ router.get('/users', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Update user subscription
+router.patch('/users/:id/subscription', authenticateAdmin, async (req, res) => {
+  try {
+    if (!req.admin.permissions.canManageUsers) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permission to manage users'
+      });
+    }
+
+    const { tier, expiresAt } = req.body;
+
+    // Validate tier
+    const validTiers = ['muslim', 'mutahsin', 'sahib'];
+    if (!validTiers.includes(tier)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid subscription tier'
+      });
+    }
+
+    // Build update object
+    const updateData = {
+      'subscription.tier': tier,
+      'subscription.isActive': true
+    };
+
+    // Set expiration for paid tiers
+    if (tier === 'mutahsin' || tier === 'sahib') {
+      if (expiresAt) {
+        updateData['subscription.expiresAt'] = new Date(expiresAt);
+      } else {
+        // Default: 30 days from now
+        const defaultExpiry = new Date();
+        defaultExpiry.setDate(defaultExpiry.getDate() + 30);
+        updateData['subscription.expiresAt'] = defaultExpiry;
+      }
+      updateData['subscription.startedAt'] = new Date();
+    } else {
+      // Free tier - no expiration
+      updateData['subscription.expiresAt'] = null;
+      updateData['subscription.startedAt'] = null;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Subscription updated successfully',
+      user
+    });
+  } catch (error) {
+    console.error('❌ Update subscription error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update subscription',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
