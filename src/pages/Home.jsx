@@ -74,7 +74,7 @@ const Home = () => {
       gradient: 'from-blue-500 to-blue-600'
     },
     {
-      title: 'Направление киблы',
+      title: 'Намаз-ассистент',
       description: 'Компас и время молитв',
       icon: Navigation2,
       link: '/qibla',
