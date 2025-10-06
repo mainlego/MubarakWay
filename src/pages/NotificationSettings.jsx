@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ArrowLeft, Bell, Volume2, Vibrate, Clock, Save } from 'lucide-react';
+import { ArrowLeft, Bell, Clock, Save } from 'lucide-react';
 import { selectUser } from '../store/slices/authSlice';
 import { authAPI } from '../services/api';
 
@@ -13,8 +13,6 @@ const NotificationSettings = () => {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
     enabled: true,
-    sound: true,
-    vibration: true,
     reminderBefore: 10,
     atPrayerTime: true,
     prayers: {
@@ -150,56 +148,8 @@ const NotificationSettings = () => {
           </div>
         </div>
 
-        {/* Notification Type */}
         {settings.enabled && (
           <>
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-white/60 px-2">Тип уведомлений</h3>
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20">
-                <button
-                  onClick={() => toggleSetting('sound')}
-                  className="w-full flex items-center justify-between p-4 border-b border-white/10"
-                >
-                  <div className="flex items-center gap-3">
-                    <Volume2 className="w-5 h-5 text-white" />
-                    <span className="text-white">Звук</span>
-                  </div>
-                  <div
-                    className={`w-12 h-6 rounded-full transition-colors ${
-                      settings.sound ? 'bg-green-500' : 'bg-white/20'
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full bg-white transition-transform duration-200 ${
-                        settings.sound ? 'translate-x-6' : 'translate-x-0.5'
-                      } mt-0.5`}
-                    />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => toggleSetting('vibration')}
-                  className="w-full flex items-center justify-between p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <Vibrate className="w-5 h-5 text-white" />
-                    <span className="text-white">Вибрация</span>
-                  </div>
-                  <div
-                    className={`w-12 h-6 rounded-full transition-colors ${
-                      settings.vibration ? 'bg-green-500' : 'bg-white/20'
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full bg-white transition-transform duration-200 ${
-                        settings.vibration ? 'translate-x-6' : 'translate-x-0.5'
-                      } mt-0.5`}
-                    />
-                  </div>
-                </button>
-              </div>
-            </div>
-
             {/* Reminder Time */}
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-white/60 px-2">Напоминание до молитвы</h3>

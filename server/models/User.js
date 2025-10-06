@@ -107,14 +107,6 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true
       },
-      sound: {
-        type: Boolean,
-        default: true
-      },
-      vibration: {
-        type: Boolean,
-        default: true
-      },
       // Уведомление за N минут до молитвы
       reminderBefore: {
         type: Number,
