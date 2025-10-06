@@ -68,8 +68,13 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Логирование запросов
+// Логирование запросов (кроме health checks)
 app.use((req, res, next) => {
+  // Пропускаем логирование health checks от Render
+  if (req.path === '/api/health') {
+    return next();
+  }
+
   if (req.path === '/webhook') {
     console.log(`📨 ${req.method} ${req.path}`);
     console.log('📦 Body:', JSON.stringify(req.body).substring(0, 200));
