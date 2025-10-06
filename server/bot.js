@@ -741,9 +741,15 @@ const startBot = async (expressApp = null) => {
       const webhookUrl = `${WEB_APP_URL.replace('mubarak-way.onrender.com', 'mubarak-way-bot.onrender.com')}${webhookPath}`;
 
       // ВАЖНО: webhookCallback() вызываем БЕЗ параметров для обработки всех обновлений
-      expressApp.post(webhookPath, (req, res) => {
+      expressApp.post(webhookPath, async (req, res) => {
         console.log('🔔 Webhook received, processing...');
-        return bot.webhookCallback()(req, res);
+        try {
+          await bot.handleUpdate(req.body, res);
+          console.log('✅ Update processed successfully');
+        } catch (error) {
+          console.error('❌ Error processing update:', error);
+          res.sendStatus(500);
+        }
       });
 
       await bot.telegram.setWebhook(webhookUrl, {
