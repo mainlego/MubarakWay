@@ -290,7 +290,7 @@ const QiblaCompass = () => {
   }
 
   // ========== ГЛАВНЫЙ ИНТЕРФЕЙС ==========
-  const distanceKm = qiblaData?.distance ? Math.round(qiblaData.distance / 1000) : '—';
+  const distanceKm = qiblaData?.distance ? Math.round(qiblaData.distance) : '—';
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 relative">
