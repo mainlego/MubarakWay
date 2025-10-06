@@ -15,6 +15,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import FileUpload from '../../components/FileUpload';
+import PreviewModal from '../../components/PreviewModal';
 
 const AdminBooksManagement = () => {
   const navigate = useNavigate();
@@ -23,6 +24,10 @@ const AdminBooksManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Preview modal state
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState({ type: '', url: '', title: '' });
   const [categoryFilter, setCategoryFilter] = useState('');
   const [languageFilter, setLanguageFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -168,6 +173,11 @@ const AdminBooksManagement = () => {
       console.error('Failed to save book:', error);
       alert('Ошибка при сохранении книги');
     }
+  };
+
+  const handlePreview = (type, url, title) => {
+    setPreviewData({ type, url, title });
+    setShowPreview(true);
   };
 
   const handleDelete = async (bookId) => {
@@ -325,6 +335,24 @@ const AdminBooksManagement = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
+                          {book.coverImage && (
+                            <button
+                              onClick={() => handlePreview('image', book.coverImage, book.title)}
+                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                              title="Просмотр обложки"
+                            >
+                              <Eye className="w-4 h-4 text-emerald-400" />
+                            </button>
+                          )}
+                          {book.pdfUrl && (
+                            <button
+                              onClick={() => handlePreview('pdf', book.pdfUrl, book.title)}
+                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                              title="Просмотр PDF"
+                            >
+                              <BookOpen className="w-4 h-4 text-purple-400" />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleOpenModal(book)}
                             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -606,6 +634,15 @@ const AdminBooksManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Preview Modal */}
+      <PreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        type={previewData.type}
+        url={previewData.url}
+        title={previewData.title}
+      />
     </div>
   );
 };

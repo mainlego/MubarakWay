@@ -10,9 +10,11 @@ import {
   X,
   Save,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye
 } from 'lucide-react';
 import FileUpload from '../../components/FileUpload';
+import PreviewModal from '../../components/PreviewModal';
 
 const AdminNashidsManagement = () => {
   const navigate = useNavigate();
@@ -24,6 +26,10 @@ const AdminNashidsManagement = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Preview modal state
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState({ type: '', url: '', title: '' });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -150,6 +156,11 @@ const AdminNashidsManagement = () => {
       console.error('Failed to save nashid:', error);
       alert('Ошибка при сохранении нашида');
     }
+  };
+
+  const handlePreview = (type, url, title) => {
+    setPreviewData({ type, url, title });
+    setShowPreview(true);
   };
 
   const handleDelete = async (nashidId) => {
@@ -303,6 +314,24 @@ const AdminNashidsManagement = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
+                          {nashid.coverImage && (
+                            <button
+                              onClick={() => handlePreview('image', nashid.coverImage, nashid.title)}
+                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                              title="Просмотр обложки"
+                            >
+                              <Eye className="w-4 h-4 text-emerald-400" />
+                            </button>
+                          )}
+                          {nashid.audioUrl && (
+                            <button
+                              onClick={() => handlePreview('audio', nashid.audioUrl, nashid.title)}
+                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                              title="Прослушать"
+                            >
+                              <Music className="w-4 h-4 text-pink-400" />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleOpenModal(nashid)}
                             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -568,6 +597,15 @@ const AdminNashidsManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Preview Modal */}
+      <PreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        type={previewData.type}
+        url={previewData.url}
+        title={previewData.title}
+      />
     </div>
   );
 };
