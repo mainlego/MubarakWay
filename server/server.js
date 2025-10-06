@@ -91,10 +91,12 @@ connectDB();
 const authRoutes = require('./routes/auth');
 const booksRoutes = require('./routes/books');
 const nashidsRoutes = require('./routes/nashids');
+const adminRoutes = require('./routes/admin');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/books', booksRoutes);
 app.use('/api/nashids', nashidsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

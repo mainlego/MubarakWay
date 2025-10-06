@@ -30,7 +30,8 @@
       "Bash(timeout:*)",
       "Bash(test:*)",
       "Bash(cat:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
