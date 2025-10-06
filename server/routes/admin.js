@@ -118,6 +118,127 @@ router.get('/verify', authenticateAdmin, (req, res) => {
   });
 });
 
+// ============ ADMIN PROFILE MANAGEMENT ============
+
+// Update admin profile
+router.put('/profile', authenticateAdmin, async (req, res) => {
+  try {
+    const { username, email } = req.body;
+
+    // Validate input
+    if (!username || !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username and email are required'
+      });
+    }
+
+    // Check if username/email already taken by another admin
+    const existingAdmin = await Admin.findOne({
+      $or: [{ username }, { email }],
+      _id: { $ne: req.admin._id }
+    });
+
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username or email already taken'
+      });
+    }
+
+    // Update admin
+    const admin = await Admin.findByIdAndUpdate(
+      req.admin._id,
+      { username, email },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      admin: {
+        id: admin._id,
+        username: admin.username,
+        email: admin.email,
+        role: admin.role,
+        permissions: admin.permissions
+      }
+    });
+  } catch (error) {
+    console.error('❌ Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile',
+      error: error.message
+    });
+  }
+});
+
+// Change password
+router.put('/password', authenticateAdmin, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 8 characters'
+      });
+    }
+
+    // Get admin with password
+    const admin = await Admin.findById(req.admin._id);
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    // Verify current password
+    const isPasswordValid = await admin.comparePassword(currentPassword);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    admin.password = newPassword;
+    await admin.save();
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error('❌ Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password',
+      error: error.message
+    });
+  }
+});
+
 // ============ DASHBOARD STATS ============
 
 router.get('/stats', authenticateAdmin, async (req, res) => {

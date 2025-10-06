@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
   Settings,
   User,
@@ -70,17 +71,27 @@ const AdminSettings = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      // Simulate API call (not implemented in backend yet)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const token = localStorage.getItem('adminToken');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-      // Update localStorage
-      const updatedAdmin = { ...admin, ...profileData };
-      localStorage.setItem('adminData', JSON.stringify(updatedAdmin));
-      setAdmin(updatedAdmin);
+      const response = await axios.put(
+        `${API_URL}/api/admin/profile`,
+        profileData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      setMessage({ type: 'success', text: 'Профиль успешно обновлен' });
+      if (response.data.success) {
+        // Update localStorage with new data
+        localStorage.setItem('adminData', JSON.stringify(response.data.admin));
+        setAdmin(response.data.admin);
+        setMessage({ type: 'success', text: 'Профиль успешно обновлен' });
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Ошибка при сохранении профиля' });
+      console.error('Profile update error:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Ошибка при сохранении профиля'
+      });
     } finally {
       setSaving(false);
     }
@@ -105,17 +116,32 @@ const AdminSettings = () => {
     }
 
     try {
-      // Simulate API call (not implemented in backend yet)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const token = localStorage.getItem('adminToken');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-      setMessage({ type: 'success', text: 'Пароль успешно изменен' });
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
+      const response = await axios.put(
+        `${API_URL}/api/admin/password`,
+        {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        setMessage({ type: 'success', text: 'Пароль успешно изменен' });
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Ошибка при изменении пароля' });
+      console.error('Password change error:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Ошибка при изменении пароля'
+      });
     } finally {
       setSaving(false);
     }
