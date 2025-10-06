@@ -207,32 +207,11 @@ function AppContent() {
     );
   }
 
-  // Если не в Telegram Mini App и не авторизован - показываем экран входа
-  if (!telegram.isMiniApp() && !isAuthenticated) {
-    return <TelegramLogin />;
-  }
-
-  // Show onboarding if not completed
-  if (showOnboarding) {
-    return <OnboardingSlides onComplete={handleOnboardingComplete} />;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <ScrollToTop />
-      <TopBar />
       <Routes>
-        {/* User routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/library" element={<Library />} />
-        <Route path="/book/:id" element={<EnhancedBookReader />} />
-        <Route path="/nashids" element={<Nashids />} />
-        <Route path="/qibla" element={<Qibla />} />
-        <Route path="/subscription" element={<Subscription />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/settings/notifications" element={<NotificationSettings />} />
-
-        {/* Admin routes */}
+        {/* Admin routes - доступны всегда */}
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
@@ -241,8 +220,31 @@ function AppContent() {
           <Route path="users" element={<AdminUsers />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
+
+        {/* User routes - требуют авторизации */}
+        <Route path="/*" element={
+          !telegram.isMiniApp() && !isAuthenticated ? (
+            <TelegramLogin />
+          ) : showOnboarding ? (
+            <OnboardingSlides onComplete={handleOnboardingComplete} />
+          ) : (
+            <>
+              <TopBar />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/library" element={<Library />} />
+                <Route path="/book/:id" element={<EnhancedBookReader />} />
+                <Route path="/nashids" element={<Nashids />} />
+                <Route path="/qibla" element={<Qibla />} />
+                <Route path="/subscription" element={<Subscription />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/notifications" element={<NotificationSettings />} />
+              </Routes>
+              <Navigation />
+            </>
+          )
+        } />
       </Routes>
-      <Navigation />
 
       {/* Глобальный аудиоплеер */}
       {showPlayer && currentPlaying && (
