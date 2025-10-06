@@ -68,6 +68,10 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Статические файлы для загрузок
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Логирование запросов (кроме health checks)
 app.use((req, res, next) => {
   // Пропускаем логирование health checks от Render
@@ -92,11 +96,13 @@ const authRoutes = require('./routes/auth');
 const booksRoutes = require('./routes/books');
 const nashidsRoutes = require('./routes/nashids');
 const adminRoutes = require('./routes/admin');
+const uploadRoutes = require('./routes/upload');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/books', booksRoutes);
 app.use('/api/nashids', nashidsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

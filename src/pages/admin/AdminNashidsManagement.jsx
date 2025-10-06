@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import FileUpload from '../../components/FileUpload';
 
 const AdminNashidsManagement = () => {
   const navigate = useNavigate();
@@ -492,10 +493,21 @@ const AdminNashidsManagement = () => {
                   </select>
                 </div>
 
-                {/* Cover Image URL */}
+                {/* Cover Image Upload */}
+                <div className="md:col-span-2">
+                  <FileUpload
+                    category="covers"
+                    currentUrl={formData.coverImage}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, coverImage: url }))}
+                    onRemove={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
+                    label="Обложка нашида"
+                  />
+                </div>
+
+                {/* Cover Image URL (alternative) */}
                 <div className="md:col-span-2">
                   <label className="block text-white/80 text-sm font-medium mb-2">
-                    URL обложки
+                    Или введите URL обложки
                   </label>
                   <input
                     type="url"
@@ -507,17 +519,28 @@ const AdminNashidsManagement = () => {
                   />
                 </div>
 
-                {/* Audio URL */}
+                {/* Audio Upload */}
+                <div className="md:col-span-2">
+                  <FileUpload
+                    category="nashids"
+                    currentUrl={formData.audioUrl}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, audioUrl: url }))}
+                    onRemove={() => setFormData(prev => ({ ...prev, audioUrl: '' }))}
+                    label="Аудио файл нашида *"
+                    maxSize={50}
+                  />
+                </div>
+
+                {/* Audio URL (alternative) */}
                 <div className="md:col-span-2">
                   <label className="block text-white/80 text-sm font-medium mb-2">
-                    URL аудио файла *
+                    Или введите URL аудио файла
                   </label>
                   <input
                     type="url"
                     name="audioUrl"
                     value={formData.audioUrl}
                     onChange={handleInputChange}
-                    required
                     className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-purple-400"
                     placeholder="https://example.com/nashid.mp3"
                   />

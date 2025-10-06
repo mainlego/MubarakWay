@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import FileUpload from '../../components/FileUpload';
 
 const AdminBooksManagement = () => {
   const navigate = useNavigate();
@@ -516,10 +517,21 @@ const AdminBooksManagement = () => {
                   />
                 </div>
 
-                {/* Cover Image URL */}
+                {/* Cover Image Upload */}
+                <div className="md:col-span-2">
+                  <FileUpload
+                    category="covers"
+                    currentUrl={formData.coverImage}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, coverImage: url }))}
+                    onRemove={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
+                    label="Обложка книги"
+                  />
+                </div>
+
+                {/* Cover Image URL (alternative) */}
                 <div className="md:col-span-2">
                   <label className="block text-white/80 text-sm font-medium mb-2">
-                    URL обложки
+                    Или введите URL обложки
                   </label>
                   <input
                     type="url"
@@ -531,10 +543,21 @@ const AdminBooksManagement = () => {
                   />
                 </div>
 
-                {/* PDF URL */}
+                {/* PDF Upload */}
+                <div className="md:col-span-2">
+                  <FileUpload
+                    category="books"
+                    currentUrl={formData.pdfUrl}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, pdfUrl: url }))}
+                    onRemove={() => setFormData(prev => ({ ...prev, pdfUrl: '' }))}
+                    label="PDF файл книги"
+                  />
+                </div>
+
+                {/* PDF URL (alternative) */}
                 <div className="md:col-span-2">
                   <label className="block text-white/80 text-sm font-medium mb-2">
-                    URL PDF файла
+                    Или введите URL PDF файла
                   </label>
                   <input
                     type="url"
