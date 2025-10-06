@@ -39,7 +39,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Логирование запросов
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
+  if (req.path === '/webhook') {
+    console.log(`📨 ${req.method} ${req.path}`);
+    console.log('📦 Body:', JSON.stringify(req.body).substring(0, 200));
+  } else {
+    console.log(`${req.method} ${req.path}`);
+  }
   next();
 });
 

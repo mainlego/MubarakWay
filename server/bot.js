@@ -740,7 +740,8 @@ const startBot = async (expressApp = null) => {
       const webhookPath = '/webhook';
       const webhookUrl = `${WEB_APP_URL.replace('mubarak-way.onrender.com', 'mubarak-way-bot.onrender.com')}${webhookPath}`;
 
-      expressApp.use(bot.webhookCallback(webhookPath));
+      // ВАЖНО: регистрируем webhook callback на конкретном пути
+      expressApp.post(webhookPath, bot.webhookCallback(webhookPath));
 
       await bot.telegram.setWebhook(webhookUrl, {
         drop_pending_updates: true,
