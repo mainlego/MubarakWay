@@ -41,8 +41,6 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    console.log('🔐 Admin login attempt:', username);
-
     if (!username || !password) {
       return res.status(400).json({
         success: false,
@@ -84,8 +82,6 @@ router.post('/login', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
-
-    console.log('✅ Admin logged in:', admin.username);
 
     res.json({
       success: true,
@@ -244,8 +240,6 @@ router.post('/books', authenticateAdmin, async (req, res) => {
     const book = new Book(bookData);
     await book.save();
 
-    console.log('✅ Book created:', book.title);
-
     res.status(201).json({
       success: true,
       message: 'Book created successfully',
@@ -284,8 +278,6 @@ router.put('/books/:id', authenticateAdmin, async (req, res) => {
       });
     }
 
-    console.log('✅ Book updated:', book.title);
-
     res.json({
       success: true,
       message: 'Book updated successfully',
@@ -319,8 +311,6 @@ router.delete('/books/:id', authenticateAdmin, async (req, res) => {
         message: 'Book not found'
       });
     }
-
-    console.log('✅ Book deleted:', book.title);
 
     res.json({
       success: true,
@@ -390,8 +380,6 @@ router.post('/nashids', authenticateAdmin, async (req, res) => {
     const nashid = new Nashid(nashidData);
     await nashid.save();
 
-    console.log('✅ Nashid created:', nashid.title);
-
     res.status(201).json({
       success: true,
       message: 'Nashid created successfully',
@@ -430,8 +418,6 @@ router.put('/nashids/:id', authenticateAdmin, async (req, res) => {
       });
     }
 
-    console.log('✅ Nashid updated:', nashid.title);
-
     res.json({
       success: true,
       message: 'Nashid updated successfully',
@@ -465,8 +451,6 @@ router.delete('/nashids/:id', authenticateAdmin, async (req, res) => {
         message: 'Nashid not found'
       });
     }
-
-    console.log('✅ Nashid deleted:', nashid.title);
 
     res.json({
       success: true,
