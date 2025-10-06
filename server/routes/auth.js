@@ -228,4 +228,84 @@ router.put('/location/:telegramId', async (req, res) => {
   }
 });
 
+// GET /api/auth/notifications/:telegramId - Получить настройки уведомлений
+router.get('/notifications/:telegramId', async (req, res) => {
+  try {
+    const { telegramId } = req.params;
+
+    const user = await User.findOne({ telegramId });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      notifications: user.prayerSettings.notifications
+    });
+
+  } catch (error) {
+    console.error('❌ Get notifications error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// PUT /api/auth/notifications/:telegramId - Обновить настройки уведомлений
+router.put('/notifications/:telegramId', async (req, res) => {
+  console.log('🔔 Notification settings update request');
+  console.log('📦 Body:', req.body);
+
+  try {
+    const { telegramId } = req.params;
+    const { notifications } = req.body;
+
+    if (!notifications) {
+      return res.status(400).json({
+        success: false,
+        message: 'Notifications settings are required'
+      });
+    }
+
+    const user = await User.findOne({ telegramId });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Обновляем настройки уведомлений
+    user.prayerSettings.notifications = {
+      ...user.prayerSettings.notifications,
+      ...notifications
+    };
+
+    await user.save();
+
+    console.log(`✅ Notification settings saved for user ${telegramId}`);
+
+    res.json({
+      success: true,
+      message: 'Notification settings saved',
+      notifications: user.prayerSettings.notifications
+    });
+
+  } catch (error) {
+    console.error('❌ Notification settings save error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

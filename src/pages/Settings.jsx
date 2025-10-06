@@ -11,9 +11,6 @@ const Settings = () => {
   const user = useSelector(selectUser);
 
   // Local state for settings
-  const [notificationsEnabled, setNotificationsEnabled] = useState(
-    user?.prayerSettings?.notifications?.enabled || false
-  );
   const [selectedLanguage, setSelectedLanguage] = useState(
     user?.languageCode || 'ru'
   );
@@ -36,12 +33,6 @@ const Settings = () => {
     window.location.reload();
   };
 
-  const handleNotificationsToggle = () => {
-    const newValue = !notificationsEnabled;
-    setNotificationsEnabled(newValue);
-    // TODO: Save to backend
-    console.log('Notifications:', newValue ? 'enabled' : 'disabled');
-  };
 
   const handleLanguageChange = () => {
     // Cycle through languages: ru -> en -> ar -> ru
@@ -83,10 +74,8 @@ const Settings = () => {
         {
           icon: Bell,
           label: 'Уведомления',
-          description: notificationsEnabled ? 'Включены' : 'Выключены',
-          onClick: handleNotificationsToggle,
-          showToggle: true,
-          toggleValue: notificationsEnabled
+          description: 'Настройки уведомлений о молитве',
+          onClick: () => navigate('/settings/notifications')
         },
         {
           icon: Globe,

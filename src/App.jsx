@@ -14,6 +14,7 @@ import Nashids from './pages/Nashids';
 import Qibla from './pages/Qibla';
 import Subscription from './pages/Subscription';
 import Settings from './pages/Settings';
+import NotificationSettings from './pages/NotificationSettings';
 import EnhancedBookReader from './components/EnhancedBookReader';
 import Navigation from './components/Navigation';
 import TopBar from './components/TopBar';
@@ -219,6 +220,7 @@ function AppContent() {
         <Route path="/qibla" element={<Qibla />} />
         <Route path="/subscription" element={<Subscription />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/notifications" element={<NotificationSettings />} />
       </Routes>
       <Navigation />
 

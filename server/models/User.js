@@ -107,9 +107,52 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true
       },
-      minutesBefore: {
+      sound: {
+        type: Boolean,
+        default: true
+      },
+      vibration: {
+        type: Boolean,
+        default: true
+      },
+      // Уведомление за N минут до молитвы
+      reminderBefore: {
         type: Number,
-        default: 0
+        default: 10,
+        enum: [0, 5, 10, 15, 30]
+      },
+      // Уведомление в момент наступления времени
+      atPrayerTime: {
+        type: Boolean,
+        default: true
+      },
+      // Отдельные настройки для каждой молитвы
+      prayers: {
+        fajr: {
+          type: Boolean,
+          default: true
+        },
+        dhuhr: {
+          type: Boolean,
+          default: true
+        },
+        asr: {
+          type: Boolean,
+          default: true
+        },
+        maghrib: {
+          type: Boolean,
+          default: true
+        },
+        isha: {
+          type: Boolean,
+          default: true
+        }
+      },
+      // Тип уведомления (только в Telegram или везде)
+      telegramOnly: {
+        type: Boolean,
+        default: false
       }
     }
   },

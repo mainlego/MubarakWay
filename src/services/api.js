@@ -78,6 +78,30 @@ export const authAPI = {
       console.error('Save location API error:', error);
       throw error;
     }
+  },
+
+  // Получить настройки уведомлений
+  getNotifications: async (telegramId) => {
+    try {
+      const response = await api.get(`/auth/notifications/${telegramId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get notifications API error:', error);
+      throw error;
+    }
+  },
+
+  // Сохранить настройки уведомлений
+  saveNotifications: async (telegramId, notifications) => {
+    try {
+      const response = await api.put(`/auth/notifications/${telegramId}`, {
+        notifications
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Save notifications API error:', error);
+      throw error;
+    }
   }
 };
 
