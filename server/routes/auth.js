@@ -4,10 +4,15 @@ const User = require('../models/User');
 
 // POST /api/auth/login - Автоматическая регистрация/вход через Telegram
 router.post('/login', async (req, res) => {
+  console.log('🔐 Login request received');
+  console.log('📨 Origin:', req.headers.origin);
+  console.log('📦 Body:', JSON.stringify(req.body));
+
   try {
     const { telegramId, username, firstName, lastName, languageCode } = req.body;
 
     if (!telegramId) {
+      console.log('❌ Missing telegramId');
       return res.status(400).json({
         success: false,
         message: 'Telegram ID is required'
