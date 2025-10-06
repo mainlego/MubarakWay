@@ -28,8 +28,8 @@ import LocationRequest from './components/LocationRequest';
 // Admin imports
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminBooks from './pages/admin/AdminBooks';
-import AdminNashids from './pages/admin/AdminNashids';
+import AdminBooksManagement from './pages/admin/AdminBooksManagement';
+import AdminNashidsManagement from './pages/admin/AdminNashidsManagement';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminLayout from './components/AdminLayout';
@@ -215,8 +215,8 @@ function AppContent() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="books" element={<AdminBooks />} />
-          <Route path="nashids" element={<AdminNashids />} />
+          <Route path="books" element={<AdminBooksManagement />} />
+          <Route path="nashids" element={<AdminNashidsManagement />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
