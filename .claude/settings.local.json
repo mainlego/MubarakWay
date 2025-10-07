@@ -33,7 +33,8 @@
       "Bash(sed:*)",
       "Bash(dir:*)",
       "Bash(del nul)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

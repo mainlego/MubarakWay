@@ -700,12 +700,21 @@ export const fetchBooks = createAsyncThunk(
           ? 'http://localhost:3001/api'
           : 'https://mubarakway-backend.onrender.com/api');
 
-      const response = await fetch(`${API_BASE_URL}/books`);
+      const url = `${API_BASE_URL}/books`;
+      console.log('[Books] Fetching from URL:', url);
+
+      const response = await fetch(url);
+      console.log('[Books] Response status:', response.status);
+
       const data = await response.json();
+      console.log('[Books] Response data:', data);
 
       if (!data.success) {
+        console.warn('[Books] API returned success=false:', data.message);
         throw new Error(data.message || 'Failed to fetch books');
       }
+
+      console.log('[Books] Found', data.books.length, 'books from database');
 
       // Преобразуем данные из MongoDB формата в формат приложения
       const books = data.books.map(book => ({
@@ -727,9 +736,11 @@ export const fetchBooks = createAsyncThunk(
         textExtracted: book.textExtracted || false
       }));
 
+      console.log('[Books] Mapped books:', books);
       return books;
     } catch (error) {
-      console.error('Error fetching books:', error);
+      console.error('[Books] Error fetching from API:', error);
+      console.warn('[Books] Falling back to mock data');
       // Возвращаем mock данные в случае ошибки для разработки
       return mockBooks;
     }
