@@ -37,22 +37,30 @@ const AdminBooksManagement = () => {
     title: '',
     author: '',
     description: '',
-    coverImage: '',
-    pdfUrl: '',
-    category: 'tafsir',
+    cover: '',
+    content: '',
+    category: 'religious',
+    genre: 'tafsir',
     language: 'ru',
     pages: 0,
     publishedYear: new Date().getFullYear(),
-    accessLevel: 'free'
+    isPro: false
   });
 
   const categories = [
     { value: '', label: 'Все категории' },
+    { value: 'religious', label: 'Религиозная' },
+    { value: 'education', label: 'Образование' },
+    { value: 'spiritual', label: 'Духовная' }
+  ];
+
+  const genres = [
+    { value: '', label: 'Все жанры' },
     { value: 'tafsir', label: 'Тафсир' },
     { value: 'hadith', label: 'Хадисы' },
-    { value: 'fiqh', label: 'Фикх' },
     { value: 'aqidah', label: 'Акида' },
     { value: 'prophets', label: 'Пророки' },
+    { value: 'quran', label: 'Коран' },
     { value: 'islam', label: 'Ислам' }
   ];
 
@@ -474,6 +482,26 @@ const AdminBooksManagement = () => {
                   </select>
                 </div>
 
+                {/* Genre */}
+                <div>
+                  <label className="block text-white/80 text-sm font-medium mb-2">
+                    Жанр *
+                  </label>
+                  <select
+                    name="genre"
+                    value={formData.genre}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-400"
+                  >
+                    {genres.filter(g => g.value).map(genre => (
+                      <option key={genre.value} value={genre.value} className="bg-slate-800">
+                        {genre.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Language */}
                 <div>
                   <label className="block text-white/80 text-sm font-medium mb-2">
@@ -494,65 +522,28 @@ const AdminBooksManagement = () => {
                   </select>
                 </div>
 
-                {/* Access Level */}
+                {/* Pro/Premium Access */}
                 <div>
-                  <label className="block text-white/80 text-sm font-medium mb-2">
-                    Уровень доступа *
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isPro"
+                      checked={formData.isPro}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isPro: e.target.checked }))}
+                      className="w-5 h-5 bg-white/10 border border-white/20 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <span className="text-white/80 text-sm font-medium">Премиум контент (только для Pro/Sahib)</span>
                   </label>
-                  <select
-                    name="accessLevel"
-                    value={formData.accessLevel}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-400"
-                  >
-                    {accessLevels.map(level => (
-                      <option key={level.value} value={level.value} className="bg-slate-800">
-                        {level.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Pages */}
-                <div>
-                  <label className="block text-white/80 text-sm font-medium mb-2">
-                    Количество страниц
-                  </label>
-                  <input
-                    type="number"
-                    name="pages"
-                    value={formData.pages}
-                    onChange={handleInputChange}
-                    min="0"
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-blue-400"
-                  />
-                </div>
-
-                {/* Published Year */}
-                <div>
-                  <label className="block text-white/80 text-sm font-medium mb-2">
-                    Год издания
-                  </label>
-                  <input
-                    type="number"
-                    name="publishedYear"
-                    value={formData.publishedYear}
-                    onChange={handleInputChange}
-                    min="1900"
-                    max={new Date().getFullYear()}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-blue-400"
-                  />
                 </div>
 
                 {/* Cover Image Upload */}
                 <div className="md:col-span-2">
                   <FileUpload
                     category="covers"
-                    currentUrl={formData.coverImage}
-                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, coverImage: url }))}
-                    onRemove={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
-                    label="Обложка книги"
+                    currentUrl={formData.cover}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, cover: url }))}
+                    onRemove={() => setFormData(prev => ({ ...prev, cover: '' }))}
+                    label="Обложка книги *"
                   />
                 </div>
 
@@ -563,9 +554,10 @@ const AdminBooksManagement = () => {
                   </label>
                   <input
                     type="url"
-                    name="coverImage"
-                    value={formData.coverImage}
+                    name="cover"
+                    value={formData.cover}
                     onChange={handleInputChange}
+                    required
                     className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-blue-400"
                     placeholder="https://example.com/cover.jpg"
                   />
@@ -575,10 +567,10 @@ const AdminBooksManagement = () => {
                 <div className="md:col-span-2">
                   <FileUpload
                     category="books"
-                    currentUrl={formData.pdfUrl}
-                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, pdfUrl: url }))}
-                    onRemove={() => setFormData(prev => ({ ...prev, pdfUrl: '' }))}
-                    label="PDF файл книги"
+                    currentUrl={formData.content}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, content: url }))}
+                    onRemove={() => setFormData(prev => ({ ...prev, content: '' }))}
+                    label="PDF файл книги *"
                   />
                 </div>
 
@@ -589,9 +581,10 @@ const AdminBooksManagement = () => {
                   </label>
                   <input
                     type="url"
-                    name="pdfUrl"
-                    value={formData.pdfUrl}
+                    name="content"
+                    value={formData.content}
                     onChange={handleInputChange}
+                    required
                     className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-blue-400"
                     placeholder="https://example.com/book.pdf"
                   />
