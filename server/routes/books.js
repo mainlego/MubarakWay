@@ -217,13 +217,15 @@ router.post('/:id/extract-text', async (req, res) => {
     const pdfUrl = book.content;
     let pdfPath;
 
+    console.log('📄 Original PDF URL:', pdfUrl);
+
+    // Проверяем если это URL с нашего backend
     if (pdfUrl.startsWith('http')) {
-      // Если URL внешний, скачиваем файл
-      console.log('⚠️ External URL not supported yet:', pdfUrl);
-      return res.status(400).json({
-        success: false,
-        message: 'External URLs not supported yet'
-      });
+      // Извлекаем относительный путь
+      const urlObj = new URL(pdfUrl);
+      const relativePath = urlObj.pathname; // Получаем путь без домена
+      pdfPath = path.join(__dirname, '..', relativePath.replace(/^\//, ''));
+      console.log('🌐 Extracted path from URL:', relativePath);
     } else {
       // Локальный файл
       pdfPath = path.join(__dirname, '..', pdfUrl.replace(/^\//, ''));
