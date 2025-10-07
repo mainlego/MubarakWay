@@ -17,7 +17,7 @@
     <!-- Security Headers -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self' https://telegram.org https://*.telegram.org;
-      connect-src 'self' https://mubarakway-backend.onrender.com https://mubarak-way-bot.onrender.com http://localhost:3001 https://telegram.org https://*.telegram.org;
+      connect-src 'self' https://mubarakway-backend.onrender.com https://mubarak-way-bot.onrender.com https://telegram.org https://*.telegram.org;
       script-src 'self' 'unsafe-inline' https://telegram.org;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
@@ -37,7 +37,7 @@
     <!-- Cache Busting for Development -->
     <script>
       // Clear cache on version change
-      const APP_VERSION = 'v3.2.2';
+      const APP_VERSION = 'v3.2.3';
       const savedVersion = localStorage.getItem('app_version');
 
       console.log('[Cache] Checking version:', { current: APP_VERSION, saved: savedVersion });
