@@ -76,9 +76,11 @@ const upload = multer({
 
 // Middleware для проверки авторизации админа
 const authenticateAdmin = (req, res, next) => {
+  console.log('🔐 Upload auth check - Headers:', req.headers.authorization?.substring(0, 50));
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
+    console.error('❌ Upload: No token provided');
     return res.status(401).json({
       success: false,
       message: 'Authentication required'
@@ -89,9 +91,11 @@ const authenticateAdmin = (req, res, next) => {
     const jwt = require('jsonwebtoken');
     const JWT_SECRET = process.env.JWT_SECRET || 'mubarakway-secret-key-2025';
     const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('✅ Upload: Token valid for admin:', decoded.username);
     req.admin = decoded;
     next();
   } catch (error) {
+    console.error('❌ Upload: Invalid token -', error.message);
     return res.status(401).json({
       success: false,
       message: 'Invalid token'
