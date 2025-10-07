@@ -695,8 +695,12 @@ export const fetchBooks = createAsyncThunk(
   'books/fetchBooks',
   async (_, { rejectWithValue }) => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${API_URL}/api/books`);
+      const API_BASE_URL = import.meta.env.VITE_API_URL ||
+        (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+          ? 'http://localhost:3001/api'
+          : 'https://mubarakway-backend.onrender.com/api');
+
+      const response = await fetch(`${API_BASE_URL}/books`);
       const data = await response.json();
 
       if (!data.success) {
