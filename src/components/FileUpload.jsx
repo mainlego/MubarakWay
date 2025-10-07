@@ -119,6 +119,7 @@ const FileUpload = ({
       });
 
       if (response.data.success) {
+        // Формируем полный URL: базовый URL + относительный путь
         const fileUrl = `${API_URL}${response.data.file.url}`;
         setPreviewUrl(fileUrl);
         onUploadSuccess?.(fileUrl);
