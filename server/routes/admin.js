@@ -357,6 +357,7 @@ router.post('/books', authenticateAdmin, async (req, res) => {
       });
     }
 
+    console.log('📚 Creating book with data:', JSON.stringify(req.body, null, 2));
     const bookData = req.body;
     const book = new Book(bookData);
     await book.save();
