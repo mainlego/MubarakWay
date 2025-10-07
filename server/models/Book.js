@@ -22,6 +22,14 @@ const bookSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  extractedText: {
+    type: String,
+    default: ''
+  },
+  textExtracted: {
+    type: Boolean,
+    default: false
+  },
   isPro: {
     type: Boolean,
     default: false
@@ -71,8 +79,8 @@ const bookSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Индексы
-bookSchema.index({ title: 'text', author: 'text', description: 'text' });
+// Индексы для поиска
+bookSchema.index({ title: 'text', author: 'text', description: 'text', extractedText: 'text' });
 bookSchema.index({ isPro: 1, category: 1 });
 bookSchema.index({ publishedDate: -1 });
 

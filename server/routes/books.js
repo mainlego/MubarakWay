@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Book = require('../models/Book');
+const pdf = require('pdf-parse');
+const fs = require('fs').promises;
+const path = require('path');
 
 // POST /api/books/favorite - Add/Remove book from favorites
 router.post('/favorite', async (req, res) => {
@@ -179,6 +183,86 @@ router.get('/favorites/:telegramId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// POST /api/books/:id/extract-text - Extract text from PDF
+router.post('/:id/extract-text', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log('📖 Extracting text from PDF for book:', id);
+
+    const book = await Book.findById(id);
+
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        message: 'Book not found'
+      });
+    }
+
+    if (book.textExtracted) {
+      return res.json({
+        success: true,
+        message: 'Text already extracted',
+        text: book.extractedText,
+        length: book.extractedText.length
+      });
+    }
+
+    // Получаем путь к PDF файлу
+    const pdfUrl = book.content;
+    let pdfPath;
+
+    if (pdfUrl.startsWith('http')) {
+      // Если URL внешний, скачиваем файл
+      console.log('⚠️ External URL not supported yet:', pdfUrl);
+      return res.status(400).json({
+        success: false,
+        message: 'External URLs not supported yet'
+      });
+    } else {
+      // Локальный файл
+      pdfPath = path.join(__dirname, '..', pdfUrl.replace(/^\//, ''));
+    }
+
+    console.log('📄 Reading PDF from:', pdfPath);
+
+    // Читаем файл
+    const dataBuffer = await fs.readFile(pdfPath);
+
+    // Извлекаем текст
+    console.log('🔍 Parsing PDF...');
+    const data = await pdf(dataBuffer);
+
+    const extractedText = data.text;
+    console.log('✅ Text extracted:', {
+      pages: data.numpages,
+      length: extractedText.length,
+      preview: extractedText.substring(0, 100)
+    });
+
+    // Сохраняем текст в базу данных
+    book.extractedText = extractedText;
+    book.textExtracted = true;
+    await book.save();
+
+    res.json({
+      success: true,
+      message: 'Text extracted successfully',
+      text: extractedText,
+      length: extractedText.length,
+      pages: data.numpages
+    });
+
+  } catch (error) {
+    console.error('❌ Extract text error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to extract text',
       error: error.message
     });
   }

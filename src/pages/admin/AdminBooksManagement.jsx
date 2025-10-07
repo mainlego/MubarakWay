@@ -12,7 +12,8 @@ import {
   Eye,
   Filter,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from 'lucide-react';
 import FileUpload from '../../components/FileUpload';
 import PreviewModal from '../../components/PreviewModal';
@@ -213,6 +214,24 @@ const AdminBooksManagement = () => {
     }
   };
 
+  const handleExtractText = async (bookId) => {
+    if (!confirm('Извлечь текст из PDF? Это может занять некоторое время.')) return;
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+      const response = await axios.post(`${API_URL}/api/books/${bookId}/extract-text`);
+
+      if (response.data.success) {
+        alert(`Текст успешно извлечен!\n\nСтраниц: ${response.data.pages}\nСимволов: ${response.data.length}`);
+        fetchBooks();
+      }
+    } catch (error) {
+      console.error('Failed to extract text:', error);
+      alert('Ошибка при извлечении текста: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -364,6 +383,20 @@ const AdminBooksManagement = () => {
                             >
                               <BookOpen className="w-4 h-4 text-purple-400" />
                             </button>
+                          )}
+                          {!book.textExtracted && book.content && (
+                            <button
+                              onClick={() => handleExtractText(book._id)}
+                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                              title="Извлечь текст из PDF"
+                            >
+                              <FileText className="w-4 h-4 text-green-400" />
+                            </button>
+                          )}
+                          {book.textExtracted && (
+                            <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded" title="Текст извлечен">
+                              ✓ Текст
+                            </span>
                           )}
                           <button
                             onClick={() => handleOpenModal(book)}
