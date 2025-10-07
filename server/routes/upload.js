@@ -39,11 +39,18 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const category = req.body.category || 'covers';
 
+  console.log('🔍 FileFilter check:', {
+    category,
+    mimetype: file.mimetype,
+    originalname: file.originalname
+  });
+
   if (category === 'covers') {
     // Для обложек только изображения
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
+      console.error('❌ FileFilter: Not an image for covers', file.mimetype);
       cb(new Error('Только изображения разрешены для обложек'), false);
     }
   } else if (category === 'books') {
@@ -51,6 +58,7 @@ const fileFilter = (req, file, cb) => {
     if (file.mimetype === 'application/pdf') {
       cb(null, true);
     } else {
+      console.error('❌ FileFilter: Not a PDF for books', file.mimetype);
       cb(new Error('Только PDF файлы разрешены для книг'), false);
     }
   } else if (category === 'nashids') {
@@ -58,9 +66,11 @@ const fileFilter = (req, file, cb) => {
     if (file.mimetype.startsWith('audio/')) {
       cb(null, true);
     } else {
+      console.error('❌ FileFilter: Not audio for nashids', file.mimetype);
       cb(new Error('Только аудио файлы разрешены для нашидов'), false);
     }
   } else {
+    console.error('❌ FileFilter: Unknown category', category);
     cb(new Error('Неизвестная категория файла'), false);
   }
 };
@@ -108,6 +118,8 @@ router.post('/', authenticateAdmin, upload.single('file'), async (req, res) => {
   console.log('📤 Upload request received');
   console.log('📁 Category:', req.body.category);
   console.log('📄 File:', req.file?.filename);
+  console.log('📄 MIME type:', req.file?.mimetype);
+  console.log('📄 Size:', req.file?.size, 'bytes');
 
   try {
     if (!req.file) {
