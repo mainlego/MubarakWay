@@ -560,16 +560,24 @@ const AdminBooksManagement = () => {
                 </div>
 
                 {/* Pro/Premium Access */}
-                <div>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-3 cursor-pointer p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl hover:bg-purple-500/20 transition-colors">
                     <input
                       type="checkbox"
                       name="isPro"
                       checked={formData.isPro}
                       onChange={(e) => setFormData(prev => ({ ...prev, isPro: e.target.checked }))}
-                      className="w-5 h-5 bg-white/10 border border-white/20 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-white/5 checked:bg-purple-500 checked:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-900 cursor-pointer"
                     />
-                    <span className="text-white/80 text-sm font-medium">Премиум контент (только для Pro/Sahib)</span>
+                    <div className="flex-1">
+                      <span className="text-white font-medium block">Премиум контент</span>
+                      <span className="text-white/60 text-xs">Доступно только для подписчиков Pro и Sahib</span>
+                    </div>
+                    {formData.isPro && (
+                      <span className="px-3 py-1 bg-purple-500 text-white text-xs font-bold rounded-full">
+                        PRO
+                      </span>
+                    )}
                   </label>
                 </div>
 

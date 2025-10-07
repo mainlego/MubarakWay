@@ -693,11 +693,42 @@ const mockBooks = [
 
 export const fetchBooks = createAsyncThunk(
   'books/fetchBooks',
-  async () => {
-    // Симуляция API запроса
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockBooks), 500);
-    });
+  async (_, { rejectWithValue }) => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_URL}/api/books`);
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch books');
+      }
+
+      // Преобразуем данные из MongoDB формата в формат приложения
+      const books = data.books.map(book => ({
+        id: book._id,
+        title: book.title,
+        author: book.author || '',
+        description: book.description,
+        cover: book.cover,
+        content: book.content,
+        isPro: book.isPro,
+        category: book.category,
+        genre: book.genre,
+        language: book.language,
+        isExclusive: book.isExclusive || false,
+        rating: book.rating || 0,
+        reactions: book.reactions || 0,
+        publishedDate: book.publishedDate,
+        isNew: book.isNew || false,
+        textExtracted: book.textExtracted || false
+      }));
+
+      return books;
+    } catch (error) {
+      console.error('Error fetching books:', error);
+      // Возвращаем mock данные в случае ошибки для разработки
+      return mockBooks;
+    }
   }
 );
 
