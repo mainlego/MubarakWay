@@ -71,12 +71,6 @@ const AdminBooksManagement = () => {
     { value: 'en', label: 'Английский' }
   ];
 
-  const accessLevels = [
-    { value: 'free', label: 'Бесплатно (Muslim)' },
-    { value: 'pro', label: 'Pro (Mutahsin)' },
-    { value: 'premium', label: 'Premium (Sahib)' }
-  ];
-
   useEffect(() => {
     fetchBooks();
   }, [currentPage, searchTerm, categoryFilter, languageFilter]);
@@ -121,13 +115,12 @@ const AdminBooksManagement = () => {
         title: book.title,
         author: book.author || '',
         description: book.description || '',
-        coverImage: book.coverImage || '',
-        pdfUrl: book.pdfUrl || '',
-        category: book.category || 'tafsir',
+        cover: book.cover || '',
+        content: book.content || '',
+        category: book.category || 'religious',
+        genre: book.genre || 'tafsir',
         language: book.language || 'ru',
-        pages: book.pages || 0,
-        publishedYear: book.publishedYear || new Date().getFullYear(),
-        accessLevel: book.accessLevel || 'free'
+        isPro: book.isPro || false
       });
     } else {
       setEditingBook(null);
@@ -135,13 +128,12 @@ const AdminBooksManagement = () => {
         title: '',
         author: '',
         description: '',
-        coverImage: '',
-        pdfUrl: '',
-        category: 'tafsir',
+        cover: '',
+        content: '',
+        category: 'religious',
+        genre: 'tafsir',
         language: 'ru',
-        pages: 0,
-        publishedYear: new Date().getFullYear(),
-        accessLevel: 'free'
+        isPro: false
       });
     }
     setShowModal(true);
@@ -321,9 +313,9 @@ const AdminBooksManagement = () => {
                   {books.map((book) => (
                     <tr key={book._id} className="hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4">
-                        {book.coverImage ? (
+                        {book.cover ? (
                           <img
-                            src={book.coverImage}
+                            src={book.cover}
                             alt={book.title}
                             className="w-12 h-16 object-cover rounded"
                           />
@@ -335,7 +327,7 @@ const AdminBooksManagement = () => {
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-white font-medium">{book.title}</p>
-                        <p className="text-white/50 text-sm">{book.pages} стр.</p>
+                        <p className="text-white/50 text-sm">{genres.find(g => g.value === book.genre)?.label || book.genre}</p>
                       </td>
                       <td className="px-6 py-4 text-white/80">{book.author || '—'}</td>
                       <td className="px-6 py-4">
@@ -346,29 +338,27 @@ const AdminBooksManagement = () => {
                       <td className="px-6 py-4 text-white/80 uppercase">{book.language}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                          book.accessLevel === 'premium'
-                            ? 'bg-yellow-500/20 text-yellow-300'
-                            : book.accessLevel === 'pro'
+                          book.isPro
                             ? 'bg-purple-500/20 text-purple-300'
                             : 'bg-green-500/20 text-green-300'
                         }`}>
-                          {accessLevels.find(a => a.value === book.accessLevel)?.label.split(' ')[0] || 'Free'}
+                          {book.isPro ? 'Pro' : 'Free'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          {book.coverImage && (
+                          {book.cover && (
                             <button
-                              onClick={() => handlePreview('image', book.coverImage, book.title)}
+                              onClick={() => handlePreview('image', book.cover, book.title)}
                               className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                               title="Просмотр обложки"
                             >
                               <Eye className="w-4 h-4 text-emerald-400" />
                             </button>
                           )}
-                          {book.pdfUrl && (
+                          {book.content && (
                             <button
-                              onClick={() => handlePreview('pdf', book.pdfUrl, book.title)}
+                              onClick={() => handlePreview('pdf', book.content, book.title)}
                               className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                               title="Просмотр PDF"
                             >
