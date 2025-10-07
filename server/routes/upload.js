@@ -21,7 +21,8 @@ Object.values(categoriesDir).forEach(dir => {
 // Настройка хранилища multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const category = req.body.category || 'covers';
+    // Читаем category из query параметра (доступен всегда)
+    const category = req.query.category || req.body.category || 'covers';
     const dir = categoriesDir[category] || categoriesDir.covers;
     cb(null, dir);
   },
@@ -37,10 +38,14 @@ const storage = multer.diskStorage({
 
 // Фильтр файлов
 const fileFilter = (req, file, cb) => {
-  const category = req.body.category || 'covers';
+  // Читаем category из query параметра (req.query доступен всегда)
+  // Fallback на req.body для обратной совместимости
+  const category = req.query.category || req.body.category || 'covers';
 
   console.log('🔍 FileFilter check:', {
     category,
+    queryCategory: req.query.category,
+    bodyCategory: req.body.category,
     mimetype: file.mimetype,
     originalname: file.originalname
   });
@@ -116,7 +121,8 @@ const authenticateAdmin = (req, res, next) => {
 // POST /api/upload - Загрузка файла
 router.post('/', authenticateAdmin, upload.single('file'), async (req, res) => {
   console.log('📤 Upload request received');
-  console.log('📁 Category:', req.body.category);
+  console.log('📁 Category (query):', req.query.category);
+  console.log('📁 Category (body):', req.body.category);
   console.log('📄 File:', req.file?.filename);
   console.log('📄 MIME type:', req.file?.mimetype);
   console.log('📄 Size:', req.file?.size, 'bytes');

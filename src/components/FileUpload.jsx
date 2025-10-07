@@ -119,8 +119,9 @@ const FileUpload = ({
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      // ВАЖНО: category должен быть ПЕРЕД file, чтобы multer успел его прочитать
       formData.append('category', category);
+      formData.append('file', file);
 
       // Проверяем что FormData содержит
       console.log('📦 [FileUpload] FormData prepared:', {
@@ -130,7 +131,7 @@ const FileUpload = ({
 
       const token = localStorage.getItem('adminToken');
 
-      const response = await axios.post(`${API_URL}/api/upload`, formData, {
+      const response = await axios.post(`${API_URL}/api/upload?category=${category}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
