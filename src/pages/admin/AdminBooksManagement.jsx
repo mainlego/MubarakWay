@@ -155,6 +155,20 @@ const AdminBooksManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validation
+    if (!formData.cover) {
+      alert('Пожалуйста, загрузите обложку книги или введите URL');
+      return;
+    }
+    if (!formData.content) {
+      alert('Пожалуйста, загрузите PDF файл или введите URL');
+      return;
+    }
+    if (!formData.description) {
+      alert('Пожалуйста, введите описание книги');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('adminToken');
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -179,7 +193,7 @@ const AdminBooksManagement = () => {
       fetchBooks();
     } catch (error) {
       console.error('Failed to save book:', error);
-      alert('Ошибка при сохранении книги');
+      alert('Ошибка при сохранении книги: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -548,20 +562,21 @@ const AdminBooksManagement = () => {
                 </div>
 
                 {/* Cover Image URL (alternative) */}
-                <div className="md:col-span-2">
-                  <label className="block text-white/80 text-sm font-medium mb-2">
-                    Или введите URL обложки
-                  </label>
-                  <input
-                    type="url"
-                    name="cover"
-                    value={formData.cover}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-blue-400"
-                    placeholder="https://example.com/cover.jpg"
-                  />
-                </div>
+                {!formData.cover && (
+                  <div className="md:col-span-2">
+                    <label className="block text-white/80 text-sm font-medium mb-2">
+                      Или введите URL обложки
+                    </label>
+                    <input
+                      type="url"
+                      name="cover"
+                      value={formData.cover}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-blue-400"
+                      placeholder="https://example.com/cover.jpg"
+                    />
+                  </div>
+                )}
 
                 {/* PDF Upload */}
                 <div className="md:col-span-2">
@@ -575,20 +590,21 @@ const AdminBooksManagement = () => {
                 </div>
 
                 {/* PDF URL (alternative) */}
-                <div className="md:col-span-2">
-                  <label className="block text-white/80 text-sm font-medium mb-2">
-                    Или введите URL PDF файла
-                  </label>
-                  <input
-                    type="url"
-                    name="content"
-                    value={formData.content}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-blue-400"
-                    placeholder="https://example.com/book.pdf"
-                  />
-                </div>
+                {!formData.content && (
+                  <div className="md:col-span-2">
+                    <label className="block text-white/80 text-sm font-medium mb-2">
+                      Или введите URL PDF файла
+                    </label>
+                    <input
+                      type="url"
+                      name="content"
+                      value={formData.content}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-blue-400"
+                      placeholder="https://example.com/book.pdf"
+                    />
+                  </div>
+                )}
 
                 {/* Description */}
                 <div className="md:col-span-2">
