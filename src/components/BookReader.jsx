@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+import axios from 'axios';
 import {
   ArrowLeft,
   Settings,
@@ -10,35 +8,50 @@ import {
   Moon,
   Type,
   Bookmark,
-  BookOpen
+  BookOpen,
+  FileText,
+  File
 } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const BookReader = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const books = useSelector(state => state.books.books);
   const [book, setBook] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('text'); // 'text' or 'pdf'
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [fontSize, setFontSize] = useState(18);
   const [showSettings, setShowSettings] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [isGuideMode, setIsGuideMode] = useState(false);
   const [backgroundStyle, setBackgroundStyle] = useState({});
 
   useEffect(() => {
-    const foundBook = books.find(b => b.id === parseInt(id));
-    if (foundBook && foundBook.content) {
-      setBook(foundBook);
-    }
-    // Check if guide mode is enabled
-    const searchParams = new URLSearchParams(location.search);
-    setIsGuideMode(searchParams.get('guide') === 'true');
-    // Set reader background
+    fetchBook();
     setBackgroundStyle(getBackgroundWithOverlay('reader', 0.2));
-  }, [id, books, location.search]);
+  }, [id]);
+
+  const fetchBook = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/api/books/${id}`);
+      if (response.data.success) {
+        setBook(response.data.book);
+        // Если нет извлеченного текста, переключаемся на PDF режим
+        if (!response.data.book.extractedText) {
+          setViewMode('pdf');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch book:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('readerTheme');
@@ -90,20 +103,38 @@ const BookReader = () => {
     setIsBookmarked(!isBookmarked);
   };
 
-  const renderMarkdown = (content) => {
-    const htmlContent = marked(content, {
-      breaks: true,
-      gfm: true
-    });
-    return DOMPurify.sanitize(htmlContent);
+  const renderText = (text) => {
+    // Разделяем текст на параграфы и форматируем
+    return text.split('\n\n').map((paragraph, index) => (
+      <p key={index} className="mb-4">
+        {paragraph}
+      </p>
+    ));
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="text-center">
+          <BookOpen className="w-16 h-16 mx-auto mb-4 text-green-600 animate-pulse" />
+          <p className="text-xl text-gray-600">Загрузка книги...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!book) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
         <div className="text-center">
-          <BookOpen className="w-16 h-16 mx-auto mb-4 text-green-600 animate-pulse" />
+          <BookOpen className="w-16 h-16 mx-auto mb-4 text-green-600" />
           <p className="text-xl text-gray-600">Книга не найдена</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+          >
+            Назад
+          </button>
         </div>
       </div>
     );
@@ -155,6 +186,20 @@ const BookReader = () => {
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Toggle между текстом и PDF */}
+            {book.extractedText && book.content && (
+              <button
+                onClick={() => setViewMode(viewMode === 'text' ? 'pdf' : 'text')}
+                className={`p-2 rounded-full transition-all duration-200 ${
+                  isDarkTheme
+                    ? 'hover:bg-gray-700 text-gray-300'
+                    : 'hover:bg-gray-100 text-gray-600'
+                }`}
+                title={viewMode === 'text' ? 'Показать PDF' : 'Показать текст'}
+              >
+                {viewMode === 'text' ? <File className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+              </button>
+            )}
             <button
               onClick={toggleBookmark}
               className={`p-2 rounded-full transition-all duration-200 ${
@@ -250,18 +295,35 @@ const BookReader = () => {
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-6 py-8">
-        <div
-          className={`prose prose-lg max-w-none transition-all duration-300 ${
-            isDarkTheme ? 'prose-invert' : ''
-          }`}
-          style={{
-            fontSize: `${fontSize}px`,
-            lineHeight: '1.8'
-          }}
-          dangerouslySetInnerHTML={{
-            __html: renderMarkdown(book.content)
-          }}
-        />
+        {viewMode === 'text' && book.extractedText ? (
+          <div
+            className={`prose prose-lg max-w-none transition-all duration-300 ${
+              isDarkTheme ? 'prose-invert' : ''
+            }`}
+            style={{
+              fontSize: `${fontSize}px`,
+              lineHeight: '1.8'
+            }}
+          >
+            {renderText(book.extractedText)}
+          </div>
+        ) : viewMode === 'pdf' && book.content ? (
+          <div className="w-full">
+            <iframe
+              src={book.content}
+              className="w-full rounded-lg shadow-lg"
+              style={{ minHeight: '80vh' }}
+              title={book.title}
+            />
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <p className={isDarkTheme ? 'text-gray-400' : 'text-gray-600'}>
+              Контент книги недоступен
+            </p>
+          </div>
+        )}
       </main>
 
       {/* Floating reading info */}

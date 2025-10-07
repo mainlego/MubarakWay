@@ -6,6 +6,66 @@ const pdf = require('pdf-parse');
 const fs = require('fs').promises;
 const path = require('path');
 
+// GET /api/books - Get all books (for users)
+router.get('/', async (req, res) => {
+  try {
+    const { category, genre, language, search, isPro } = req.query;
+
+    const filter = {};
+    if (category) filter.category = category;
+    if (genre) filter.genre = genre;
+    if (language) filter.language = language;
+    if (isPro !== undefined) filter.isPro = isPro === 'true';
+
+    if (search) {
+      filter.$text = { $search: search };
+    }
+
+    const books = await Book.find(filter)
+      .sort(search ? { score: { $meta: 'textScore' } } : { publishedDate: -1 })
+      .select('title author description cover content category genre language isPro rating reactions publishedDate isNew textExtracted');
+
+    res.json({
+      success: true,
+      books,
+      count: books.length
+    });
+  } catch (error) {
+    console.error('❌ Get books error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch books',
+      error: error.message
+    });
+  }
+});
+
+// GET /api/books/:id - Get single book with full text
+router.get('/:id', async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        message: 'Book not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      book
+    });
+  } catch (error) {
+    console.error('❌ Get book error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch book',
+      error: error.message
+    });
+  }
+});
+
 // POST /api/books/favorite - Add/Remove book from favorites
 router.post('/favorite', async (req, res) => {
   try {
