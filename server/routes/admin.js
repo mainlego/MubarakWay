@@ -387,18 +387,40 @@ router.put('/books/:id', authenticateAdmin, async (req, res) => {
       });
     }
 
-    const book = await Book.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    console.log('📝 Updating book:', req.params.id);
+    console.log('📦 Update data:', req.body);
 
-    if (!book) {
+    // Получаем существующую книгу
+    const existingBook = await Book.findById(req.params.id);
+
+    if (!existingBook) {
       return res.status(404).json({
         success: false,
         message: 'Book not found'
       });
     }
+
+    // Если PDF файл изменился, сбрасываем извлеченный текст
+    let shouldResetText = false;
+    if (req.body.content && req.body.content !== existingBook.content) {
+      console.log('📄 PDF changed, resetting extracted text');
+      shouldResetText = true;
+    }
+
+    // Сохраняем extractedText и textExtracted если они не переданы в обновлении
+    const updateData = {
+      ...req.body,
+      extractedText: shouldResetText ? '' : (req.body.extractedText !== undefined ? req.body.extractedText : existingBook.extractedText),
+      textExtracted: shouldResetText ? false : (req.body.textExtracted !== undefined ? req.body.textExtracted : existingBook.textExtracted)
+    };
+
+    const book = await Book.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    console.log('✅ Book updated:', book.title);
 
     res.json({
       success: true,
