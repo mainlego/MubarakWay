@@ -587,6 +587,216 @@ router.delete('/nashids/:id', authenticateAdmin, async (req, res) => {
   }
 });
 
+// ============ ADMINS MANAGEMENT ============
+
+// Get all admins (только для admin role)
+router.get('/admins', authenticateAdmin, async (req, res) => {
+  try {
+    if (!req.admin.permissions.canManageAdmins) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permission to manage admins'
+      });
+    }
+
+    const admins = await Admin.find()
+      .select('-password')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      admins
+    });
+  } catch (error) {
+    console.error('❌ Get admins error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch admins',
+      error: error.message
+    });
+  }
+});
+
+// Create new admin (только для admin role)
+router.post('/admins', authenticateAdmin, async (req, res) => {
+  try {
+    if (!req.admin.permissions.canManageAdmins) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permission to manage admins'
+      });
+    }
+
+    const { username, email, password, role, permissions } = req.body;
+
+    // Validate required fields
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username, email and password are required'
+      });
+    }
+
+    // Check if username or email already exists
+    const existingAdmin = await Admin.findOne({
+      $or: [{ username }, { email }]
+    });
+
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username or email already exists'
+      });
+    }
+
+    // Create new admin
+    const newAdmin = new Admin({
+      username,
+      email,
+      password,
+      role: role || 'editor',
+      permissions: permissions || {
+        canManageBooks: true,
+        canManageNashids: true,
+        canManageUsers: false,
+        canViewAnalytics: true,
+        canManageAdmins: false
+      },
+      isActive: true
+    });
+
+    await newAdmin.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Admin created successfully',
+      admin: {
+        id: newAdmin._id,
+        username: newAdmin.username,
+        email: newAdmin.email,
+        role: newAdmin.role,
+        permissions: newAdmin.permissions
+      }
+    });
+  } catch (error) {
+    console.error('❌ Create admin error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create admin',
+      error: error.message
+    });
+  }
+});
+
+// Update admin (только для admin role)
+router.put('/admins/:id', authenticateAdmin, async (req, res) => {
+  try {
+    if (!req.admin.permissions.canManageAdmins) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permission to manage admins'
+      });
+    }
+
+    const { username, email, role, permissions, isActive } = req.body;
+
+    // Prevent admin from deactivating themselves
+    if (req.admin._id.toString() === req.params.id && isActive === false) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot deactivate your own account'
+      });
+    }
+
+    // Check if username/email already taken by another admin
+    const existingAdmin = await Admin.findOne({
+      $or: [{ username }, { email }],
+      _id: { $ne: req.params.id }
+    });
+
+    if (existingAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username or email already taken'
+      });
+    }
+
+    const updateData = {};
+    if (username) updateData.username = username;
+    if (email) updateData.email = email;
+    if (role) updateData.role = role;
+    if (permissions) updateData.permissions = permissions;
+    if (typeof isActive === 'boolean') updateData.isActive = isActive;
+
+    const admin = await Admin.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Admin updated successfully',
+      admin
+    });
+  } catch (error) {
+    console.error('❌ Update admin error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update admin',
+      error: error.message
+    });
+  }
+});
+
+// Delete admin (только для admin role)
+router.delete('/admins/:id', authenticateAdmin, async (req, res) => {
+  try {
+    if (!req.admin.permissions.canManageAdmins) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permission to manage admins'
+      });
+    }
+
+    // Prevent admin from deleting themselves
+    if (req.admin._id.toString() === req.params.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete your own account'
+      });
+    }
+
+    const admin = await Admin.findByIdAndDelete(req.params.id);
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Admin deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ Delete admin error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete admin',
+      error: error.message
+    });
+  }
+});
+
 // ============ USERS MANAGEMENT ============
 
 router.get('/users', authenticateAdmin, async (req, res) => {

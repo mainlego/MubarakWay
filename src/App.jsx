@@ -31,6 +31,7 @@ import AdminBooksManagement from './pages/admin/AdminBooksManagement';
 import AdminNashidsManagement from './pages/admin/AdminNashidsManagement';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminManagement from './pages/admin/AdminManagement';
 import AdminLayout from './components/AdminLayout';
 
 function AppContent() {
@@ -217,6 +218,7 @@ function AppContent() {
           <Route path="books" element={<AdminBooksManagement />} />
           <Route path="nashids" element={<AdminNashidsManagement />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="admins" element={<AdminManagement />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 

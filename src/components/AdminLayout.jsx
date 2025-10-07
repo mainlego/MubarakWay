@@ -9,7 +9,8 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  Shield
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -75,6 +76,12 @@ const AdminLayout = () => {
       path: '/admin/users',
       label: 'Пользователи',
       icon: Users
+    },
+    {
+      path: '/admin/admins',
+      label: 'Администраторы',
+      icon: Shield,
+      requiresPermission: 'canManageAdmins'
     },
     {
       path: '/admin/settings',
@@ -145,6 +152,11 @@ const AdminLayout = () => {
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {menuItems.map((item) => {
+              // Check permissions
+              if (item.requiresPermission && admin && !admin.permissions?.[item.requiresPermission]) {
+                return null;
+              }
+
               const Icon = item.icon;
               const active = isActive(item.path);
 
