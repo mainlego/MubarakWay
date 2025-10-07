@@ -31,7 +31,9 @@
       "Bash(test:*)",
       "Bash(cat:*)",
       "Bash(sed:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(del nul)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
