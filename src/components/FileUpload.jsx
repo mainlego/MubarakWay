@@ -29,6 +29,15 @@ const FileUpload = ({
   const [previewUrl, setPreviewUrl] = useState(currentUrl);
   const fileInputRef = useRef(null);
 
+  // Логируем props при монтировании и изменении category
+  React.useEffect(() => {
+    console.log('🎨 [FileUpload] Component mounted/updated with props:', {
+      category,
+      label,
+      currentUrl
+    });
+  }, [category, label, currentUrl]);
+
   // Определяем допустимые типы файлов по категории
   const getAcceptTypes = () => {
     if (accept) return accept;
@@ -96,6 +105,14 @@ const FileUpload = ({
 
   // Загрузка файла
   const uploadFile = async (file) => {
+    console.log('🔍 [FileUpload] Starting upload with:', {
+      category,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      label
+    });
+
     setUploading(true);
     setUploadProgress(0);
     setError('');
@@ -104,6 +121,12 @@ const FileUpload = ({
       const formData = new FormData();
       formData.append('file', file);
       formData.append('category', category);
+
+      // Проверяем что FormData содержит
+      console.log('📦 [FileUpload] FormData prepared:', {
+        category: formData.get('category'),
+        hasFile: formData.has('file')
+      });
 
       const token = localStorage.getItem('adminToken');
 

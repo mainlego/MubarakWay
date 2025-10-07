@@ -543,6 +543,7 @@ const AdminBooksManagement = () => {
                 {/* Cover Image Upload */}
                 <div className="md:col-span-2">
                   <FileUpload
+                    key="book-cover-upload"
                     category="covers"
                     currentUrl={formData.cover}
                     onUploadSuccess={(url) => setFormData(prev => ({ ...prev, cover: url }))}
@@ -571,6 +572,7 @@ const AdminBooksManagement = () => {
                 {/* PDF Upload */}
                 <div className="md:col-span-2">
                   <FileUpload
+                    key="book-pdf-upload"
                     category="books"
                     currentUrl={formData.content}
                     onUploadSuccess={(url) => setFormData(prev => ({ ...prev, content: url }))}
