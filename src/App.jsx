@@ -33,6 +33,7 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminManagement from './pages/admin/AdminManagement';
 import AdminLayout from './components/AdminLayout';
+import DebugConsole from './components/DebugConsole';
 
 function AppContent() {
   console.log('[AppContent] Component rendering...');
@@ -268,6 +269,9 @@ function AppContent() {
           telegramId={user.telegramId}
         />
       )}
+
+      {/* Debug Console */}
+      <DebugConsole />
     </div>
   );
 }
