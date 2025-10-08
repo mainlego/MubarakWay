@@ -402,40 +402,140 @@ bot.action('set_location', (ctx) => {
 
 // Кнопка "Прочитал"
 bot.action(/^prayer_read_/, async (ctx) => {
-  await ctx.answerCbQuery('✅ Альхамдулиллах! Да примет Аллах твой намаз!');
-  await ctx.reply(
-    '🤲 Не забудьте совершить дуа после намаза.\n\n' +
-    'Да сделает Аллах ваши молитвы принятыми! 🌟'
-  );
+  try {
+    // Удаляем кнопки из исходного сообщения
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+
+    await ctx.answerCbQuery('✅ Альхамдулиллах! Да примет Аллах твой намаз!');
+    await ctx.reply(
+      '🤲 Не забудьте совершить дуа после намаза.\n\n' +
+      'Да сделает Аллах ваши молитвы принятыми! 🌟',
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '↩️ Исправить', callback_data: 'show_prayer_menu' }
+          ]]
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error in prayer_read action:', error);
+  }
 });
 
 // Кнопка "Не прочитал"
 bot.action(/^prayer_not_read_/, async (ctx) => {
-  await ctx.answerCbQuery('Не откладывайте намаз!');
-  await ctx.reply(
-    '⚠️ Постарайтесь совершить намаз как можно скорее.\n\n' +
-    'Молитва - это столп ислама. Не пропускайте её без уважительной причины.'
-  );
+  try {
+    // Удаляем кнопки из исходного сообщения
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+
+    await ctx.answerCbQuery('Не откладывайте намаз!');
+    await ctx.reply(
+      '⚠️ Постарайтесь совершить намаз как можно скорее.\n\n' +
+      'Молитва - это столп ислама. Не пропускайте её без уважительной причины.',
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '↩️ Исправить', callback_data: 'show_prayer_menu' }
+          ]]
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error in prayer_not_read action:', error);
+  }
 });
 
 // Кнопка "Восполню"
 bot.action(/^prayer_makeup_/, async (ctx) => {
-  await ctx.answerCbQuery('📝 Записано в пропущенные');
-  await ctx.reply(
-    '📿 Намаз записан как пропущенный.\n\n' +
-    'Не забудьте восполнить его при первой возможности. ' +
-    'Совершение пропущенных намазов - обязанность каждого мусульманина.'
-  );
+  try {
+    // Удаляем кнопки из исходного сообщения
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+
+    await ctx.answerCbQuery('📝 Записано в пропущенные');
+    await ctx.reply(
+      '📿 Намаз записан как пропущенный.\n\n' +
+      'Не забудьте восполнить его при первой возможности. ' +
+      'Совершение пропущенных намазов - обязанность каждого мусульманина.',
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '↩️ Исправить', callback_data: 'show_prayer_menu' }
+          ]]
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error in prayer_makeup action:', error);
+  }
 });
 
 // Кнопка "В мечети"
 bot.action(/^prayer_mosque_/, async (ctx) => {
-  await ctx.answerCbQuery('🕌 Машаллах!');
-  await ctx.reply(
-    '🕌 Прекрасно, что совершаете намаз в мечети!\n\n' +
-    'Намаз в коллективе в 27 раз лучше намаза в одиночестве.\n\n' +
-    'Да воздаст Аллах вам за это! 🤲'
-  );
+  try {
+    // Удаляем кнопки из исходного сообщения
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+
+    await ctx.answerCbQuery('🕌 Машаллах!');
+    await ctx.reply(
+      '🕌 Прекрасно, что совершаете намаз в мечети!\n\n' +
+      'Намаз в коллективе в 27 раз лучше намаза в одиночестве.\n\n' +
+      'Да воздаст Аллах вам за это! 🤲',
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '↩️ Исправить', callback_data: 'show_prayer_menu' }
+          ]]
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error in prayer_mosque action:', error);
+  }
+});
+
+// Кнопка "Исправить" - показывает меню молитв заново
+bot.action('show_prayer_menu', async (ctx) => {
+  try {
+    await ctx.answerCbQuery();
+
+    const userId = ctx.from.id;
+    const subscription = userSubscriptions.get(userId);
+
+    if (!subscription || !subscription.location) {
+      await ctx.reply('📍 Установите локацию для отслеживания времени молитв');
+      return;
+    }
+
+    // Получаем текущее время молитв
+    const times = await getPrayerTimes(subscription.location.latitude, subscription.location.longitude);
+    const now = new Date();
+    const nextPrayer = getNextPrayer(times, now);
+
+    if (nextPrayer) {
+      await ctx.reply(
+        `🕌 Следующая молитва: ${nextPrayer.name}\n` +
+        `🕐 Время: ${nextPrayer.time}\n` +
+        `⏰ Через: ${nextPrayer.remaining}`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '✅ Прочитал', callback_data: `prayer_read_${nextPrayer.key}` },
+                { text: '❌ Не прочитал', callback_data: `prayer_not_read_${nextPrayer.key}` }
+              ],
+              [
+                { text: '🕌 Восполню', callback_data: `prayer_makeup_${nextPrayer.key}` },
+                { text: '🕌 В мечети', callback_data: `prayer_mosque_${nextPrayer.key}` }
+              ]
+            ]
+          }
+        }
+      );
+    }
+  } catch (error) {
+    console.error('Error in show_prayer_menu action:', error);
+  }
 });
 
 // Обработчик кнопки "Направление киблы"
