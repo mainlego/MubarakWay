@@ -1,10 +1,19 @@
 import axios from 'axios';
 
 // API Base URL - автоматически определяется
-const API_BASE_URL = import.meta.env.VITE_API_URL ||
-  (window.location.hostname === 'localhost'
+let API_BASE_URL = import.meta.env.VITE_API_URL;
+
+// Если переменная не установлена, используем defaults
+if (!API_BASE_URL) {
+  API_BASE_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:3001/api'
-    : 'https://mubarakway-backend.onrender.com/api');
+    : 'https://mubarakway-backend.onrender.com/api';
+} else {
+  // Убеждаемся что URL заканчивается на /api
+  if (!API_BASE_URL.endsWith('/api')) {
+    API_BASE_URL = API_BASE_URL + '/api';
+  }
+}
 
 console.log('[API] Base URL configured:', API_BASE_URL);
 
