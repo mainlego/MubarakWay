@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Trash2, Copy, Check } from 'lucide-react';
 
 const DebugConsole = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState([]);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     // Перехватываем console.log, console.error, console.warn
@@ -57,6 +58,36 @@ const DebugConsole = () => {
     setLogs([]);
   };
 
+  const copyLogs = async () => {
+    try {
+      // Форматируем логи для копирования
+      const logsText = logs.map(log =>
+        `[${log.timestamp}] ${log.type.toUpperCase()}: ${log.message}`
+      ).join('\n\n');
+
+      // Копируем в буфер обмена
+      await navigator.clipboard.writeText(logsText);
+
+      // Показываем индикатор успешного копирования
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy logs:', error);
+      // Fallback для старых браузеров
+      const textarea = document.createElement('textarea');
+      textarea.value = logs.map(log =>
+        `[${log.timestamp}] ${log.type.toUpperCase()}: ${log.message}`
+      ).join('\n\n');
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const getLogColor = (type) => {
     switch (type) {
       case 'error':
@@ -91,8 +122,25 @@ const DebugConsole = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={copyLogs}
+            disabled={logs.length === 0}
+            className={`p-1.5 hover:bg-gray-700 rounded transition-colors ${
+              logs.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+            } ${copied ? 'bg-green-600 hover:bg-green-600' : ''}`}
+            title="Copy all logs"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-white" />
+            ) : (
+              <Copy className="w-4 h-4 text-gray-400" />
+            )}
+          </button>
+          <button
             onClick={clearLogs}
-            className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+            disabled={logs.length === 0}
+            className={`p-1.5 hover:bg-gray-700 rounded transition-colors ${
+              logs.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             title="Clear logs"
           >
             <Trash2 className="w-4 h-4 text-gray-400" />
