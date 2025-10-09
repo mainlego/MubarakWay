@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import axios from 'axios';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import {
@@ -26,13 +26,15 @@ import {
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
 // import { useOfflineBooks, useReadingProgress, useOffline } from '../hooks/useOffline';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const EnhancedBookReader = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const books = useSelector(state => state.books.books);
   const contentRef = useRef(null);
   const [book, setBook] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
@@ -112,16 +114,42 @@ const EnhancedBookReader = () => {
 
   useEffect(() => {
     const loadBook = async () => {
-      let foundBook = books.find(b => b.id === parseInt(id));
+      try {
+        setLoading(true);
 
-      // Если книга не найдена онлайн, попробуем загрузить из офлайн хранилища
-      if (!foundBook && !isOnline) {
-        foundBook = await getOfflineBook(parseInt(id));
-      }
+        // Пытаемся загрузить из API
+        const response = await axios.get(`${API_URL}/api/books/${id}`);
 
-      if (foundBook && foundBook.content) {
-        setBook(foundBook);
-        splitContentIntoPages(foundBook.content);
+        if (response.data.success && response.data.book) {
+          const fetchedBook = response.data.book;
+
+          // Используем extractedText как content для чтения
+          const bookData = {
+            ...fetchedBook,
+            id: fetchedBook._id,
+            content: fetchedBook.extractedText || fetchedBook.content || ''
+          };
+
+          console.log('[EnhancedBookReader] Book loaded:', bookData.title);
+          setBook(bookData);
+
+          if (bookData.content) {
+            splitContentIntoPages(bookData.content);
+          }
+        }
+      } catch (error) {
+        console.error('[EnhancedBookReader] Failed to fetch book:', error);
+
+        // Если не удалось загрузить онлайн, попробуем офлайн хранилище
+        if (!isOnline) {
+          const offlineBook = await getOfflineBook(parseInt(id));
+          if (offlineBook && offlineBook.content) {
+            setBook(offlineBook);
+            splitContentIntoPages(offlineBook.content);
+          }
+        }
+      } finally {
+        setLoading(false);
       }
 
       // Проверяем, доступна ли книга офлайн
@@ -133,7 +161,7 @@ const EnhancedBookReader = () => {
     const searchParams = new URLSearchParams(location.search);
     setIsGuideMode(searchParams.get('guide') === 'true');
     setBackgroundStyle(getBackgroundWithOverlay('reader', 0.2));
-  }, [id, books, location.search]);
+  }, [id, location.search, isOnline]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('readerTheme');
@@ -529,12 +557,29 @@ const EnhancedBookReader = () => {
     }
   };
 
-  if (!book) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
         <div className="text-center">
           <BookOpen className="w-16 h-16 mx-auto mb-4 text-green-600 animate-pulse" />
+          <p className="text-xl text-gray-600">Загрузка книги...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!book) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="text-center">
+          <BookOpen className="w-16 h-16 mx-auto mb-4 text-green-600" />
           <p className="text-xl text-gray-600">Книга не найдена</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+          >
+            Назад
+          </button>
         </div>
       </div>
     );

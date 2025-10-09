@@ -18,7 +18,11 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      let API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+      // Убираем /api из конца если есть, так как добавим сами
+      API_URL = API_URL.replace(/\/api$/, '');
+
       const response = await axios.post(`${API_URL}/api/admin/login`, formData);
 
       if (response.data.success) {
