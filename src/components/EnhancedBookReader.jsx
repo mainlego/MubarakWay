@@ -24,9 +24,10 @@ import {
   WifiOff
 } from 'lucide-react';
 import { getBackgroundWithOverlay } from '../utils/backgrounds';
+import { getApiUrl } from '../utils/apiConfig';
 // import { useOfflineBooks, useReadingProgress, useOffline } from '../hooks/useOffline';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = getApiUrl();
 
 const EnhancedBookReader = () => {
   const { id } = useParams();
