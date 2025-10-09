@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getAdminApiUrl } from '../../utils/apiConfig';
 import {
   Settings,
   User,
@@ -72,7 +73,7 @@ const AdminSettings = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
 
       const response = await axios.put(
         `${API_URL}/api/admin/profile`,
@@ -117,7 +118,7 @@ const AdminSettings = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
 
       const response = await axios.put(
         `${API_URL}/api/admin/password`,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getAdminApiUrl } from '../../utils/apiConfig';
 import {
   BarChart3,
   BookOpen,
@@ -30,7 +31,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
       const response = await axios.get(`${API_URL}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });

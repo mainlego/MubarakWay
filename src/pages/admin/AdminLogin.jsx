@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { getAdminApiUrl } from '../../utils/apiConfig';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -18,11 +19,7 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      let API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-      // Убираем /api из конца если есть, так как добавим сами
-      API_URL = API_URL.replace(/\/api$/, '');
-
+      const API_URL = getAdminApiUrl();
       const response = await axios.post(`${API_URL}/api/admin/login`, formData);
 
       if (response.data.success) {

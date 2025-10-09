@@ -13,6 +13,7 @@ import {
   Shield
 } from 'lucide-react';
 import axios from 'axios';
+import { getAdminApiUrl } from '../utils/apiConfig';
 
 const AdminLayout = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const AdminLayout = () => {
         return;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
       const response = await axios.get(`${API_URL}/api/admin/verify`, {
         headers: { Authorization: `Bearer ${token}` }
       });

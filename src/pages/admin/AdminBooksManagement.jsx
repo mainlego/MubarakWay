@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getAdminApiUrl } from '../../utils/apiConfig';
 import {
   BookOpen,
   Plus,
@@ -80,7 +81,7 @@ const AdminBooksManagement = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
 
       const params = new URLSearchParams({
         page: currentPage,
@@ -164,7 +165,7 @@ const AdminBooksManagement = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
 
       if (editingBook) {
         // Update
@@ -200,7 +201,7 @@ const AdminBooksManagement = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
 
       await axios.delete(
         `${API_URL}/api/admin/books/${bookId}`,
@@ -218,7 +219,7 @@ const AdminBooksManagement = () => {
     if (!confirm('Извлечь текст из PDF? Это может занять некоторое время.')) return;
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
 
       const response = await axios.post(`${API_URL}/api/books/${bookId}/extract-text`);
 

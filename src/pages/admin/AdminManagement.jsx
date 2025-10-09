@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getAdminApiUrl } from '../../utils/apiConfig';
 import {
   Shield,
   Plus,
@@ -51,7 +52,7 @@ const AdminManagement = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
 
       const response = await axios.get(
         `${API_URL}/api/admin/admins`,
@@ -126,7 +127,7 @@ const AdminManagement = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
 
       if (editingAdmin) {
         // Update (без пароля)
@@ -158,7 +159,7 @@ const AdminManagement = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = getAdminApiUrl();
 
       await axios.delete(
         `${API_URL}/api/admin/admins/${adminId}`,
