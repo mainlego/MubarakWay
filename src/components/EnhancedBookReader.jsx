@@ -119,7 +119,7 @@ const EnhancedBookReader = () => {
         setLoading(true);
 
         // Пытаемся загрузить из API
-        const response = await axios.get(`${API_URL}/api/books/${id}`);
+        const response = await axios.get(`${API_URL}/books/${id}`);
 
         if (response.data.success && response.data.book) {
           const fetchedBook = response.data.book;
