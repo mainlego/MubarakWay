@@ -22,8 +22,10 @@ const AdminLogin = () => {
       const API_URL = getAdminApiUrl();
       const loginUrl = `${API_URL}/api/admin/login`;
 
-      console.log('🔐 Attempting login to:', loginUrl);
+      console.log('🌐 API_URL from getAdminApiUrl():', API_URL);
+      console.log('🔐 Full login URL:', loginUrl);
       console.log('📝 Username:', formData.username);
+      console.log('🔧 VITE_API_URL:', import.meta.env.VITE_API_URL);
 
       const response = await axios.post(loginUrl, formData);
 
