@@ -40,27 +40,24 @@ const subscriptionSchema = new mongoose.Schema({
     }
   },
 
-  // Лимиты на книги
+  // Лимиты на книги (-1 = безлимит)
   limits: {
     booksOffline: {
       type: Number,
-      default: 0,
-      min: 0
+      default: 0
+      // No min validation - allow -1 for unlimited
     },
     booksFavorites: {
       type: Number,
-      default: 0,
-      min: 0
+      default: 0
     },
     nashidsOffline: {
       type: Number,
-      default: 0,
-      min: 0
+      default: 0
     },
     nashidsFavorites: {
       type: Number,
-      default: 0,
-      min: 0
+      default: 0
     }
   },
 
