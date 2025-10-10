@@ -118,6 +118,81 @@ const AdminSubscriptions = () => {
     }
   };
 
+  const handleCreate = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const API_URL = getAdminApiUrl();
+
+      await axios.post(
+        `${API_URL}/api/admin/subscriptions`,
+        newSubData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setSaveStatus({
+        show: true,
+        success: true,
+        message: 'Подписка успешно создана'
+      });
+
+      setShowCreateModal(false);
+      fetchSubscriptions();
+
+      // Reset form
+      setNewSubData({
+        tier: '',
+        name: '',
+        description: '',
+        price: { amount: 0, currency: 'RUB', period: 'monthly' },
+        limits: { booksOffline: 0, booksFavorites: 0, nashidsOffline: 0, nashidsFavorites: 0 },
+        access: { freeContent: true, proContent: false, premiumContent: false },
+        features: { offlineMode: false, adFree: false, prioritySupport: false, earlyAccess: false },
+        isActive: true,
+        order: 999
+      });
+
+      setTimeout(() => setSaveStatus({ show: false, success: false, message: '' }), 3000);
+    } catch (error) {
+      console.error('Failed to create subscription:', error);
+      setSaveStatus({
+        show: true,
+        success: false,
+        message: error.response?.data?.message || 'Ошибка при создании подписки'
+      });
+    }
+  };
+
+  const handleDelete = async (tier) => {
+    if (!confirm(`Вы уверены, что хотите удалить подписку "${tier}"?`)) return;
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      const API_URL = getAdminApiUrl();
+
+      await axios.delete(
+        `${API_URL}/api/admin/subscriptions/${tier}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setSaveStatus({
+        show: true,
+        success: true,
+        message: 'Подписка успешно удалена'
+      });
+
+      fetchSubscriptions();
+
+      setTimeout(() => setSaveStatus({ show: false, success: false, message: '' }), 3000);
+    } catch (error) {
+      console.error('Failed to delete subscription:', error);
+      setSaveStatus({
+        show: true,
+        success: false,
+        message: error.response?.data?.message || 'Ошибка при удалении подписки'
+      });
+    }
+  };
+
   const getTierColor = (tier) => {
     switch (tier) {
       case 'muslim': return 'emerald';
@@ -192,6 +267,13 @@ const AdminSubscriptions = () => {
             Настройка тарифов и лимитов для пользователей
           </p>
         </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          Создать подписку
+        </button>
       </div>
 
       {/* Save Status */}
@@ -239,12 +321,22 @@ const AdminSubscriptions = () => {
                     )}
                   </div>
                   {!isEditing && (
-                    <button
-                      onClick={() => handleEdit(subscription)}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      <Edit className="w-5 h-5 text-white/70" />
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(subscription)}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                        title="Редактировать"
+                      >
+                        <Edit className="w-5 h-5 text-white/70" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(subscription.tier)}
+                        className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                        title="Удалить"
+                      >
+                        <Trash2 className="w-5 h-5 text-red-400" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -341,10 +433,228 @@ const AdminSubscriptions = () => {
               <li>• Значение -1 означает безлимит</li>
               <li>• Изменения применяются немедленно для всех пользователей</li>
               <li>• Текущие пользователи сохранят свои тарифы до истечения</li>
+              <li>• Tier ID может содержать только английские буквы, цифры и подчеркивания</li>
             </ul>
           </div>
         </div>
       </div>
+
+      {/* Create Subscription Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-2xl border border-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-white/10">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">Создать новую подписку</h2>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-white/70" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Basic Info */}
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Tier ID (уникальный идентификатор)
+                </label>
+                <input
+                  type="text"
+                  value={newSubData.tier}
+                  onChange={(e) => setNewSubData({ ...newSubData, tier: e.target.value.toLowerCase() })}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                  placeholder="например: vip, business, family"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">Название</label>
+                <input
+                  type="text"
+                  value={newSubData.name}
+                  onChange={(e) => setNewSubData({ ...newSubData, name: e.target.value })}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                  placeholder="VIP подписка"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">Описание</label>
+                <textarea
+                  value={newSubData.description}
+                  onChange={(e) => setNewSubData({ ...newSubData, description: e.target.value })}
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                  rows="2"
+                  placeholder="Описание тарифа"
+                />
+              </div>
+
+              {/* Price */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">Цена</label>
+                  <input
+                    type="number"
+                    value={newSubData.price.amount}
+                    onChange={(e) => setNewSubData({
+                      ...newSubData,
+                      price: { ...newSubData.price, amount: parseInt(e.target.value) || 0 }
+                    })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">Валюта</label>
+                  <input
+                    type="text"
+                    value={newSubData.price.currency}
+                    onChange={(e) => setNewSubData({
+                      ...newSubData,
+                      price: { ...newSubData.price, currency: e.target.value }
+                    })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-2">Период</label>
+                  <select
+                    value={newSubData.price.period}
+                    onChange={(e) => setNewSubData({
+                      ...newSubData,
+                      price: { ...newSubData.price, period: e.target.value }
+                    })}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                  >
+                    <option value="monthly">Месяц</option>
+                    <option value="yearly">Год</option>
+                    <option value="lifetime">Навсегда</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Limits */}
+              <div>
+                <h4 className="text-white font-semibold mb-3">Лимиты (-1 = безлимит)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-white/70 mb-1">Книги офлайн</label>
+                    <input
+                      type="number"
+                      value={newSubData.limits.booksOffline}
+                      onChange={(e) => setNewSubData({
+                        ...newSubData,
+                        limits: { ...newSubData.limits, booksOffline: parseInt(e.target.value) || 0 }
+                      })}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-white/70 mb-1">Избранные книги</label>
+                    <input
+                      type="number"
+                      value={newSubData.limits.booksFavorites}
+                      onChange={(e) => setNewSubData({
+                        ...newSubData,
+                        limits: { ...newSubData.limits, booksFavorites: parseInt(e.target.value) || 0 }
+                      })}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-white/70 mb-1">Нашиды офлайн</label>
+                    <input
+                      type="number"
+                      value={newSubData.limits.nashidsOffline}
+                      onChange={(e) => setNewSubData({
+                        ...newSubData,
+                        limits: { ...newSubData.limits, nashidsOffline: parseInt(e.target.value) || 0 }
+                      })}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-white/70 mb-1">Избранные нашиды</label>
+                    <input
+                      type="number"
+                      value={newSubData.limits.nashidsFavorites}
+                      onChange={(e) => setNewSubData({
+                        ...newSubData,
+                        limits: { ...newSubData.limits, nashidsFavorites: parseInt(e.target.value) || 0 }
+                      })}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Access */}
+              <div>
+                <h4 className="text-white font-semibold mb-3">Доступ к контенту</h4>
+                <div className="space-y-2">
+                  {Object.entries({ freeContent: 'Бесплатный', proContent: 'Pro', premiumContent: 'Premium' }).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 text-white/70">
+                      <input
+                        type="checkbox"
+                        checked={newSubData.access[key]}
+                        onChange={(e) => setNewSubData({
+                          ...newSubData,
+                          access: { ...newSubData.access, [key]: e.target.checked }
+                        })}
+                        className="w-4 h-4 rounded"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Features */}
+              <div>
+                <h4 className="text-white font-semibold mb-3">Возможности</h4>
+                <div className="space-y-2">
+                  {Object.entries({
+                    offlineMode: 'Офлайн режим',
+                    adFree: 'Без рекламы',
+                    prioritySupport: 'Приоритетная поддержка',
+                    earlyAccess: 'Ранний доступ'
+                  }).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 text-white/70">
+                      <input
+                        type="checkbox"
+                        checked={newSubData.features[key]}
+                        onChange={(e) => setNewSubData({
+                          ...newSubData,
+                          features: { ...newSubData.features, [key]: e.target.checked }
+                        })}
+                        className="w-4 h-4 rounded"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-white/10 flex gap-3">
+              <button
+                onClick={handleCreate}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all"
+              >
+                Создать подписку
+              </button>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-xl transition-all"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
