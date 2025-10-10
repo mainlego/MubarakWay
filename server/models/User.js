@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema({
   subscription: {
     tier: {
       type: String,
-      enum: ['muslim', 'mutahsin', 'sahib_waqf'],
+      enum: ['muslim', 'mutahsin', 'sahib'],
       default: 'muslim'
     },
     isActive: {
