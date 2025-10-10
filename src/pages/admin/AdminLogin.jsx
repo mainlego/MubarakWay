@@ -20,19 +20,28 @@ const AdminLogin = () => {
 
     try {
       const API_URL = getAdminApiUrl();
-      const response = await axios.post(`${API_URL}/api/admin/login`, formData);
+      const loginUrl = `${API_URL}/api/admin/login`;
+
+      console.log('🔐 Attempting login to:', loginUrl);
+      console.log('📝 Username:', formData.username);
+
+      const response = await axios.post(loginUrl, formData);
+
+      console.log('✅ Login response:', response.data);
 
       if (response.data.success) {
         // Сохраняем токен и данные админа
         localStorage.setItem('adminToken', response.data.token);
         localStorage.setItem('adminData', JSON.stringify(response.data.admin));
 
-        console.log('✅ Admin logged in');
+        console.log('✅ Admin logged in successfully');
         navigate('/admin/dashboard');
       }
     } catch (err) {
       console.error('❌ Login error:', err);
-      setError(err.response?.data?.message || 'Ошибка входа');
+      console.error('❌ Error response:', err.response);
+      console.error('❌ Error data:', err.response?.data);
+      setError(err.response?.data?.message || 'Ошибка входа. Проверьте логин и пароль.');
     } finally {
       setLoading(false);
     }
