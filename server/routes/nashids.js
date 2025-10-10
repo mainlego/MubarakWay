@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Nashid = require('../models/Nashid');
 
 // POST /api/nashids/favorite - Add/Remove nashid from favorites
 router.post('/favorite', async (req, res) => {
@@ -165,6 +166,84 @@ router.post('/playlist', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// GET /api/nashids - Get all nashids for users
+router.get('/', async (req, res) => {
+  try {
+    const { search, category, language, limit = 50 } = req.query;
+
+    // Build filter
+    const filter = {};
+
+    if (search) {
+      filter.$text = { $search: search };
+    }
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (language) {
+      filter.language = language;
+    }
+
+    const nashids = await Nashid.find(filter)
+      .sort(search ? { score: { $meta: 'textScore' } } : { createdAt: -1 })
+      .limit(parseInt(limit))
+      .select('title artist audioUrl coverImage duration category language releaseYear accessLevel');
+
+    console.log(`🎵 Fetched ${nashids.length} nashids for users`);
+
+    res.json({
+      success: true,
+      nashids: nashids.map(nashid => ({
+        ...nashid.toObject(),
+        id: nashid._id
+      })),
+      count: nashids.length
+    });
+
+  } catch (error) {
+    console.error('❌ Get nashids error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch nashids',
+      error: error.message
+    });
+  }
+});
+
+// GET /api/nashids/:id - Get single nashid
+router.get('/:id', async (req, res) => {
+  try {
+    const nashid = await Nashid.findById(req.params.id);
+
+    if (!nashid) {
+      return res.status(404).json({
+        success: false,
+        message: 'Nashid not found'
+      });
+    }
+
+    console.log(`🎵 Fetched nashid: ${nashid.title}`);
+
+    res.json({
+      success: true,
+      nashid: {
+        ...nashid.toObject(),
+        id: nashid._id
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Get nashid error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch nashid',
       error: error.message
     });
   }

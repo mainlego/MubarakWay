@@ -67,10 +67,52 @@ const mockNashids = [
 
 export const fetchNashids = createAsyncThunk(
   'nashids/fetchNashids',
-  async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockNashids), 500);
-    });
+  async (_, { rejectWithValue }) => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL ||
+        (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+          ? 'http://localhost:3001/api'
+          : 'https://mubarakway-backend.onrender.com/api');
+
+      console.log('[Nashids] Fetching from URL:', `${API_BASE_URL}/nashids`);
+
+      const response = await fetch(`${API_BASE_URL}/nashids`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      console.log('[Nashids] Response status:', response.status);
+      console.log('[Nashids] Response data:', data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch nashids');
+      }
+
+      const nashids = data.nashids.map(nashid => ({
+        id: nashid._id,
+        title: nashid.title,
+        titleTransliteration: nashid.titleTransliteration || nashid.title,
+        artist: nashid.artist || 'Unknown Artist',
+        duration: nashid.duration || '0:00',
+        cover: nashid.coverImage || 'https://images.unsplash.com/photo-1465101162946-4377e57745c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        audioUrl: nashid.audioUrl || '',
+        category: nashid.category || 'spiritual',
+        language: nashid.language || 'ar',
+        releaseYear: nashid.releaseYear,
+        accessLevel: nashid.accessLevel || 'free'
+      }));
+
+      console.log('[Nashids] Found', nashids.length, 'nashids from database');
+      console.log('[Nashids] Mapped nashids:', nashids);
+
+      return nashids;
+    } catch (error) {
+      console.error('[Nashids] Fetch error:', error);
+      return rejectWithValue(error.message);
+    }
   }
 );
 
