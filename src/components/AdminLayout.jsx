@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Shield
+  Shield,
+  CreditCard
 } from 'lucide-react';
 import axios from 'axios';
 import { getAdminApiUrl } from '../utils/apiConfig';
@@ -77,6 +78,12 @@ const AdminLayout = () => {
       path: '/admin/users',
       label: 'Пользователи',
       icon: Users
+    },
+    {
+      path: '/admin/subscriptions',
+      label: 'Подписки',
+      icon: CreditCard,
+      requiresPermission: 'canManageAdmins'
     },
     {
       path: '/admin/admins',

@@ -4,6 +4,7 @@ const Admin = require('../models/Admin');
 const Book = require('../models/Book');
 const Nashid = require('../models/Nashid');
 const User = require('../models/User');
+const Subscription = require('../models/Subscription');
 
 const router = express.Router();
 
@@ -940,6 +941,96 @@ router.patch('/users/:id/subscription', authenticateAdmin, async (req, res) => {
       success: true,
       message: 'Subscription updated successfully',
       user
+    });
+  } catch (error) {
+    console.error('❌ Update subscription error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update subscription',
+      error: error.message
+    });
+  }
+});
+
+// ============ SUBSCRIPTIONS MANAGEMENT ============
+
+// GET /api/admin/subscriptions - Get all subscription tiers
+router.get('/subscriptions', authenticateAdmin, async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find().sort({ order: 1 });
+
+    res.json({
+      success: true,
+      subscriptions,
+      total: subscriptions.length
+    });
+  } catch (error) {
+    console.error('❌ Get subscriptions error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch subscriptions',
+      error: error.message
+    });
+  }
+});
+
+// GET /api/admin/subscriptions/:tier - Get specific subscription
+router.get('/subscriptions/:tier', authenticateAdmin, async (req, res) => {
+  try {
+    const subscription = await Subscription.findOne({ tier: req.params.tier });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      subscription
+    });
+  } catch (error) {
+    console.error('❌ Get subscription error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch subscription',
+      error: error.message
+    });
+  }
+});
+
+// PUT /api/admin/subscriptions/:tier - Update subscription settings
+router.put('/subscriptions/:tier', authenticateAdmin, async (req, res) => {
+  try {
+    if (!req.admin.permissions.canManageAdmins) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permission to manage subscriptions'
+      });
+    }
+
+    const updateData = req.body;
+    // Prevent tier change
+    delete updateData.tier;
+
+    const subscription = await Subscription.findOneAndUpdate(
+      { tier: req.params.tier },
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Subscription updated successfully',
+      subscription
     });
   } catch (error) {
     console.error('❌ Update subscription error:', error);
