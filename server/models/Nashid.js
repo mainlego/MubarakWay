@@ -22,6 +22,12 @@ const nashidSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  coverImage: {
+    type: String,
+    default: function() {
+      return this.cover;
+    }
+  },
   audioUrl: {
     type: String,
     required: true
@@ -30,6 +36,22 @@ const nashidSchema = new mongoose.Schema({
     type: String,
     enum: ['spiritual', 'family', 'gratitude', 'prophetic', 'tawhid'],
     required: true
+  },
+  language: {
+    type: String,
+    default: 'ar',
+    enum: ['ar', 'ru', 'en', 'tr']
+  },
+  releaseYear: {
+    type: Number,
+    default: function() {
+      return new Date().getFullYear();
+    }
+  },
+  accessLevel: {
+    type: String,
+    enum: ['free', 'pro', 'premium'],
+    default: 'free'
   },
   isExclusive: {
     type: Boolean,
