@@ -116,10 +116,15 @@ app.get('/api/health', (req, res) => {
 // Initialize bot and start server
 const startServer = async () => {
   try {
-    // Initialize Telegram Bot BEFORE starting server (для webhook setup)
-    const { startBot } = require('./bot.js');
-    await startBot(app);
-    console.log('🤖 Telegram Bot initialized\n');
+    // Try to initialize Telegram Bot (optional)
+    try {
+      const { startBot } = require('./bot.js');
+      await startBot(app);
+      console.log('🤖 Telegram Bot initialized\n');
+    } catch (botError) {
+      console.warn('⚠️  Telegram Bot not initialized (token missing or error)');
+      console.warn('📡 API server will continue without bot functionality\n');
+    }
 
     // ВАЖНО: 404 и Error handlers добавляем ПОСЛЕ webhook route
     // 404 handler
@@ -140,7 +145,7 @@ const startServer = async () => {
       });
     });
 
-    // Start server after bot is initialized
+    // Start server
     app.listen(PORT, () => {
       console.log(`\n🚀 Server running on port ${PORT}`);
       console.log(`📡 API: http://localhost:${PORT}/api`);
