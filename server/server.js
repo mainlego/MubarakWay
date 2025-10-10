@@ -95,12 +95,14 @@ connectDB();
 const authRoutes = require('./routes/auth');
 const booksRoutes = require('./routes/books');
 const nashidsRoutes = require('./routes/nashids');
+const subscriptionsRoutes = require('./routes/subscriptions');
 const adminRoutes = require('./routes/admin');
 const uploadRoutes = require('./routes/upload');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/books', booksRoutes);
 app.use('/api/nashids', nashidsRoutes);
+app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 

@@ -29,8 +29,8 @@ const userSchema = new mongoose.Schema({
   subscription: {
     tier: {
       type: String,
-      enum: ['muslim', 'mutahsin', 'sahib'],
       default: 'muslim'
+      // No enum - allows dynamic subscription tiers created in admin panel
     },
     isActive: {
       type: Boolean,

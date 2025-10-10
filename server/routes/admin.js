@@ -1000,6 +1000,47 @@ router.get('/subscriptions/:tier', authenticateAdmin, async (req, res) => {
   }
 });
 
+// POST /api/admin/subscriptions - Create new subscription tier
+router.post('/subscriptions', authenticateAdmin, async (req, res) => {
+  try {
+    if (!req.admin.permissions.canManageAdmins) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permission to manage subscriptions'
+      });
+    }
+
+    // Check if tier already exists
+    const existingSub = await Subscription.findOne({ tier: req.body.tier });
+    if (existingSub) {
+      return res.status(400).json({
+        success: false,
+        message: 'Subscription tier already exists'
+      });
+    }
+
+    const subscription = new Subscription(req.body);
+    await subscription.save();
+
+    // Also update User model enum to include new tier
+    console.log('✅ New subscription tier created:', subscription.tier);
+    console.log('⚠️  Remember to add tier to User model enum manually');
+
+    res.json({
+      success: true,
+      message: 'Subscription created successfully',
+      subscription
+    });
+  } catch (error) {
+    console.error('❌ Create subscription error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create subscription',
+      error: error.message
+    });
+  }
+});
+
 // PUT /api/admin/subscriptions/:tier - Update subscription settings
 router.put('/subscriptions/:tier', authenticateAdmin, async (req, res) => {
   try {
@@ -1037,6 +1078,48 @@ router.put('/subscriptions/:tier', authenticateAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update subscription',
+      error: error.message
+    });
+  }
+});
+
+// DELETE /api/admin/subscriptions/:tier - Delete subscription tier
+router.delete('/subscriptions/:tier', authenticateAdmin, async (req, res) => {
+  try {
+    if (!req.admin.permissions.canManageAdmins) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permission to manage subscriptions'
+      });
+    }
+
+    // Check if any users have this subscription
+    const usersCount = await User.countDocuments({ 'subscription.tier': req.params.tier });
+    if (usersCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete subscription. ${usersCount} users are using this tier.`
+      });
+    }
+
+    const subscription = await Subscription.findOneAndDelete({ tier: req.params.tier });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Subscription deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ Delete subscription error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete subscription',
       error: error.message
     });
   }

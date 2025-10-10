@@ -9,7 +9,9 @@ import {
   Edit,
   AlertCircle,
   CheckCircle,
-  Infinity
+  Infinity,
+  Plus,
+  Trash2
 } from 'lucide-react';
 
 const AdminSubscriptions = () => {
@@ -19,6 +21,18 @@ const AdminSubscriptions = () => {
   const [editingTier, setEditingTier] = useState(null);
   const [formData, setFormData] = useState(null);
   const [saveStatus, setSaveStatus] = useState({ show: false, success: false, message: '' });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newSubData, setNewSubData] = useState({
+    tier: '',
+    name: '',
+    description: '',
+    price: { amount: 0, currency: 'RUB', period: 'monthly' },
+    limits: { booksOffline: 0, booksFavorites: 0, nashidsOffline: 0, nashidsFavorites: 0 },
+    access: { freeContent: true, proContent: false, premiumContent: false },
+    features: { offlineMode: false, adFree: false, prioritySupport: false, earlyAccess: false },
+    isActive: true,
+    order: 999
+  });
 
   useEffect(() => {
     fetchSubscriptions();

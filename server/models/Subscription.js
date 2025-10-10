@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');
 
 const subscriptionSchema = new mongoose.Schema({
-  // Название тарифа
+  // Название тарифа (уникальный ID подписки)
   tier: {
     type: String,
-    enum: ['muslim', 'mutahsin', 'sahib'],
     required: true,
-    unique: true
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: /^[a-z0-9_]+$/ // Только lowercase буквы, цифры и подчеркивания
   },
 
   // Отображаемое название
