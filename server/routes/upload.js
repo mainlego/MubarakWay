@@ -139,8 +139,25 @@ router.post('/', authenticateAdmin, upload.single('file'), async (req, res) => {
     const category = req.query.category || req.body.category || 'covers';
     const relativePath = `/uploads/${category}/${req.file.filename}`;
 
-    // Формируем полный URL (для production используем переменную окружения)
-    const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3001}`;
+    // Формируем полный URL
+    // 1. Используем BACKEND_URL из env
+    // 2. Или определяем из req.get('host')
+    // 3. Fallback на localhost
+    let baseUrl = process.env.BACKEND_URL;
+
+    if (!baseUrl) {
+      const protocol = req.protocol || 'https';
+      const host = req.get('host');
+
+      // Для Render.com host будет mubarakway-backend.onrender.com
+      if (host && !host.includes('localhost')) {
+        baseUrl = `${protocol}://${host}`;
+        console.log('🌐 Auto-detected base URL:', baseUrl);
+      } else {
+        baseUrl = `http://localhost:${process.env.PORT || 3001}`;
+      }
+    }
+
     const fullUrl = `${baseUrl}${relativePath}`;
 
     console.log(`✅ File uploaded: ${fullUrl}`);
