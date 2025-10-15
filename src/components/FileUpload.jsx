@@ -161,7 +161,11 @@ const FileUpload = ({
   };
 
   // Удаление файла
-  const handleRemove = async () => {
+  const handleRemove = async (e) => {
+    // Предотвращаем всплытие события и дефолтное поведение
+    e.preventDefault();
+    e.stopPropagation();
+
     if (!previewUrl) return;
 
     console.log('🗑️ [FileUpload] Removing file:', previewUrl);
@@ -219,9 +223,11 @@ const FileUpload = ({
                 className="w-full h-full object-cover"
               />
               <button
+                type="button"
                 onClick={handleRemove}
-                className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-full transition-colors"
-                title="Удалить"
+                className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-full transition-colors z-10"
+                title="Удалить файл"
+                aria-label="Удалить файл"
               >
                 <X className="w-4 h-4 text-white" />
               </button>
@@ -238,9 +244,11 @@ const FileUpload = ({
                 </div>
               </div>
               <button
+                type="button"
                 onClick={handleRemove}
                 className="p-2 text-red-400 hover:text-red-300 transition-colors"
-                title="Удалить"
+                title="Удалить файл"
+                aria-label="Удалить файл"
               >
                 <X className="w-5 h-5" />
               </button>
