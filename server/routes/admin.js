@@ -359,9 +359,22 @@ router.post('/books', authenticateAdmin, async (req, res) => {
     }
 
     console.log('📚 Creating book with data:', JSON.stringify(req.body, null, 2));
-    const bookData = req.body;
+
+    // Generate bookId automatically
+    const lastBook = await Book.findOne().sort({ bookId: -1 }).limit(1);
+    const nextBookId = lastBook ? lastBook.bookId + 1 : 1;
+
+    console.log(`🔢 Generated bookId: ${nextBookId}`);
+
+    const bookData = {
+      ...req.body,
+      bookId: nextBookId
+    };
+
     const book = new Book(bookData);
     await book.save();
+
+    console.log(`✅ Book created: ${book.title} (bookId: ${book.bookId})`);
 
     res.status(201).json({
       success: true,

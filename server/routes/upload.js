@@ -104,9 +104,9 @@ const authenticateAdmin = (req, res, next) => {
 
   try {
     const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'mubarakway-secret-key-2025';
+    const JWT_SECRET = process.env.JWT_SECRET || 'mubarakway-admin-secret-2025';
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log('✅ Upload: Token valid for admin:', decoded.username);
+    console.log('✅ Upload: Token valid for admin:', decoded.id);
     req.admin = decoded;
     next();
   } catch (error) {
@@ -136,17 +136,22 @@ router.post('/', authenticateAdmin, upload.single('file'), async (req, res) => {
     }
 
     // Формируем URL для доступа к файлу
-    const category = req.body.category || 'covers';
-    const fileUrl = `/uploads/${category}/${req.file.filename}`;
+    const category = req.query.category || req.body.category || 'covers';
+    const relativePath = `/uploads/${category}/${req.file.filename}`;
 
-    console.log(`✅ File uploaded: ${fileUrl}`);
+    // Формируем полный URL (для production используем переменную окружения)
+    const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3001}`;
+    const fullUrl = `${baseUrl}${relativePath}`;
+
+    console.log(`✅ File uploaded: ${fullUrl}`);
 
     res.json({
       success: true,
       file: {
         filename: req.file.filename,
         originalName: req.file.originalname,
-        url: fileUrl,
+        url: fullUrl,  // Возвращаем полный URL
+        relativePath: relativePath,  // Также отдаём относительный путь для совместимости
         size: req.file.size,
         mimetype: req.file.mimetype
       }
@@ -178,21 +183,42 @@ router.delete('/', authenticateAdmin, async (req, res) => {
     }
 
     // Извлекаем путь к файлу из URL
+    // Поддерживаем как полные URL (https://...), так и относительные (/uploads/...)
+    let relativePath = fileUrl;
+
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+      // Извлекаем путь из полного URL
+      try {
+        const url = new URL(fileUrl);
+        relativePath = url.pathname;
+        console.log('🔗 Extracted path from URL:', relativePath);
+      } catch (e) {
+        console.error('❌ Invalid URL format:', fileUrl);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid URL format'
+        });
+      }
+    }
+
     // fileUrl: /uploads/covers/filename.jpg
-    const filePath = path.join(__dirname, '..', fileUrl);
+    const filePath = path.join(__dirname, '..', relativePath);
+
+    console.log('📂 Full file path:', filePath);
 
     // Проверяем что файл существует
     if (!fs.existsSync(filePath)) {
+      console.log('⚠️  File does not exist on disk:', filePath);
       return res.status(404).json({
         success: false,
-        message: 'File not found'
+        message: 'File not found on server'
       });
     }
 
     // Удаляем файл
     fs.unlinkSync(filePath);
 
-    console.log(`✅ File deleted: ${fileUrl}`);
+    console.log(`✅ File deleted successfully: ${relativePath}`);
 
     res.json({
       success: true,
