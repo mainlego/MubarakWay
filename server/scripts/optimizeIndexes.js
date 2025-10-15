@@ -94,11 +94,17 @@ async function optimizeIndexes() {
     console.log('\n🎉 All indexes optimized successfully!');
     console.log('\n📊 Index Statistics:');
 
-    const userStats = await User.collection.stats();
-    console.log(`Users: ${userStats.count} documents, ${userStats.nindexes} indexes`);
+    try {
+      const userCount = await User.countDocuments();
+      const userIndexes = await User.collection.listIndexes().toArray();
+      console.log(`Users: ${userCount} documents, ${userIndexes.length} indexes`);
 
-    const subStats = await Subscription.collection.stats();
-    console.log(`Subscriptions: ${subStats.count} documents, ${subStats.nindexes} indexes`);
+      const subCount = await Subscription.countDocuments();
+      const subIndexes = await Subscription.collection.listIndexes().toArray();
+      console.log(`Subscriptions: ${subCount} documents, ${subIndexes.length} indexes`);
+    } catch (statError) {
+      console.log('ℹ️ Statistics not available (this is okay)');
+    }
 
     await mongoose.connection.close();
     console.log('\n✅ MongoDB connection closed');
