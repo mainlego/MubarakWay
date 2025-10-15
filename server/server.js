@@ -18,6 +18,7 @@ const corsOptions = {
       'http://localhost:3000',
       'https://mubarakway-frontend.onrender.com',
       'https://mubarak-way.onrender.com',
+      'https://mubarakway-admin.onrender.com', // Admin panel
     ];
 
     // Allow Telegram domains (web.telegram.org, etc.)
@@ -45,10 +46,17 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://telegram.org"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      connectSrc: ["'self'", "https://*.telegram.org", "https://mubarakway-frontend.onrender.com", "https://mubarak-way.onrender.com"],
+      connectSrc: [
+        "'self'",
+        "https://*.telegram.org",
+        "https://mubarakway-frontend.onrender.com",
+        "https://mubarak-way.onrender.com",
+        "https://mubarakway-admin.onrender.com"
+      ],
     },
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
 // Rate Limiting - General API
@@ -82,6 +90,7 @@ app.use((req, res, next) => {
       'http://localhost:3000',
       'https://mubarakway-frontend.onrender.com',
       'https://mubarak-way.onrender.com',
+      'https://mubarakway-admin.onrender.com',
     ];
 
     if (allowed.includes(origin) ||
@@ -105,9 +114,29 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
-// Статические файлы для загрузок
+// Статические файлы для загрузок с CORS
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', (req, res, next) => {
+  // Добавляем CORS заголовки для статических файлов
+  const origin = req.headers.origin;
+  const allowed = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://mubarakway-frontend.onrender.com',
+    'https://mubarak-way.onrender.com',
+    'https://mubarakway-admin.onrender.com',
+  ];
+
+  if (!origin || allowed.includes(origin) || origin.includes('telegram.org') || origin.includes('t.me')) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Логирование запросов (кроме health checks)
 app.use((req, res, next) => {
