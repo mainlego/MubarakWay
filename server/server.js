@@ -7,6 +7,9 @@ const connectDB = require('./config/database');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy - required for Render.com and rate limiting to work correctly
+app.set('trust proxy', 1);
+
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {

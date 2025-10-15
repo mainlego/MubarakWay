@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 
     const books = await Book.find(filter)
       .sort(search ? { score: { $meta: 'textScore' } } : { publishedDate: -1 })
-      .select('title author description cover content category genre language isPro rating reactions publishedDate isNew textExtracted');
+      .select('bookId title author description cover content category genre language isPro rating reactions publishedDate isNew textExtracted');
 
     res.json({
       success: true,
@@ -43,7 +43,8 @@ router.get('/', async (req, res) => {
 // GET /api/books/:id - Get single book with full text
 router.get('/:id', async (req, res) => {
   try {
-    const book = await Book.findById(req.params.id);
+    const bookId = parseInt(req.params.id);
+    const book = await Book.findOne({ bookId });
 
     if (!book) {
       return res.status(404).json({
