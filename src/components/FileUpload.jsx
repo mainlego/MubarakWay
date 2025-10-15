@@ -143,8 +143,9 @@ const FileUpload = ({
       });
 
       if (response.data.success) {
-        // Формируем полный URL: базовый URL + относительный путь
-        const fileUrl = `${API_URL}${response.data.file.url}`;
+        // Сервер возвращает полный URL, используем его напрямую
+        const fileUrl = response.data.file.url;
+        console.log('✅ [FileUpload] File uploaded successfully:', fileUrl);
         setPreviewUrl(fileUrl);
         onUploadSuccess?.(fileUrl);
         setUploadProgress(100);
@@ -163,20 +164,27 @@ const FileUpload = ({
   const handleRemove = async () => {
     if (!previewUrl) return;
 
+    console.log('🗑️ [FileUpload] Removing file:', previewUrl);
+
     try {
       const token = localStorage.getItem('adminToken');
 
-      // Извлекаем относительный путь из URL
-      const fileUrl = previewUrl.replace(API_URL, '');
-
+      // Отправляем полный URL на сервер - он сам извлечёт путь
       await axios.delete(`${API_URL}/api/upload`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        data: { fileUrl }
+        data: { fileUrl: previewUrl }
       });
 
+      console.log('✅ [FileUpload] File removed successfully');
+
+      // Очищаем состояние
       setPreviewUrl('');
+      setUploadProgress(0);
+      setError('');
+
+      // Вызываем callback родителя
       onRemove?.();
 
       // Сбрасываем input
@@ -184,7 +192,7 @@ const FileUpload = ({
         fileInputRef.current.value = '';
       }
     } catch (error) {
-      console.error('Delete file error:', error);
+      console.error('❌ [FileUpload] Delete file error:', error);
       setError('Ошибка удаления файла');
     }
   };
