@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database');
 
 const app = express();
@@ -30,6 +32,38 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
+
+// Security Middleware - Helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      frameSrc: ["'self'", "https://*.telegram.org", "https://telegram.org"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://telegram.org"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      connectSrc: ["'self'", "https://*.telegram.org", "https://mubarakway-frontend.onrender.com", "https://mubarak-way.onrender.com"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Rate Limiting - General API
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate Limiting - Auth endpoints (stricter)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 login attempts per windowMs
+  message: 'Too many login attempts, please try again later.',
+  skipSuccessfulRequests: true,
+});
 
 // Middleware
 app.use(cors(corsOptions));
@@ -99,12 +133,13 @@ const subscriptionsRoutes = require('./routes/subscriptions');
 const adminRoutes = require('./routes/admin');
 const uploadRoutes = require('./routes/upload');
 
-app.use('/api/auth', authRoutes);
-app.use('/api/books', booksRoutes);
-app.use('/api/nashids', nashidsRoutes);
-app.use('/api/subscriptions', subscriptionsRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/upload', uploadRoutes);
+// Apply rate limiting to routes
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/books', limiter, booksRoutes);
+app.use('/api/nashids', limiter, nashidsRoutes);
+app.use('/api/subscriptions', limiter, subscriptionsRoutes);
+app.use('/api/admin', limiter, adminRoutes);
+app.use('/api/upload', limiter, uploadRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
