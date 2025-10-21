@@ -128,6 +128,11 @@ const NashidCard = ({ nashid, onPlay }) => {
           <p className="text-white/80 text-sm truncate">{nashid.artist}</p>
           <div className="flex items-center space-x-2 mt-1">
             <p className="text-white/60 text-xs">{nashid.duration}</p>
+            {nashid.category && (
+              <span className="px-2 py-0.5 bg-purple-500/30 text-purple-200 text-xs rounded-full">
+                {nashid.category}
+              </span>
+            )}
             {isOfflineAvailable && (
               <HardDrive className="w-3 h-3 text-green-400" title="Доступно офлайн" />
             )}
