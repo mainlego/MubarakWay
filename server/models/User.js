@@ -96,7 +96,15 @@ const userSchema = new mongoose.Schema({
       latitude: Number,
       longitude: Number,
       city: String,
-      country: String
+      country: String,
+      timezone: {
+        type: String,
+        default: 'Europe/Moscow'
+      },
+      updatedAt: {
+        type: Date,
+        default: Date.now
+      }
     },
     calculationMethod: {
       type: String,

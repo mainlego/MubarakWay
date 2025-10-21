@@ -3,6 +3,7 @@ const { Telegraf, Markup } = require('telegraf');
 const { Coordinates, CalculationMethod, PrayerTimes } = require('adhan');
 const fs = require('fs');
 const path = require('path');
+const User = require('./models/User');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const WEB_APP_URL = process.env.WEB_APP_URL;
@@ -648,29 +649,68 @@ bot.action('show_schedule', async (ctx) => {
   });
 });
 
-// Обработчик получения локации
+// Обработчик получения локации (из Telegram чата - legacy, рекомендуется использовать веб-приложение)
 bot.on('location', async (ctx) => {
   const { latitude, longitude } = ctx.message.location;
   const userId = ctx.from.id;
 
-  console.log(`📍 Received location from user ${userId}: ${latitude}, ${longitude}`);
+  console.log(`📍 [BOT] Received location from Telegram chat user ${userId}: ${latitude}, ${longitude}`);
+  console.log('⚠️ Note: Location from Telegram chat is legacy. Recommend using web app instead.');
 
-  // Определяем часовой пояс (примерно, по координатам)
-  // В идеале использовать API для точного определения, но для простоты используем UTC offset
-  const timezone = getTimezoneFromCoordinates(latitude, longitude);
+  try {
+    // Определяем часовой пояс
+    const timezone = getTimezoneFromCoordinates(latitude, longitude);
 
-  // Обновляем подписку пользователя
-  subscribeUser(userId, { latitude, longitude }, timezone);
-  saveSubscriptions();
+    // Сохраняем в MongoDB
+    let user = await User.findOne({ telegramId: userId.toString() });
 
-  // Вычисляем время молитв для новой локации
-  const prayerTimes = calculatePrayerTimes({ latitude, longitude });
+    if (!user) {
+      user = new User({
+        telegramId: userId.toString(),
+        firstName: ctx.from.first_name,
+        lastName: ctx.from.last_name,
+        username: ctx.from.username,
+        prayerSettings: {
+          location: {
+            latitude,
+            longitude,
+            timezone,
+            updatedAt: new Date()
+          },
+          notifications: {
+            enabled: true
+          }
+        }
+      });
+      console.log(`✅ Created new user ${userId} with location from Telegram chat`);
+    } else {
+      user.prayerSettings = user.prayerSettings || {};
+      user.prayerSettings.location = {
+        latitude,
+        longitude,
+        city: user.prayerSettings.location?.city,
+        country: user.prayerSettings.location?.country,
+        timezone,
+        updatedAt: new Date()
+      };
+      console.log(`✅ Updated location for user ${userId} from Telegram chat`);
+    }
 
-  if (prayerTimes) {
-    const { currentPrayer, nextPrayer } = getCurrentAndNextPrayer(prayerTimes);
+    user.lastActive = new Date();
+    await user.save();
 
-    await ctx.replyWithMarkdown(
-      `✅ *Локация успешно сохранена!*
+    // Обновляем локальную подписку (для совместимости с legacy системой)
+    subscribeUser(userId, { latitude, longitude }, timezone);
+    saveSubscriptions();
+
+    // Вычисляем время молитв для новой локации
+    const prayerTimes = calculatePrayerTimes({ latitude, longitude });
+
+    if (prayerTimes) {
+      const { currentPrayer, nextPrayer } = getCurrentAndNextPrayer(prayerTimes);
+
+      await ctx.replyWithMarkdown(
+        `✅ *Локация успешно сохранена!*
 
 📍 Координаты: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}
 🌍 Часовой пояс: ${timezone}
@@ -687,10 +727,14 @@ bot.on('location', async (ctx) => {
 ${nextPrayer ? `\n📿 Следующая молитва: *${nextPrayer.name}* в ${formatTime(nextPrayer.time, timezone)}` : ''}
 
 🔔 Вы будете получать уведомления о времени молитв!`,
-      Markup.removeKeyboard()
-    );
-  } else {
-    await ctx.reply('❌ Не удалось рассчитать время молитв. Попробуйте еще раз.', Markup.removeKeyboard());
+        Markup.removeKeyboard()
+      );
+    } else {
+      await ctx.reply('❌ Не удалось рассчитать время молитв. Попробуйте еще раз.', Markup.removeKeyboard());
+    }
+  } catch (error) {
+    console.error('Error saving location from Telegram chat:', error);
+    await ctx.reply('❌ Ошибка при сохранении локации. Попробуйте использовать веб-приложение.', Markup.removeKeyboard());
   }
 });
 
@@ -1071,20 +1115,52 @@ function formatTime(date, timezone = 'Europe/Moscow') {
   });
 }
 
-// Проверка времени молитв и отправка уведомлений
+// Проверка времени молитв и отправка уведомлений (читает из MongoDB)
 async function checkPrayerTimes() {
   try {
     const now = new Date();
-    console.log(`🔍 Checking prayer times for ${userSubscriptions.size} subscribers at ${now.toISOString()}`);
 
-    if (userSubscriptions.size === 0) {
-      console.log('⚠️ No subscribers yet. Users will be subscribed when they run /start');
+    // Получаем пользователей из MongoDB с включенными уведомлениями
+    const users = await User.find({
+      'prayerSettings.notifications.enabled': true,
+      'prayerSettings.location.latitude': { $exists: true }
+    });
+
+    console.log(`🔍 Checking prayer times for ${users.length} users from MongoDB at ${now.toISOString()}`);
+
+    if (users.length === 0) {
+      console.log('⚠️ No users with notifications enabled in MongoDB');
       return;
     }
 
-    for (const [userId, subscription] of userSubscriptions) {
+    for (const user of users) {
       try {
-        const prayerTimes = calculatePrayerTimes(subscription.location);
+        const userId = user.telegramId;
+        const location = user.prayerSettings?.location;
+        const timezone = location?.timezone || 'Europe/Moscow';
+
+        if (!location || !location.latitude || !location.longitude) {
+          console.warn(`❌ No location for user ${userId}`);
+          continue;
+        }
+
+        // Синхронизируем с legacy системой (для совместимости)
+        if (!userSubscriptions.has(userId)) {
+          userSubscriptions.set(userId, {
+            userId,
+            location: {
+              latitude: location.latitude,
+              longitude: location.longitude
+            },
+            timezone: timezone
+          });
+        }
+
+        const prayerTimes = calculatePrayerTimes({
+          latitude: location.latitude,
+          longitude: location.longitude
+        });
+
         if (!prayerTimes) {
           console.warn(`❌ Could not calculate prayer times for user ${userId}`);
           continue;
@@ -1100,7 +1176,7 @@ async function checkPrayerTimes() {
         const minutesUntilNext = Math.floor(timeUntilNext / (1000 * 60));
 
         if (minutesUntilNext <= 15) {
-          console.log(`⏱️ User ${userId}: ${minutesUntilNext} min until ${nextPrayer.name} at ${formatTime(nextPrayer.time, subscription.timezone)}`);
+          console.log(`⏱️ User ${userId}: ${minutesUntilNext} min until ${nextPrayer.name} at ${formatTime(nextPrayer.time, timezone)}`);
         }
 
         // Уведомление за 10 минут до молитвы
@@ -1110,7 +1186,7 @@ async function checkPrayerTimes() {
             await bot.telegram.sendMessage(
               userId,
               `⏰ <b>Осталось 10 минут до молитвы ${nextPrayer.name}</b>\n\n` +
-              `🕌 Время: ${formatTime(nextPrayer.time, subscription.timezone)}\n\n` +
+              `🕌 Время: ${formatTime(nextPrayer.time, timezone)}\n\n` +
               `Приготовьтесь к намазу.`,
               { parse_mode: 'HTML' }
             );
@@ -1127,7 +1203,7 @@ async function checkPrayerTimes() {
             await bot.telegram.sendMessage(
               userId,
               `🕌 <b>Наступило время молитвы ${nextPrayer.name}</b>\n\n` +
-              `🕐 ${formatTime(nextPrayer.time, subscription.timezone)}\n\n` +
+              `🕐 ${formatTime(nextPrayer.time, timezone)}\n\n` +
               `Не откладывайте намаз!`,
               {
                 parse_mode: 'HTML',
@@ -1171,7 +1247,7 @@ async function checkPrayerTimes() {
                 await bot.telegram.sendMessage(
                   userId,
                   `📿 <b>Следующая молитва: ${upcomingPrayer.name}</b>\n\n` +
-                  `🕐 Время: ${formatTime(upcomingPrayer.time, subscription.timezone)}\n` +
+                  `🕐 Время: ${formatTime(upcomingPrayer.time, timezone)}\n` +
                   `⏳ Через: ${hoursUntil}ч ${minutesRemaining}м`,
                   { parse_mode: 'HTML' }
                 );

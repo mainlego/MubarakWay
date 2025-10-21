@@ -165,6 +165,7 @@ const subscriptionsRoutes = require('./routes/subscriptions');
 const adminRoutes = require('./routes/admin');
 const uploadRoutes = require('./routes/upload');
 const versionRoutes = require('./routes/version');
+const locationRoutes = require('./routes/location');
 
 // Apply rate limiting to routes
 app.use('/api/auth', authLimiter, authRoutes);
@@ -174,6 +175,7 @@ app.use('/api/subscriptions', limiter, subscriptionsRoutes);
 app.use('/api/admin', limiter, adminRoutes);
 app.use('/api/upload', limiter, uploadRoutes);
 app.use('/api/version', versionRoutes);
+app.use('/api/location', limiter, locationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
