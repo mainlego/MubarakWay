@@ -443,19 +443,69 @@ const AdminNashidsManagement = () => {
                   <label className="block text-white/80 text-sm font-medium mb-2">
                     Категория *
                   </label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-purple-400"
-                  >
-                    {categories.filter(c => c.value).map(cat => (
-                      <option key={cat.value} value={cat.value} className="bg-slate-800">
-                        {cat.label}
-                      </option>
-                    ))}
-                  </select>
+                  {!showCustomCategory ? (
+                    <div className="space-y-2">
+                      <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-purple-400"
+                      >
+                        {categories.filter(c => c.value).map(cat => (
+                          <option key={cat.value} value={cat.value} className="bg-slate-800">
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomCategory(true)}
+                        className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                      >
+                        + Добавить свою категорию
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={customCategory.label}
+                        onChange={(e) => setCustomCategory({
+                          label: e.target.value,
+                          value: e.target.value.toLowerCase().replace(/\s+/g, '_')
+                        })}
+                        placeholder="Название категории (например: Дуа)"
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/40 focus:outline-none focus:border-purple-400"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (customCategory.label && customCategory.value) {
+                              setCategories([...categories, customCategory]);
+                              setFormData({ ...formData, category: customCategory.value });
+                              setCustomCategory({ value: '', label: '' });
+                              setShowCustomCategory(false);
+                            }
+                          }}
+                          className="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm transition-colors"
+                        >
+                          Добавить
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCustomCategory(false);
+                            setCustomCategory({ value: '', label: '' });
+                          }}
+                          className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Duration */}

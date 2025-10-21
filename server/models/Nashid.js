@@ -34,8 +34,9 @@ const nashidSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['spiritual', 'family', 'gratitude', 'prophetic', 'tawhid'],
-    required: true
+    required: true,
+    trim: true
+    // Removed enum to allow custom categories
   },
   language: {
     type: String,
