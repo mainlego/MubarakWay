@@ -76,15 +76,37 @@ export const authAPI = {
   // Сохранить геолокацию пользователя
   saveLocation: async (telegramId, latitude, longitude, city = null, country = null) => {
     try {
-      const response = await api.put(`/auth/location/${telegramId}`, {
+      console.log('📍 Saving location to database:', {
+        telegramId,
         latitude,
         longitude,
         city,
         country
       });
+
+      const response = await api.post('/location', {
+        telegramId,
+        latitude,
+        longitude,
+        city,
+        country
+      });
+
+      console.log('✅ Location saved successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Save location API error:', error);
+      throw error;
+    }
+  },
+
+  // Получить геолокацию пользователя
+  getLocation: async (telegramId) => {
+    try {
+      const response = await api.get(`/location/${telegramId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get location API error:', error);
       throw error;
     }
   },
