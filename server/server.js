@@ -164,6 +164,7 @@ const nashidsRoutes = require('./routes/nashids');
 const subscriptionsRoutes = require('./routes/subscriptions');
 const adminRoutes = require('./routes/admin');
 const uploadRoutes = require('./routes/upload');
+const versionRoutes = require('./routes/version');
 
 // Apply rate limiting to routes
 app.use('/api/auth', authLimiter, authRoutes);
@@ -172,6 +173,7 @@ app.use('/api/nashids', limiter, nashidsRoutes);
 app.use('/api/subscriptions', limiter, subscriptionsRoutes);
 app.use('/api/admin', limiter, adminRoutes);
 app.use('/api/upload', limiter, uploadRoutes);
+app.use('/api/version', versionRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
