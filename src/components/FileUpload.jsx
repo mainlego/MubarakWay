@@ -3,6 +3,14 @@ import { Upload, X, File, Image as ImageIcon, Music, FileText, Loader2, CheckCir
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const DEBUG = import.meta.env.MODE === 'development';
+
+// Debug logger - only logs in development mode
+const debugLog = (...args) => {
+  if (DEBUG) {
+    console.log(...args);
+  }
+};
 
 /**
  * FileUpload Component
@@ -31,7 +39,7 @@ const FileUpload = ({
 
   // Логируем props при монтировании и изменении category
   React.useEffect(() => {
-    console.log('🎨 [FileUpload] Component mounted/updated with props:', {
+    debugLog('🎨 [FileUpload] Component mounted/updated with props:', {
       category,
       label,
       currentUrl
@@ -105,7 +113,7 @@ const FileUpload = ({
 
   // Загрузка файла
   const uploadFile = async (file) => {
-    console.log('🔍 [FileUpload] Starting upload with:', {
+    debugLog('🔍 [FileUpload] Starting upload with:', {
       category,
       fileName: file.name,
       fileType: file.type,
@@ -124,7 +132,7 @@ const FileUpload = ({
       formData.append('file', file);
 
       // Проверяем что FormData содержит
-      console.log('📦 [FileUpload] FormData prepared:', {
+      debugLog('📦 [FileUpload] FormData prepared:', {
         category: formData.get('category'),
         hasFile: formData.has('file')
       });
@@ -145,7 +153,7 @@ const FileUpload = ({
       if (response.data.success) {
         // Сервер возвращает полный URL, используем его напрямую
         const fileUrl = response.data.file.url;
-        console.log('✅ [FileUpload] File uploaded successfully:', fileUrl);
+        debugLog('✅ [FileUpload] File uploaded successfully:', fileUrl);
         setPreviewUrl(fileUrl);
         onUploadSuccess?.(fileUrl);
         setUploadProgress(100);
@@ -168,7 +176,7 @@ const FileUpload = ({
 
     if (!previewUrl) return;
 
-    console.log('🗑️ [FileUpload] Removing file:', previewUrl);
+    debugLog('🗑️ [FileUpload] Removing file:', previewUrl);
 
     try {
       const token = localStorage.getItem('adminToken');
@@ -181,7 +189,7 @@ const FileUpload = ({
         data: { fileUrl: previewUrl }
       });
 
-      console.log('✅ [FileUpload] File removed successfully');
+      debugLog('✅ [FileUpload] File removed successfully');
 
       // Очищаем состояние
       setPreviewUrl('');

@@ -44,13 +44,17 @@ const AdminNashidsManagement = () => {
     accessLevel: 'free'
   });
 
-  const categories = [
+  const [categories, setCategories] = useState([
     { value: '', label: 'Все категории' },
     { value: 'spiritual', label: 'Духовные' },
     { value: 'family', label: 'Семейные' },
     { value: 'gratitude', label: 'Благодарность' },
-    { value: 'prophetic', label: 'О Пророке ﷺ' }
-  ];
+    { value: 'prophetic', label: 'О Пророке ﷺ' },
+    { value: 'tawhid', label: 'Единобожие' }
+  ]);
+
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState({ value: '', label: '' });
 
   const accessLevels = [
     { value: 'free', label: 'Бесплатно (Muslim)' },
