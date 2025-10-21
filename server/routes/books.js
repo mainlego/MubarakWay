@@ -9,6 +9,7 @@ const path = require('path');
 // GET /api/books - Get all books (for users)
 router.get('/', async (req, res) => {
   try {
+    console.log('📚 GET /api/books - Request received');
     const { category, genre, language, search, isPro } = req.query;
 
     const filter = {};
@@ -21,9 +22,23 @@ router.get('/', async (req, res) => {
       filter.$text = { $search: search };
     }
 
+    console.log('📚 Query filter:', filter);
+
     const books = await Book.find(filter)
       .sort(search ? { score: { $meta: 'textScore' } } : { publishedDate: -1 })
       .select('bookId title author description cover content category genre language isPro rating reactions publishedDate isNew textExtracted');
+
+    console.log(`📚 Found ${books.length} books in database`);
+
+    if (books.length > 0) {
+      console.log('📚 First book:', {
+        bookId: books[0].bookId,
+        title: books[0].title,
+        hasContent: !!books[0].content
+      });
+    } else {
+      console.warn('⚠️ No books found in database!');
+    }
 
     res.json({
       success: true,

@@ -174,6 +174,7 @@ router.post('/playlist', async (req, res) => {
 // GET /api/nashids - Get all nashids for users
 router.get('/', async (req, res) => {
   try {
+    console.log('🎵 GET /api/nashids - Request received');
     const { search, category, language, limit = 50 } = req.query;
 
     // Build filter
@@ -191,12 +192,24 @@ router.get('/', async (req, res) => {
       filter.language = language;
     }
 
+    console.log('🎵 Query filter:', filter);
+
     const nashids = await Nashid.find(filter)
       .sort(search ? { score: { $meta: 'textScore' } } : { createdAt: -1 })
       .limit(parseInt(limit))
       .select('nashidId title titleTransliteration artist audioUrl coverImage cover duration category language releaseYear accessLevel isExclusive');
 
-    console.log(`🎵 Fetched ${nashids.length} nashids for users`);
+    console.log(`🎵 Found ${nashids.length} nashids in database`);
+
+    if (nashids.length > 0) {
+      console.log('🎵 First nashid:', {
+        nashidId: nashids[0].nashidId,
+        title: nashids[0].title,
+        hasAudio: !!nashids[0].audioUrl
+      });
+    } else {
+      console.warn('⚠️ No nashids found in database!');
+    }
 
     res.json({
       success: true,
