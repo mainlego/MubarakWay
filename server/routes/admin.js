@@ -534,14 +534,21 @@ router.post('/nashids', authenticateAdmin, async (req, res) => {
       });
     }
 
+    // Auto-generate nashidId
+    const lastNashid = await Nashid.findOne().sort({ nashidId: -1 }).limit(1);
+    const nextNashidId = lastNashid ? lastNashid.nashidId + 1 : 1;
+
     const nashidData = {
       ...req.body,
+      nashidId: nextNashidId,
       // Map coverImage to cover for backward compatibility
       cover: req.body.coverImage || req.body.cover
     };
 
     const nashid = new Nashid(nashidData);
     await nashid.save();
+
+    console.log(`✅ Created nashid with nashidId: ${nextNashidId}`);
 
     res.status(201).json({
       success: true,

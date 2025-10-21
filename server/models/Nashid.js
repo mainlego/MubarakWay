@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const nashidSchema = new mongoose.Schema({
+  nashidId: {
+    type: Number,
+    unique: true,
+    required: true,
+    index: true
+  },
   title: {
     type: String,
     required: true,

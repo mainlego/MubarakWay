@@ -194,16 +194,13 @@ router.get('/', async (req, res) => {
     const nashids = await Nashid.find(filter)
       .sort(search ? { score: { $meta: 'textScore' } } : { createdAt: -1 })
       .limit(parseInt(limit))
-      .select('title artist audioUrl coverImage duration category language releaseYear accessLevel');
+      .select('nashidId title titleTransliteration artist audioUrl coverImage cover duration category language releaseYear accessLevel isExclusive');
 
     console.log(`🎵 Fetched ${nashids.length} nashids for users`);
 
     res.json({
       success: true,
-      nashids: nashids.map(nashid => ({
-        ...nashid.toObject(),
-        id: nashid._id
-      })),
+      nashids,
       count: nashids.length
     });
 
