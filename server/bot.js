@@ -508,15 +508,24 @@ bot.action('show_prayer_menu', async (ctx) => {
     }
 
     // Получаем текущее время молитв
-    const times = await getPrayerTimes(subscription.location.latitude, subscription.location.longitude);
-    const now = new Date();
-    const nextPrayer = getNextPrayer(times, now);
+    const prayerTimes = calculatePrayerTimes(subscription.location);
+    if (!prayerTimes) {
+      await ctx.reply('❌ Не удалось рассчитать время молитв');
+      return;
+    }
+
+    const { currentPrayer, nextPrayer } = getCurrentAndNextPrayer(prayerTimes);
 
     if (nextPrayer) {
+      const now = new Date();
+      const timeUntil = nextPrayer.time - now;
+      const hoursUntil = Math.floor(timeUntil / (1000 * 60 * 60));
+      const minutesUntil = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
+
       await ctx.reply(
         `🕌 Следующая молитва: ${nextPrayer.name}\n` +
-        `🕐 Время: ${nextPrayer.time}\n` +
-        `⏰ Через: ${nextPrayer.remaining}`,
+        `🕐 Время: ${formatTime(nextPrayer.time, subscription.timezone)}\n` +
+        `⏰ Через: ${hoursUntil}ч ${minutesUntil}м`,
         {
           reply_markup: {
             inline_keyboard: [
@@ -685,37 +694,50 @@ ${nextPrayer ? `\n📿 Следующая молитва: *${nextPrayer.name}* �
   }
 });
 
-// Функция для определения часового пояса по координатам (упрощенная)
+// Функция для определения часового пояса по координатам (улучшенная)
 function getTimezoneFromCoordinates(lat, lon) {
-  // Упрощенный метод: определяем по долготе
-  // Для точности нужно использовать API (например, Google Time Zone API)
-  const offset = Math.round(lon / 15);
-
-  // Популярные города и их часовые пояса
-  const timezones = {
-    'Europe/Moscow': { lat: [50, 60], lon: [30, 50] },
-    'Asia/Tashkent': { lat: [38, 45], lon: [60, 75] },
-    'Asia/Almaty': { lat: [42, 55], lon: [65, 85] },
-    'Europe/Istanbul': { lat: [38, 42], lon: [26, 45] },
-    'Asia/Dubai': { lat: [22, 27], lon: [50, 58] },
-    'Asia/Riyadh': { lat: [16, 32], lon: [34, 56] },
-    'Europe/London': { lat: [50, 60], lon: [-8, 2] },
-    'Europe/Paris': { lat: [42, 52], lon: [-5, 10] },
-    'Europe/Berlin': { lat: [47, 55], lon: [6, 15] },
-    'Asia/Jakarta': { lat: [-8, 6], lon: [95, 141] },
-    'Asia/Karachi': { lat: [23, 37], lon: [60, 78] },
-  };
+  // Популярные регионы и их часовые пояса (более точные границы)
+  const timezones = [
+    { name: 'Europe/Moscow', lat: [41, 82], lon: [19, 180] }, // Россия (вся европейская часть + Москва)
+    { name: 'Europe/Kaliningrad', lat: [54, 56], lon: [19, 23] }, // Калининград
+    { name: 'Europe/Samara', lat: [50, 56], lon: [45, 55] }, // Самара
+    { name: 'Asia/Yekaterinburg', lat: [54, 62], lon: [55, 65] }, // Екатеринбург
+    { name: 'Asia/Omsk', lat: [53, 60], lon: [68, 78] }, // Омск
+    { name: 'Asia/Krasnoyarsk', lat: [51, 72], lon: [84, 106] }, // Красноярск
+    { name: 'Asia/Irkutsk', lat: [50, 62], lon: [100, 120] }, // Иркутск
+    { name: 'Asia/Yakutsk', lat: [55, 75], lon: [115, 148] }, // Якутск
+    { name: 'Asia/Vladivostok', lat: [42, 70], lon: [130, 150] }, // Владивосток
+    { name: 'Asia/Tashkent', lat: [37, 46], lon: [55, 74] }, // Узбекистан
+    { name: 'Asia/Almaty', lat: [40, 56], lon: [46, 88] }, // Казахстан
+    { name: 'Europe/Istanbul', lat: [36, 42], lon: [25, 45] }, // Турция
+    { name: 'Asia/Dubai', lat: [22, 27], lon: [51, 57] }, // ОАЭ
+    { name: 'Asia/Riyadh', lat: [16, 33], lon: [34, 56] }, // Саудовская Аравия
+    { name: 'Europe/London', lat: [49, 61], lon: [-11, 2] }, // Великобритания
+    { name: 'Europe/Paris', lat: [41, 51], lon: [-5, 10] }, // Франция
+    { name: 'Europe/Berlin', lat: [47, 55], lon: [5, 16] }, // Германия
+    { name: 'Asia/Jakarta', lat: [-11, 6], lon: [95, 141] }, // Индонезия
+    { name: 'Asia/Karachi', lat: [23, 38], lon: [60, 78] }, // Пакистан
+    { name: 'Asia/Dhaka', lat: [20, 27], lon: [88, 93] }, // Бангладеш
+    { name: 'Asia/Tehran', lat: [25, 40], lon: [44, 64] }, // Иран
+    { name: 'Asia/Baghdad', lat: [29, 38], lon: [38, 49] }, // Ирак
+    { name: 'Europe/Kiev', lat: [44, 53], lon: [22, 41] }, // Украина
+    { name: 'Europe/Minsk', lat: [51, 57], lon: [23, 33] }, // Беларусь
+  ];
 
   // Проверяем, попадает ли в один из регионов
-  for (const [tz, bounds] of Object.entries(timezones)) {
-    if (lat >= bounds.lat[0] && lat <= bounds.lat[1] &&
-        lon >= bounds.lon[0] && lon <= bounds.lon[1]) {
-      return tz;
+  for (const tz of timezones) {
+    if (lat >= tz.lat[0] && lat <= tz.lat[1] &&
+        lon >= tz.lon[0] && lon <= tz.lon[1]) {
+      console.log(`🌍 Timezone detected: ${tz.name} for coordinates ${lat}, ${lon}`);
+      return tz.name;
     }
   }
 
   // Если не нашли точное совпадение, используем UTC offset
-  return offset >= 0 ? `Etc/GMT-${offset}` : `Etc/GMT+${Math.abs(offset)}`;
+  const offset = Math.round(lon / 15);
+  const tzName = offset >= 0 ? `Etc/GMT-${offset}` : `Etc/GMT+${Math.abs(offset)}`;
+  console.log(`🌍 Fallback timezone: ${tzName} (offset ${offset}) for coordinates ${lat}, ${lon}`);
+  return tzName;
 }
 
 // Текстовые команды
@@ -972,7 +994,26 @@ function calculatePrayerTimes(location, date = new Date()) {
   try {
     const coordinates = new Coordinates(location.latitude, location.longitude);
     const params = CalculationMethod.MuslimWorldLeague();
+
+    // Для высоких широт (например, Санкт-Петербург) используем специальное правило
+    const { HighLatitudeRule, Madhab } = require('adhan');
+    if (Math.abs(location.latitude) > 48) {
+      params.highLatitudeRule = HighLatitudeRule.MiddleOfTheNight;
+    }
+
+    // Устанавливаем мазхаб Shafi
+    params.madhab = Madhab.Shafi;
+
     const prayerTimes = new PrayerTimes(coordinates, date, params);
+
+    console.log(`📊 Prayer times calculated for ${location.latitude}, ${location.longitude}:`, {
+      fajr: prayerTimes.fajr.toLocaleTimeString('ru-RU'),
+      sunrise: prayerTimes.sunrise.toLocaleTimeString('ru-RU'),
+      dhuhr: prayerTimes.dhuhr.toLocaleTimeString('ru-RU'),
+      asr: prayerTimes.asr.toLocaleTimeString('ru-RU'),
+      maghrib: prayerTimes.maghrib.toLocaleTimeString('ru-RU'),
+      isha: prayerTimes.isha.toLocaleTimeString('ru-RU')
+    });
 
     return {
       fajr: prayerTimes.fajr,
