@@ -718,7 +718,7 @@ export const fetchBooks = createAsyncThunk(
 
       // Преобразуем данные из MongoDB формата в формат приложения
       const books = data.books.map(book => ({
-        id: book._id,
+        id: book.bookId, // Use bookId instead of _id for numeric ID
         title: book.title,
         author: book.author || '',
         description: book.description,

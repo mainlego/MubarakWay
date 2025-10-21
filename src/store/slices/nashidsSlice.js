@@ -92,7 +92,7 @@ export const fetchNashids = createAsyncThunk(
       }
 
       const nashids = data.nashids.map(nashid => ({
-        id: nashid._id,
+        id: nashid.nashidId, // Use nashidId instead of _id for numeric ID
         title: nashid.title,
         titleTransliteration: nashid.titleTransliteration || nashid.title,
         artist: nashid.artist || 'Unknown Artist',
