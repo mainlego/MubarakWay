@@ -35,32 +35,46 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
-    <!-- Cache Busting for Development -->
+    <!-- Version Control & Cache Busting -->
     <script>
-      // Clear cache on version change
-      const APP_VERSION = 'v3.2.5';
+      // Auto-updated by build script - DO NOT EDIT MANUALLY
+      const APP_VERSION = 'v1.0.0.1761087556938';
       const savedVersion = localStorage.getItem('app_version');
 
-      console.log('[Cache] Checking version:', { current: APP_VERSION, saved: savedVersion });
+      console.log('[Version] Checking version:', { current: APP_VERSION, saved: savedVersion });
 
-      if (savedVersion !== APP_VERSION) {
-        console.log('[Cache] New version detected, clearing cache and reloading...');
+      if (savedVersion && savedVersion !== APP_VERSION) {
+        console.log('[Version] New version detected! Clearing cache and reloading...');
+        console.log('[Version] Old:', savedVersion, '→ New:', APP_VERSION);
 
         // Clear Service Worker caches
         if ('caches' in window) {
           caches.keys().then(names => {
+            console.log('[Cache] Clearing', names.length, 'cache(s)');
             names.forEach(name => caches.delete(name));
           });
         }
 
-        // Clear localStorage except important data
-        const importantKeys = ['bookFavorites', 'bookmarks'];
+        // Clear localStorage except important user data
+        const importantKeys = [
+          'bookFavorites',
+          'bookmarks',
+          'nashidFavorites',
+          'offlineNashids',
+          'userData',
+          'prayerSettings'
+        ];
+
         const tempStorage = {};
         importantKeys.forEach(key => {
           const value = localStorage.getItem(key);
-          if (value) tempStorage[key] = value;
+          if (value) {
+            tempStorage[key] = value;
+            console.log('[Cache] Preserving:', key);
+          }
         });
 
+        // Clear all localStorage
         localStorage.clear();
 
         // Restore important data
@@ -68,10 +82,18 @@
           localStorage.setItem(key, tempStorage[key]);
         });
 
+        // Save new version
         localStorage.setItem('app_version', APP_VERSION);
 
-        // Reload page to get fresh content
+        // Force reload without cache
+        console.log('[Version] Reloading application...');
         window.location.reload(true);
+      } else if (!savedVersion) {
+        // First time visitor
+        console.log('[Version] First launch, setting version:', APP_VERSION);
+        localStorage.setItem('app_version', APP_VERSION);
+      } else {
+        console.log('[Version] ✅ Up to date');
       }
     </script>
   </head>

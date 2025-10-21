@@ -1,14 +1,17 @@
 {
   "name": "mubarak-way",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/updateVersion.js && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "vite preview --port 10000 --host 0.0.0.0"
+    "start": "vite preview --port 10000 --host 0.0.0.0",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version"
   },
   "engines": {
     "node": ">=20.17.0"

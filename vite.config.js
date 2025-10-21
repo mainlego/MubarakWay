@@ -18,8 +18,20 @@ export default defineConfig({
     // Ensure proper SPA routing in production
     rollupOptions: {
       output: {
+        // Add hash to filenames for cache busting
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: (assetInfo) => {
+          // Keep original extension for assets
+          const extType = assetInfo.name.split('.').pop();
+          return `assets/[name]-[hash].${extType}`;
+        },
         manualChunks: undefined,
       },
     },
+    // Generate source maps for better debugging
+    sourcemap: false,
+    // Optimize chunk size
+    chunkSizeWarningLimit: 1000,
   },
 })
