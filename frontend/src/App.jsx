@@ -34,7 +34,7 @@ import AdminSettings from './pages/admin/AdminSettings';
 import AdminManagement from './pages/admin/AdminManagement';
 import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminLayout from './components/AdminLayout';
-// import DebugConsole from './components/DebugConsole'; // Disabled - not needed in production
+import DebugPanel from './components/DebugPanel';
 
 function AppContent() {
   console.log('[AppContent] Component rendering...');
@@ -272,8 +272,8 @@ function AppContent() {
         />
       )}
 
-      {/* Debug Console - Disabled in production */}
-      {/* <DebugConsole /> */}
+      {/* Debug Panel - Always enabled for production debugging */}
+      <DebugPanel />
     </div>
   );
 }
