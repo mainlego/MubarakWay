@@ -1,0 +1,556 @@
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { fetchBooks, toggleFavorite } from '../store/slices/booksSlice';
+import BookCard from '../components/BookCard';
+import { Book, Heart, Search, Filter, Star, Lock, BookOpen, Crown, TrendingUp, Sparkles, Globe, Award } from 'lucide-react';
+import { getBackgroundWithOverlay } from '../utils/backgrounds';
+import {
+  selectCurrentSubscription,
+  selectCanAddFavoriteBook,
+  selectCanAddOfflineBook,
+  selectRemainingOfflineBooks,
+  selectRemainingFavoriteBooks
+} from '../store/slices/subscriptionSlice';
+
+const Library = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { books, favorites, loading } = useSelector(state => state.books);
+  const subscriptionConfig = useSelector(selectCurrentSubscription);
+  const canAddFavorite = useSelector(selectCanAddFavoriteBook);
+  const canAddOffline = useSelector(selectCanAddOfflineBook);
+  const remainingOffline = useSelector(selectRemainingOfflineBooks);
+  const remainingFavorites = useSelector(selectRemainingFavoriteBooks);
+  const { subscription = 'free' } = useSelector(state => state.auth || {});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [backgroundStyle, setBackgroundStyle] = useState({});
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+
+  // Новые фильтры для каталога
+  const [sortBy, setSortBy] = useState('default'); // default, new, rating
+  const [genreFilter, setGenreFilter] = useState('all'); // all, quran, hadith, prophets, aqidah, tafsir, islam
+  const [languageFilter, setLanguageFilter] = useState('all'); // all, ru, ar, en
+  const [showExclusiveOnly, setShowExclusiveOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+
+  useEffect(() => {
+    dispatch(fetchBooks());
+    setBackgroundStyle(getBackgroundWithOverlay('library', 0.4));
+
+    // Загружаем недавние поиски
+    const saved = localStorage.getItem('recentBookSearches');
+    if (saved) {
+      setRecentSearches(JSON.parse(saved));
+    }
+  }, [dispatch]);
+
+  // Сохраняем поисковые запросы
+  const saveSearch = (term) => {
+    if (term.trim() && !recentSearches.includes(term)) {
+      const newSearches = [term, ...recentSearches.slice(0, 4)]; // Оставляем только 5 последних
+      setRecentSearches(newSearches);
+      localStorage.setItem('recentBookSearches', JSON.stringify(newSearches));
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      saveSearch(searchTerm.trim());
+      setShowSearchSuggestions(false);
+    }
+  };
+
+  // Фильтрация и поиск книг
+  const filterBooks = (booksList) => {
+    let filtered = booksList;
+
+    // Применяем ограничение доступа на основе подписки (40% для Basic)
+    const booksAccess = subscriptionConfig.features.books.access;
+    if (booksAccess < 1) {
+      const availableCount = Math.floor(booksList.length * booksAccess);
+      filtered = booksList.slice(0, availableCount);
+    }
+
+    // Поиск по названию, автору и описанию
+    if (searchTerm) {
+      filtered = filtered.filter(book =>
+        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (book.author && book.author.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        book.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Фильтр по избранному
+    if (showFavorites) {
+      filtered = filtered.filter(book => favorites.includes(book.id));
+    }
+
+    // Фильтр по жанру
+    if (genreFilter !== 'all') {
+      filtered = filtered.filter(book => book.genre === genreFilter);
+    }
+
+    // Фильтр по языку
+    if (languageFilter !== 'all') {
+      filtered = filtered.filter(book => book.language === languageFilter);
+    }
+
+    // Фильтр по эксклюзиву (доступно только для Premium)
+    if (showExclusiveOnly) {
+      if (!subscriptionConfig.features.features.exclusiveContent) {
+        // Если нет доступа к эксклюзиву, показываем пустой список
+        filtered = [];
+      } else {
+        filtered = filtered.filter(book => book.isExclusive);
+      }
+    }
+
+    // Сортировка
+    if (sortBy === 'new') {
+      // Сначала новинки (isNew = true), затем по дате публикации
+      filtered = [...filtered].sort((a, b) => {
+        if (a.isNew && !b.isNew) return -1;
+        if (!a.isNew && b.isNew) return 1;
+        return new Date(b.publishedDate) - new Date(a.publishedDate);
+      });
+    } else if (sortBy === 'rating') {
+      // По рейтингу (количество реакций)
+      filtered = [...filtered].sort((a, b) => (b.reactions || 0) - (a.reactions || 0));
+    }
+
+    return filtered;
+  };
+
+  const freeBooks = filterBooks(books.filter(book => !book.isPro));
+  const proBooks = filterBooks(books.filter(book => book.isPro));
+
+  if (loading) {
+    return (
+      <div className="p-6 min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="text-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Загрузка библиотеки...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-4 sm:py-6 min-h-screen overflow-x-hidden relative bg-gradient-to-br from-indigo-950 via-purple-900 to-violet-900">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+        {/* Header with toggle */}
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Библиотека</h1>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg text-white active:bg-white/30 transition-all"
+          >
+            <svg
+              className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${showFilters ? '' : 'rotate-180'}`}
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 3v9.28l-2.64-2.64-1.42 1.42L12 15.12l4.06-4.06-1.42-1.42L12 12.28V3z"/>
+              <path d="M19 17v2H5v-2h14z"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Поиск и фильтры */}
+        <div
+          className={`transition-all duration-300 overflow-hidden ${
+            showFilters ? 'max-h-[2000px] opacity-100 mb-4 sm:mb-6' : 'max-h-0 opacity-0 mb-0'
+          }`}
+        >
+        <div className="space-y-3 sm:space-y-4 w-full">
+          {/* Строка поиска */}
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Поиск по названию, автору..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => setShowSearchSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
+              className="block w-full pl-9 sm:pl-10 pr-3 py-2 sm:py-3 border border-gray-300 rounded-xl leading-5 bg-white/90 backdrop-blur-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-xs sm:text-sm"
+            />
+
+            {/* Подсказки поиска */}
+            {showSearchSuggestions && recentSearches.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg z-10">
+                <div className="p-3">
+                  <p className="text-xs font-medium text-gray-600 mb-2">Недавние поиски:</p>
+                  {recentSearches.map((search, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setSearchTerm(search);
+                        setShowSearchSuggestions(false);
+                      }}
+                      className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      {search}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </form>
+
+          {/* Каталог - Сортировка */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 sm:p-4 w-full">
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="w-4 h-4 text-gray-600" />
+              <h3 className="text-sm font-semibold text-gray-700">Каталог</h3>
+            </div>
+
+            {/* Сортировка */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-600 mb-2">Сортировка:</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSortBy('default')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    sortBy === 'default'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  <BookOpen className="w-3 h-3" />
+                  По умолчанию
+                </button>
+                <button
+                  onClick={() => setSortBy('new')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    sortBy === 'new'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Новинки
+                </button>
+                <button
+                  onClick={() => setSortBy('rating')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    sortBy === 'rating'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  <TrendingUp className="w-3 h-3" />
+                  По рейтингу
+                </button>
+              </div>
+            </div>
+
+            {/* Жанр */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-600 mb-2">Жанр:</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setGenreFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'all'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Все
+                </button>
+                <button
+                  onClick={() => setGenreFilter('quran')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'quran'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Коран
+                </button>
+                <button
+                  onClick={() => setGenreFilter('hadith')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'hadith'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Хадисы
+                </button>
+                <button
+                  onClick={() => setGenreFilter('islam')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'islam'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Про ислам
+                </button>
+                <button
+                  onClick={() => setGenreFilter('aqidah')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    genreFilter === 'aqidah'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Акыда
+                </button>
+              </div>
+            </div>
+
+            {/* Язык */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-600 mb-2">Язык:</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setLanguageFilter('all')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    languageFilter === 'all'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  <Globe className="w-3 h-3" />
+                  Все
+                </button>
+                <button
+                  onClick={() => setLanguageFilter('ru')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    languageFilter === 'ru'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  Русский
+                </button>
+                <button
+                  onClick={() => setLanguageFilter('ar')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    languageFilter === 'ar'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  العربية
+                </button>
+                <button
+                  onClick={() => setLanguageFilter('en')}
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all ${
+                    languageFilter === 'en'
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-white text-gray-700 active:bg-gray-100'
+                  }`}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+
+            {/* Дополнительные фильтры */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setShowExclusiveOnly(!showExclusiveOnly)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                  showExclusiveOnly
+                    ? 'bg-yellow-500 text-white'
+                    : 'bg-white text-gray-700 active:bg-gray-100'
+                }`}
+              >
+                <Award className="w-3 h-3" />
+                Эксклюзив
+              </button>
+              <button
+                onClick={() => setShowFavorites(!showFavorites)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                  showFavorites
+                    ? 'bg-red-500 text-white'
+                    : 'bg-white text-gray-700 active:bg-gray-100'
+                }`}
+              >
+                <Heart className={`w-3 h-3 ${showFavorites ? 'fill-current' : ''}`} />
+                Избранное
+              </button>
+            </div>
+
+            {/* Кнопка сброса фильтров */}
+            {(searchTerm || showFavorites || sortBy !== 'default' || genreFilter !== 'all' || languageFilter !== 'all' || showExclusiveOnly) && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setShowFavorites(false);
+                  setSortBy('default');
+                  setGenreFilter('all');
+                  setLanguageFilter('all');
+                  setShowExclusiveOnly(false);
+                }}
+                className="mt-3 w-full bg-gray-500 text-white px-4 py-2 rounded-lg text-xs active:bg-gray-600 transition-all"
+              >
+                Сбросить все фильтры
+              </button>
+            )}
+          </div>
+
+          {/* Результаты поиска */}
+          {searchTerm && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3">
+              <p className="text-sm text-gray-600">
+                Найдено книг: <span className="font-semibold">{freeBooks.length + proBooks.length}</span>
+                {searchTerm && ` по запросу "${searchTerm}"`}
+              </p>
+            </div>
+          )}
+        </div>
+        </div>
+
+        {/* Free Books Section */}
+        {freeBooks.length > 0 && (
+          <section className="mb-6 sm:mb-8 w-full">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <h2 className="text-lg sm:text-xl font-semibold text-white">
+                Бесплатные книги ({freeBooks.length})
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 w-full">
+              {freeBooks.map(book => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Pro Books Section */}
+        {proBooks.length > 0 && (
+          <section className="mb-6 sm:mb-8 w-full">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
+              <div className="flex items-center gap-2">
+                <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
+                <h2 className="text-lg sm:text-xl font-semibold text-white">
+                  Книги PRO ({proBooks.length})
+                </h2>
+              </div>
+              {subscription === 'free' && (
+                <button className="bg-gradient-to-r from-green-500 to-green-600 active:from-green-600 active:to-green-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-2">
+                  <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
+                  Подписка
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 w-full">
+              {proBooks.map(book => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Сообщение если ничего не найдено */}
+        {freeBooks.length === 0 && proBooks.length === 0 && (searchTerm || showFavorites) && (
+          <div className="text-center py-12">
+            <Book className="w-16 h-16 text-white/50 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">
+              {showFavorites ? 'Нет избранных книг' : 'Книги не найдены'}
+            </h3>
+            <p className="text-white/80 mb-4">
+              {showFavorites
+                ? 'Добавьте книги в избранное, нажав на сердечко'
+                : `По запросу "${searchTerm}" ничего не найдено`
+              }
+            </p>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setShowFavorites(false);
+              }}
+              className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-all"
+            >
+              Показать все книги
+            </button>
+          </div>
+        )}
+
+        {/* Subscription Usage Stats */}
+        {subscriptionConfig && (
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 text-white w-full mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                {subscriptionConfig.id === 'muslim' && '📚'}
+                {subscriptionConfig.id === 'mutahsin' && '⭐'}
+                {subscriptionConfig.id === 'sahib_waqf' && '👑'}
+                {subscriptionConfig.name}
+              </h3>
+              <span className="text-xs sm:text-sm text-white/70">{subscriptionConfig.description}</span>
+            </div>
+
+            {/* Limits display */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <BookOpen className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm font-medium">Офлайн книги</span>
+                </div>
+                <p className="text-lg sm:text-xl font-bold">
+                  {remainingOffline === -1 ? '∞' : remainingOffline}
+                  {remainingOffline !== -1 && <span className="text-sm text-white/60"> осталось</span>}
+                </p>
+              </div>
+
+              <div className="bg-white/10 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Heart className="w-4 h-4" />
+                  <span className="text-xs sm:text-sm font-medium">Избранное</span>
+                </div>
+                <p className="text-lg sm:text-xl font-bold">
+                  {remainingFavorites === -1 ? '∞' : remainingFavorites}
+                  {remainingFavorites !== -1 && <span className="text-sm text-white/60"> осталось</span>}
+                </p>
+              </div>
+            </div>
+
+            {/* Catalog access info */}
+            {subscriptionConfig.features.books.access < 1 && (
+              <div className="mt-3 p-3 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                <p className="text-xs sm:text-sm text-yellow-100">
+                  ⚠️ Доступно {Math.floor(subscriptionConfig.features.books.access * 100)}% каталога ({Math.floor(books.length * subscriptionConfig.features.books.access)} из {books.length} книг)
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Subscription Banner */}
+        {subscriptionConfig.id === 'muslim' && (
+          <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-4 sm:p-6 text-white w-full mb-20">
+            <h3 className="text-base sm:text-lg font-semibold mb-2">Хотите больше? Улучшите подписку!</h3>
+            <p className="text-green-100 text-xs sm:text-sm mb-3 sm:mb-4">
+              <strong>Мутахсин (PRO):</strong> Полный каталог, неограниченные офлайн книги и нашиды, заметки и синхронизация<br/>
+              <strong>Сахиб аль-Вакф (Premium):</strong> Всё из PRO + AI-помощник, семейный доступ, ранний доступ к новинкам
+            </p>
+            <button
+              onClick={() => navigate('/subscription')}
+              className="bg-white text-green-600 px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base font-medium active:bg-green-50 transition-colors w-full sm:w-auto"
+            >
+              Улучшить подписку
+            </button>
+          </div>
+        )}
+
+        {/* Bottom spacing for navigation */}
+        <div className="h-20" />
+      </div>
+    </div>
+  );
+};
+
+export default Library;

@@ -1,0 +1,23 @@
+<svg width="200" height="280" viewBox="0 0 200 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Коран -->
+  <rect width="200" height="280" rx="8" fill="#1a5f3f"/>
+  <rect x="10" y="10" width="180" height="260" rx="4" fill="#2d7c47" stroke="#d4af37" stroke-width="2"/>
+
+  <!-- Орнамент -->
+  <circle cx="100" cy="80" r="30" fill="none" stroke="#d4af37" stroke-width="2"/>
+  <circle cx="100" cy="80" r="20" fill="none" stroke="#d4af37" stroke-width="1"/>
+
+  <!-- Арабская каллиграфия стилизация -->
+  <path d="M70 80 Q100 60 130 80 Q100 100 70 80" fill="#d4af37"/>
+
+  <!-- Заголовок -->
+  <rect x="30" y="150" width="140" height="60" fill="none" stroke="#d4af37" stroke-width="1"/>
+  <text x="100" y="175" text-anchor="middle" fill="#d4af37" font-size="14" font-weight="bold">القرآن</text>
+  <text x="100" y="195" text-anchor="middle" fill="#d4af37" font-size="12">الكريم</text>
+
+  <!-- Нижний орнамент -->
+  <rect x="40" y="230" width="120" height="2" fill="#d4af37"/>
+  <circle cx="60" cy="245" r="3" fill="#d4af37"/>
+  <circle cx="100" cy="245" r="3" fill="#d4af37"/>
+  <circle cx="140" cy="245" r="3" fill="#d4af37"/>
+</svg>

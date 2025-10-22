@@ -1,0 +1,733 @@
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  Shuffle,
+  Repeat,
+  Repeat1,
+  Heart,
+  Download,
+  Share2,
+  List,
+  Minimize2
+} from 'lucide-react';
+import { playNashid, pauseNashid, stopNashid, toggleFavorite } from '../store/slices/nashidsSlice';
+import { useOfflineNashids } from '../hooks/useOffline';
+
+const AudioPlayer = ({ nashid, playlist = [], onClose, isMinimized, onToggleMinimize }) => {
+  const dispatch = useDispatch();
+  const { favorites, isPlaying } = useSelector(state => state.nashids);
+  const { saveNashidOffline, isNashidAvailableOffline } = useOfflineNashids();
+
+  const audioRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isShuffled, setIsShuffled] = useState(false);
+  const [repeatMode, setRepeatMode] = useState('none'); // none, all, one
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPlaylist, setShowPlaylist] = useState(false);
+  const [isOfflineAvailable, setIsOfflineAvailable] = useState(false);
+  // Используем useRef для hasUserInteracted чтобы не сбрасывался при ре-рендере
+  const hasUserInteracted = useRef(false);
+  const [audioError, setAudioError] = useState(null);
+
+  // Получаем правильный URL для аудио
+  const getAudioUrl = useCallback((nashidItem) => {
+    return nashidItem?.audioUrl || nashidItem?.audio_url || '';
+  }, []);
+
+  // Очистка всех других аудио элементов
+  const stopAllOtherAudio = useCallback(() => {
+    const allAudio = document.querySelectorAll('audio');
+    allAudio.forEach(audioElement => {
+      if (audioElement !== audioRef.current && !audioElement.paused) {
+        audioElement.pause();
+        audioElement.currentTime = 0;
+      }
+    });
+  }, []);
+
+  // Определяем ВСЕ обработчики ПЕРЕД использованием в useEffect
+  const handlePlayPause = useCallback(() => {
+    hasUserInteracted.current = true;
+
+    // Простое переключение состояния Redux
+    // Реальное управление аудио произойдет в useEffect
+    if (isPlaying) {
+      dispatch(pauseNashid());
+    } else {
+      if (nashid) {
+        dispatch(playNashid(nashid));
+      }
+    }
+  }, [isPlaying, nashid, dispatch]);
+
+  const handleNext = useCallback(() => {
+    if (playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex(n => n.id === nashid?.id);
+    let nextIndex;
+
+    if (isShuffled) {
+      nextIndex = Math.floor(Math.random() * playlist.length);
+    } else if (repeatMode === 'one') {
+      nextIndex = currentIndex;
+    } else {
+      nextIndex = (currentIndex + 1) % playlist.length;
+    }
+
+    const nextNashid = playlist[nextIndex];
+    if (nextNashid) {
+      dispatch(playNashid(nextNashid));
+    }
+  }, [playlist, nashid?.id, isShuffled, repeatMode, dispatch]);
+
+  const handlePrevious = useCallback(() => {
+    if (playlist.length === 0) return;
+
+    const currentIndex = playlist.findIndex(n => n.id === nashid?.id);
+    const prevIndex = currentIndex === 0 ? playlist.length - 1 : currentIndex - 1;
+    const prevNashid = playlist[prevIndex];
+
+    if (prevNashid) {
+      dispatch(playNashid(prevNashid));
+    }
+  }, [playlist, nashid?.id, dispatch]);
+
+  // Обработчики аудио событий - только после монтирования
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleDurationChange = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      setAudioError(null);
+    };
+
+    const handleLoadedData = () => {
+      setIsLoading(false);
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleCanPlay = () => setIsLoading(false);
+    const handleWaiting = () => setIsLoading(true);
+
+    const handlePlaying = () => {
+      setIsLoading(false);
+      // Синхронизация: если аудио начало играть БЕЗ команды от Redux
+      // Это может произойти при автоматическом возобновлении воспроизведения
+      // НО мы НЕ вызываем dispatch, так как это создаст бесконечный цикл
+      // Состояние Redux уже должно быть isPlaying=true
+    };
+
+    const handlePause = () => {
+      console.log('Audio pause event fired, but NOT syncing to Redux');
+
+      // Если Redux state говорит что должно играть, но аудио на паузе - возобновляем
+      // Это происходит при ре-рендере компонента (например, при сворачивании)
+      if (isPlaying && !isLoading) {
+        console.log('Auto-resuming playback because Redux state is playing');
+        setTimeout(() => {
+          const audio = audioRef.current;
+          if (audio && audio.paused && isPlaying) {
+            audio.play().catch(error => {
+              console.error('Failed to auto-resume:', error);
+            });
+          }
+        }, 100); // Небольшая задержка для завершения ре-рендера
+      }
+    };
+
+    const handleEnded = () => handleNext();
+
+    const handleError = (e) => {
+      console.error('Audio error:', e.target.error);
+      setIsLoading(false);
+      setAudioError(`Ошибка загрузки аудио: ${e.target.error?.message || 'Неизвестная ошибка'}`);
+      dispatch(pauseNashid());
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('loadeddata', handleLoadedData);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+
+    // Инициализация при монтировании
+    if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+      setDuration(audio.duration);
+    }
+    setCurrentTime(audio.currentTime);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('playing', handlePlaying);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+    };
+  }, [dispatch, handleNext, nashid, isPlaying, isLoading]);
+
+  // Проверка офлайн доступности
+  useEffect(() => {
+    const checkOfflineAvailability = async () => {
+      if (nashid) {
+        const available = await isNashidAvailableOffline(nashid.id);
+        setIsOfflineAvailable(available);
+      }
+    };
+    checkOfflineAvailability();
+  }, [nashid, isNashidAvailableOffline]);
+
+  // Основное управление воспроизведением
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !nashid) return;
+
+    const audioUrl = getAudioUrl(nashid);
+
+    if (!audioUrl) {
+      setAudioError('URL аудио не найден');
+      return;
+    }
+
+    // Устанавливаем источник только если он изменился
+    const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `${window.location.origin}${audioUrl}`;
+
+    console.log('Audio URL:', audioUrl);
+    console.log('Full Audio URL:', fullAudioUrl);
+
+    if (audio.src !== fullAudioUrl) {
+      audio.src = fullAudioUrl;
+      audio.load();
+      hasUserInteracted.current = true;
+    }
+
+    // Управляем воспроизведением на основе Redux state
+    // Важно: используем setTimeout для синхронизации состояния после ре-рендера
+    const syncPlayback = () => {
+      console.log('syncPlayback:', { isPlaying, audioPaused: audio.paused });
+
+      if (isPlaying && audio.paused) {
+        console.log('Starting playback...');
+        stopAllOtherAudio();
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('Playback started successfully');
+              setAudioError(null);
+              setIsLoading(false);
+            })
+            .catch(error => {
+              console.error('Ошибка воспроизведения:', error);
+              setAudioError(`Не удалось воспроизвести аудио: ${error.message}`);
+              setIsLoading(false);
+              dispatch(pauseNashid());
+            });
+        }
+      } else if (!isPlaying && !audio.paused) {
+        console.log('Pausing audio because Redux state is paused');
+        audio.pause();
+      }
+    };
+
+    // Немедленная синхронизация
+    syncPlayback();
+
+  }, [isPlaying, nashid, dispatch, stopAllOtherAudio, getAudioUrl]);
+
+  // Media Session API для фонового воспроизведения
+  useEffect(() => {
+    if ('mediaSession' in navigator && nashid) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: nashid.title,
+          artist: nashid.artist,
+          album: 'Islamic Nashids',
+          artwork: nashid.cover ? [
+            { src: nashid.cover, sizes: '512x512', type: 'image/jpeg' }
+          ] : []
+        });
+
+        navigator.mediaSession.setActionHandler('play', handlePlayPause);
+        navigator.mediaSession.setActionHandler('pause', handlePlayPause);
+        navigator.mediaSession.setActionHandler('previoustrack', playlist.length > 0 ? handlePrevious : null);
+        navigator.mediaSession.setActionHandler('nexttrack', playlist.length > 0 ? handleNext : null);
+
+        // Обновляем позицию воспроизведения только если есть duration
+        if (duration > 0 && currentTime >= 0) {
+          try {
+            navigator.mediaSession.setPositionState({
+              duration: duration,
+              playbackRate: 1,
+              position: Math.min(currentTime, duration)
+            });
+          } catch (error) {
+            console.warn('Failed to set position state:', error);
+          }
+        }
+      } catch (error) {
+        console.warn('Media Session API error:', error);
+      }
+    }
+  }, [nashid, currentTime, duration, playlist.length, handlePlayPause, handlePrevious, handleNext]);
+
+  const handleSeek = useCallback((e) => {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    const newTime = percent * duration;
+
+    audio.currentTime = newTime;
+    setCurrentTime(newTime);
+  }, [duration]);
+
+  const handleVolumeChange = useCallback((e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = newVolume;
+      setIsMuted(newVolume === 0);
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isMuted) {
+      audio.volume = volume;
+      setIsMuted(false);
+    } else {
+      audio.volume = 0;
+      setIsMuted(true);
+    }
+  }, [isMuted, volume]);
+
+  const toggleShuffle = useCallback(() => {
+    setIsShuffled(!isShuffled);
+  }, [isShuffled]);
+
+  const toggleRepeat = useCallback(() => {
+    const modes = ['none', 'all', 'one'];
+    const currentIndex = modes.indexOf(repeatMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setRepeatMode(modes[nextIndex]);
+  }, [repeatMode]);
+
+  const handleFavorite = useCallback(() => {
+    if (nashid) {
+      dispatch(toggleFavorite(nashid.id));
+    }
+  }, [nashid, dispatch]);
+
+  const handleDownload = useCallback(async () => {
+    if (!nashid || isOfflineAvailable) return;
+
+    try {
+      const audioUrl = getAudioUrl(nashid);
+      const response = await fetch(audioUrl);
+      const audioBlob = await response.blob();
+      await saveNashidOffline(nashid, audioBlob);
+      setIsOfflineAvailable(true);
+    } catch (error) {
+      console.error('Error downloading nashid:', error);
+    }
+  }, [nashid, isOfflineAvailable, getAudioUrl, saveNashidOffline]);
+
+  const handleShare = useCallback(async () => {
+    if (!nashid) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: nashid.title,
+          text: `Слушаю нашид: ${nashid.title} - ${nashid.artist}`,
+          url: window.location.href
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      navigator.clipboard.writeText(`${nashid.title} - ${nashid.artist}`);
+      // Можно добавить тост уведомление
+    }
+  }, [nashid]);
+
+  const formatTime = useCallback((time) => {
+    if (!time || isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }, []);
+
+  const getRepeatIcon = useCallback(() => {
+    switch (repeatMode) {
+      case 'one':
+        return <Repeat1 className="w-5 h-5" />;
+      case 'all':
+        return <Repeat className="w-5 h-5" />;
+      default:
+        return <Repeat className="w-5 h-5 opacity-50" />;
+    }
+  }, [repeatMode]);
+
+  const handleClose = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    dispatch(stopNashid());
+    onClose();
+  }, [dispatch, onClose]);
+
+  if (!nashid) return null;
+
+  const isFavorite = favorites.includes(nashid.id);
+
+  // Мини-плеер
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-20 right-4 z-50 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-lg max-w-sm">
+        <div className="flex items-center space-x-3">
+          <img
+            src={nashid.cover || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80"}
+            alt={nashid.title}
+            className="w-12 h-12 rounded-lg object-cover"
+          />
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium text-gray-900 truncate">{nashid.title}</h4>
+            <p className="text-sm text-gray-600 truncate">{nashid.artist}</p>
+          </div>
+          <button
+            onClick={handlePlayPause}
+            disabled={isLoading}
+            className={`p-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors touch-manipulation ${
+              audioError ? 'bg-red-600' : ''
+            }`}
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="w-5 h-5" />
+            ) : (
+              <Play className="w-5 h-5" />
+            )}
+          </button>
+          <button
+            onClick={onToggleMinimize}
+            className="p-2 text-gray-600 hover:text-gray-900 transition-colors touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            title="Развернуть"
+          >
+            <Minimize2 className="w-4 h-4 rotate-180" />
+          </button>
+          <button
+            onClick={handleClose}
+            className="p-2 text-gray-600 hover:text-red-600 transition-colors touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            title="Закрыть"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Прогресс бар в мини плеере */}
+        <div className="mt-3">
+          <div
+            className="w-full h-1 bg-gray-200 rounded-full cursor-pointer"
+            onClick={handleSeek}
+          >
+            <div
+              className="h-full bg-green-500 rounded-full transition-all duration-100"
+              style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Полный плеер
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end">
+      <div className="w-full bg-white rounded-t-3xl p-6 max-h-screen overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Аудиоплеер</h2>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onToggleMinimize}
+              className="p-2 text-gray-600 hover:text-gray-900 transition-colors touch-manipulation"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+              title="Свернуть"
+            >
+              <Minimize2 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleClose}
+              className="p-2 text-gray-600 hover:text-gray-900 transition-colors touch-manipulation"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        {/* Error Display */}
+        {audioError && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
+            {audioError}
+          </div>
+        )}
+
+        {/* Album Art */}
+        <div className="text-center mb-6">
+          <img
+            src={nashid.cover || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"}
+            alt={nashid.title}
+            className="w-64 h-64 mx-auto rounded-2xl object-cover shadow-lg"
+          />
+        </div>
+
+        {/* Track Info */}
+        <div className="text-center mb-6">
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">{nashid.title}</h3>
+          {nashid.titleTransliteration && (
+            <p className="text-gray-600 mb-1">{nashid.titleTransliteration}</p>
+          )}
+          <p className="text-lg text-gray-700">{nashid.artist}</p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-6">
+          <div
+            className="w-full h-2 bg-gray-200 rounded-full cursor-pointer"
+            onClick={handleSeek}
+          >
+            <div
+              className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-100"
+              style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-sm text-gray-600 mt-2">
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
+        </div>
+
+        {/* Main Controls */}
+        <div className="flex items-center justify-center space-x-6 mb-6">
+          <button
+            onClick={toggleShuffle}
+            className={`p-3 rounded-full transition-colors ${
+              isShuffled
+                ? 'bg-green-100 text-green-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Перемешать"
+          >
+            <Shuffle className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={handlePrevious}
+            disabled={playlist.length === 0}
+            className="p-3 text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
+            title="Предыдущий"
+          >
+            <SkipBack className="w-6 h-6" />
+          </button>
+
+          <button
+            onClick={handlePlayPause}
+            disabled={isLoading}
+            className={`p-4 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors disabled:opacity-50 touch-manipulation ${
+              audioError ? 'bg-red-600' : ''
+            }`}
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            {isLoading ? (
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="w-6 h-6" />
+            ) : (
+              <Play className="w-6 h-6" />
+            )}
+          </button>
+
+          <button
+            onClick={handleNext}
+            disabled={playlist.length === 0}
+            className="p-3 text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
+            title="Следующий"
+          >
+            <SkipForward className="w-6 h-6" />
+          </button>
+
+          <button
+            onClick={toggleRepeat}
+            className={`p-3 rounded-full transition-colors ${
+              repeatMode !== 'none'
+                ? 'bg-green-100 text-green-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Повтор"
+          >
+            {getRepeatIcon()}
+          </button>
+        </div>
+
+        {/* Volume Control */}
+        <div className="flex items-center space-x-4 mb-6">
+          <button
+            onClick={toggleMute}
+            className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={isMuted ? 0 : volume}
+            onChange={handleVolumeChange}
+            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          />
+        </div>
+
+        {/* Additional Controls */}
+        <div className="flex items-center justify-center space-x-4">
+          <button
+            onClick={handleFavorite}
+            className={`p-3 rounded-full transition-colors ${
+              isFavorite
+                ? 'bg-red-100 text-red-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Добавить в избранное"
+          >
+            <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+          </button>
+
+          <button
+            onClick={handleDownload}
+            className={`p-3 rounded-full transition-colors ${
+              isOfflineAvailable
+                ? 'bg-green-100 text-green-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title={isOfflineAvailable ? 'Доступно офлайн' : 'Скачать для офлайн'}
+          >
+            <Download className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={handleShare}
+            className="p-3 text-gray-600 hover:text-gray-900 transition-colors rounded-full"
+            title="Поделиться"
+          >
+            <Share2 className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={() => setShowPlaylist(!showPlaylist)}
+            className={`p-3 rounded-full transition-colors ${
+              showPlaylist
+                ? 'bg-blue-100 text-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Показать плейлист"
+          >
+            <List className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Playlist */}
+        {showPlaylist && playlist.length > 0 && (
+          <div className="mt-6 border-t pt-6">
+            <h4 className="font-semibold text-gray-900 mb-4">Плейлист</h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {playlist.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => dispatch(playNashid(item))}
+                  className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                    item.id === nashid.id
+                      ? 'bg-green-100'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <img
+                    src={item.cover || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80"}
+                    alt={item.title}
+                    className="w-12 h-12 rounded-lg object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h5 className="font-medium text-gray-900 truncate">{item.title}</h5>
+                    <p className="text-sm text-gray-600 truncate">{item.artist}</p>
+                  </div>
+                  <span className="text-sm text-gray-500">{item.duration}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <audio
+          ref={audioRef}
+          preload="auto"
+          playsInline
+          crossOrigin="anonymous"
+        />
+      </div>
+    </div>
+  );
+};
+
+export default AudioPlayer;

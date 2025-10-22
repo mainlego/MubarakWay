@@ -1,10 +1,11 @@
 services:
-  # Frontend Static Site
+  # Frontend Static Site - Telegram Mini App
   - type: web
     name: mubarakway-frontend
-    env: static
+    runtime: static
+    rootDir: frontend
     buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: frontend/dist
     routes:
       - type: rewrite
         source: /*
@@ -19,30 +20,47 @@ services:
       - path: /*
         name: X-Content-Type-Options
         value: nosniff
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
     envVars:
       - key: NODE_VERSION
         value: "20.17.0"
+      - key: VITE_API_URL
+        value: https://mubarakway-backend.onrender.com
+      - key: VITE_QURAN_API_URL
+        value: https://bot.e-replika.ru/api/v1
+      - key: VITE_QURAN_API_TOKEN
+        value: test_token_123
+      - key: BACKEND_URL
+        value: https://mubarakway-backend.onrender.com
 
   # Backend API + Telegram Bot (Unified Service)
   - type: web
     name: mubarakway-backend
-    env: node
+    runtime: node
     region: frankfurt
     plan: free
-    rootDir: server
+    rootDir: backend
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: node server/server.js
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
         value: "20.17.0"
+      - key: PORT
+        value: "10000"
       - key: MONGODB_URI
         sync: false
       - key: BOT_TOKEN
         sync: false
+      - key: JWT_SECRET
+        sync: false
       - key: WEB_APP_URL
         value: https://mubarakway-frontend.onrender.com
-      - key: PORT
-        value: "10000"
+      - key: BACKEND_URL
+        value: https://mubarakway-backend.onrender.com
+      - key: VITE_API_URL
+        value: https://mubarakway-backend.onrender.com

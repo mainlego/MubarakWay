@@ -1,0 +1,270 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { BookOpen, Music, Navigation2, Clock, Crown, Star, Zap, Sparkles } from 'lucide-react';
+import { getBackgroundWithOverlay } from '../utils/backgrounds';
+import prayerTimesService from '../services/prayerTimesService';
+import { selectCurrentSubscription } from '../store/slices/subscriptionSlice';
+
+const Home = () => {
+  const navigate = useNavigate();
+  const subscriptionConfig = useSelector(selectCurrentSubscription);
+  const [backgroundStyle, setBackgroundStyle] = useState({});
+  const [nextPrayer, setNextPrayer] = useState(null);
+  const [timeUntilPrayer, setTimeUntilPrayer] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setBackgroundStyle(getBackgroundWithOverlay('home', 0.3));
+    loadPrayerTimes();
+
+    // Обновляем время каждую минуту
+    const interval = setInterval(() => {
+      updateTimeUntilPrayer();
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadPrayerTimes = async () => {
+    try {
+      setLoading(true);
+      // Получаем местоположение
+      const location = await prayerTimesService.getCurrentLocation();
+
+      // Загружаем настройки
+      await prayerTimesService.loadSettings();
+
+      // Рассчитываем время молитв
+      const times = await prayerTimesService.getPrayerTimesWithOfflineSupport(
+        new Date(),
+        location
+      );
+
+      // Получаем следующую молитву
+      const next = prayerTimesService.getNextPrayer(times);
+      setNextPrayer(next);
+
+      updateTimeUntilPrayer(times);
+    } catch (error) {
+      console.error('Error loading prayer times:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateTimeUntilPrayer = (times = null) => {
+    const timeInfo = prayerTimesService.getTimeUntilNextPrayer(times);
+    setTimeUntilPrayer(timeInfo);
+  };
+
+  const features = [
+    {
+      title: 'Библиотека книг',
+      description: 'Исламская литература с встроенной читалкой',
+      icon: BookOpen,
+      link: '/library',
+      gradient: 'from-green-500 to-green-600'
+    },
+    {
+      title: 'Нашиды',
+      description: 'Религиозные песнопения и плейлисты',
+      icon: Music,
+      link: '/nashids',
+      gradient: 'from-blue-500 to-blue-600'
+    },
+    {
+      title: 'Намаз-ассистент',
+      description: 'Компас и время молитв',
+      icon: Navigation2,
+      link: '/qibla',
+      gradient: 'from-purple-500 to-purple-600'
+    }
+  ];
+
+  return (
+    <div className="min-h-screen py-4 sm:py-6 overflow-x-hidden relative bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900">
+      <div className="max-w-md mx-auto px-4 sm:px-6 pt-4 sm:pt-8 relative z-10">
+        {/* Header */}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">MubarakWay</h1>
+          <p className="text-gray-100 text-base sm:text-lg drop-shadow">Ваш путь к исламскому знанию</p>
+        </div>
+
+        {/* Time Widget */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 text-center shadow-lg w-full">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+            <span className="text-sm sm:text-base text-gray-700 font-medium">Следующая молитва</span>
+          </div>
+          {loading ? (
+            <div className="text-sm sm:text-base text-gray-500">Загрузка...</div>
+          ) : nextPrayer && timeUntilPrayer ? (
+            <>
+              <div className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">
+                {nextPrayer.displayName}
+              </div>
+              <div className="text-sm sm:text-base text-gray-600">
+                через {timeUntilPrayer.formatted}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {prayerTimesService.formatTime(nextPrayer.time)}
+              </div>
+            </>
+          ) : (
+            <div className="text-sm sm:text-base text-gray-500">Нет данных</div>
+          )}
+        </div>
+
+        {/* Features Grid */}
+        <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8 w-full">
+          {features.map((feature) => {
+            const IconComponent = feature.icon;
+            return (
+              <Link
+                key={feature.title}
+                to={feature.link}
+                className="block w-full"
+              >
+                <div className={`bg-gradient-to-r ${feature.gradient} rounded-2xl p-4 sm:p-6 text-white transition-transform active:scale-95 sm:hover:scale-105 w-full`}>
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="p-2 sm:p-3 bg-white/20 rounded-xl flex-shrink-0">
+                      <IconComponent className="w-6 h-6 sm:w-8 sm:h-8" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg sm:text-xl font-semibold mb-1 truncate">{feature.title}</h3>
+                      <p className="text-white/90 text-xs sm:text-sm line-clamp-2">{feature.description}</p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Daily Quote */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 shadow-lg w-full">
+          <p className="text-gray-700 text-xs sm:text-sm leading-relaxed mb-2 sm:mb-3">
+            "Поистине, Аллах не изменит положения людей, пока они не изменят самих себя."
+          </p>
+          <p className="text-gray-500 text-xs">Коран 13:11</p>
+        </div>
+
+        {/* Current Subscription Card */}
+        {subscriptionConfig && (
+          <div className={`rounded-2xl p-4 sm:p-6 w-full mb-4 ${
+            subscriptionConfig.id === 'muslim' ? 'bg-gradient-to-r from-slate-700 to-slate-800' :
+            subscriptionConfig.id === 'mutahsin' ? 'bg-gradient-to-r from-blue-600 to-indigo-700' :
+            'bg-gradient-to-r from-yellow-500 to-amber-600'
+          }`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                {subscriptionConfig.id === 'muslim' && <BookOpen className="w-6 h-6 text-white" />}
+                {subscriptionConfig.id === 'mutahsin' && <Star className="w-6 h-6 text-white" />}
+                {subscriptionConfig.id === 'sahib_waqf' && <Crown className="w-6 h-6 text-white" />}
+                <h3 className="text-lg sm:text-xl font-bold text-white">{subscriptionConfig.name}</h3>
+              </div>
+              <span className="text-xs sm:text-sm text-white/80">{subscriptionConfig.nameEn}</span>
+            </div>
+
+            <p className="text-white/90 text-xs sm:text-sm mb-4">{subscriptionConfig.description}</p>
+
+            {/* Key features */}
+            <div className="space-y-2 mb-4">
+              <div className="flex items-start gap-2 text-white">
+                <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p className="text-xs sm:text-sm">
+                  {subscriptionConfig.features.books.access === 1 ? 'Полный каталог книг' : `${Math.floor(subscriptionConfig.features.books.access * 100)}% каталога книг`}
+                </p>
+              </div>
+              <div className="flex items-start gap-2 text-white">
+                <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <p className="text-xs sm:text-sm">
+                  {subscriptionConfig.features.nashids.count === -1 ? 'Все нашиды' : `${subscriptionConfig.features.nashids.count} нашидов`}
+                </p>
+              </div>
+              {subscriptionConfig.features.features.aiAssistant && (
+                <div className="flex items-start gap-2 text-white">
+                  <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm">AI-помощник для рекомендаций</p>
+                </div>
+              )}
+              {subscriptionConfig.features.features.familyAccess > 0 && (
+                <div className="flex items-start gap-2 text-white">
+                  <Star className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm">Семейный доступ ({subscriptionConfig.features.features.familyAccess} профиля)</p>
+                </div>
+              )}
+            </div>
+
+            {subscriptionConfig.id === 'muslim' && (
+              <button
+                onClick={() => navigate('/subscription')}
+                className="w-full bg-white text-slate-800 px-4 py-2 rounded-xl text-sm font-medium active:bg-slate-50 transition-colors"
+              >
+                Улучшить подписку
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Subscription Comparison (only for Basic users) */}
+        {subscriptionConfig?.id === 'muslim' && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 sm:p-6 mb-4 w-full">
+            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 text-center">Доступные подписки</h3>
+
+            <div className="space-y-3">
+              {/* PRO Tier */}
+              <div className="border-2 border-blue-200 rounded-xl p-4 bg-blue-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-blue-600" />
+                    <h4 className="font-bold text-blue-900">Мутахсин (PRO)</h4>
+                  </div>
+                  <span className="text-sm text-blue-700 font-semibold">₽499/мес</span>
+                </div>
+                <ul className="space-y-1 text-xs text-blue-800">
+                  <li>✓ Полный каталог книг и нашидов</li>
+                  <li>✓ Неограниченные офлайн и избранное</li>
+                  <li>✓ Заметки и синхронизация</li>
+                  <li>✓ Фоновое воспроизведение</li>
+                </ul>
+              </div>
+
+              {/* Premium Tier */}
+              <div className="border-2 border-yellow-300 rounded-xl p-4 bg-gradient-to-br from-yellow-50 to-amber-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-yellow-600" />
+                    <h4 className="font-bold text-yellow-900">Сахиб аль-Вакф (Premium)</h4>
+                  </div>
+                  <span className="text-sm text-yellow-700 font-semibold">₽999/мес</span>
+                </div>
+                <ul className="space-y-1 text-xs text-yellow-800">
+                  <li>✓ Все из PRO</li>
+                  <li>✓ AI-помощник для рекомендаций</li>
+                  <li>✓ Семейный доступ (3 профиля)</li>
+                  <li>✓ Ранний доступ к новинкам</li>
+                  <li>✓ Эксклюзивный контент</li>
+                  <li>✓ Экспорт заметок в PDF</li>
+                </ul>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/subscription')}
+              className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-3 rounded-xl text-sm font-semibold active:opacity-90 transition-opacity"
+            >
+              Выбрать подписку
+            </button>
+          </div>
+        )}
+
+        {/* Bottom spacing for navigation */}
+        <div className="h-20" />
+      </div>
+    </div>
+  );
+};
+
+export default Home;

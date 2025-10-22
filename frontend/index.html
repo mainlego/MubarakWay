@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/mosque.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <!-- Telegram Mini App Script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Meta for Telegram -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self' https://telegram.org https://*.telegram.org;
+      connect-src 'self' https://mubarakway-backend.onrender.com https://mubarak-way-bot.onrender.com https://telegram.org https://*.telegram.org;
+      script-src 'self' 'unsafe-inline' https://telegram.org;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob: https:;
+      media-src 'self' data: blob: https://mubarakway-backend.onrender.com;
+      frame-src 'self' https://mubarakway-backend.onrender.com;
+      frame-ancestors 'self' https://*.telegram.org https://telegram.org;
+    " />
+
+    <title>MubarakWay - Исламское мини-приложение</title>
+    <meta name="description" content="Комплексное исламское приложение: библиотека книг, нашиды, определение киблы и время молитв" />
+
+    <!-- Aggressive Cache Busting -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <!-- Version Control & Cache Busting -->
+    <script>
+      // Auto-updated by build script - DO NOT EDIT MANUALLY
+      const APP_VERSION = 'v1.0.0.1761087556938';
+      const savedVersion = localStorage.getItem('app_version');
+
+      console.log('[Version] Checking version:', { current: APP_VERSION, saved: savedVersion });
+
+      if (savedVersion && savedVersion !== APP_VERSION) {
+        console.log('[Version] New version detected! Clearing cache and reloading...');
+        console.log('[Version] Old:', savedVersion, '→ New:', APP_VERSION);
+
+        // Show update notification to user
+        const updateNotification = document.createElement('div');
+        updateNotification.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 30px 40px;
+          border-radius: 20px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          z-index: 999999;
+          text-align: center;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+          max-width: 90%;
+          animation: fadeIn 0.3s ease-in-out;
+        `;
+        updateNotification.innerHTML = `
+          <div style="font-size: 48px; margin-bottom: 15px;">🚀</div>
+          <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px;">Обновление приложения</div>
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 20px;">Устанавливаем новую версию...</div>
+          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 15px;">
+            <div style="width: 8px; height: 8px; background: white; border-radius: 50%; animation: pulse 1s infinite;"></div>
+            <div style="width: 8px; height: 8px; background: white; border-radius: 50%; animation: pulse 1s infinite 0.2s;"></div>
+            <div style="width: 8px; height: 8px; background: white; border-radius: 50%; animation: pulse 1s infinite 0.4s;"></div>
+          </div>
+        `;
+
+        // Add animations
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -60%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+          }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(updateNotification);
+
+        // Clear Service Worker caches
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            console.log('[Cache] Clearing', names.length, 'cache(s)');
+            names.forEach(name => caches.delete(name));
+          });
+        }
+
+        // Clear localStorage except important user data
+        const importantKeys = [
+          'bookFavorites',
+          'bookmarks',
+          'nashidFavorites',
+          'offlineNashids',
+          'userData',
+          'prayerSettings'
+        ];
+
+        const tempStorage = {};
+        importantKeys.forEach(key => {
+          const value = localStorage.getItem(key);
+          if (value) {
+            tempStorage[key] = value;
+            console.log('[Cache] Preserving:', key);
+          }
+        });
+
+        // Clear all localStorage
+        localStorage.clear();
+
+        // Restore important data
+        Object.keys(tempStorage).forEach(key => {
+          localStorage.setItem(key, tempStorage[key]);
+        });
+
+        // Save new version
+        localStorage.setItem('app_version', APP_VERSION);
+
+        // Force reload without cache after 1.5 seconds (let user see the notification)
+        console.log('[Version] Reloading application...');
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 1500);
+      } else if (!savedVersion) {
+        // First time visitor
+        console.log('[Version] First launch, setting version:', APP_VERSION);
+        localStorage.setItem('app_version', APP_VERSION);
+      } else {
+        console.log('[Version] ✅ Up to date');
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
