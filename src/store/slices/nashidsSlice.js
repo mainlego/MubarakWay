@@ -91,19 +91,27 @@ export const fetchNashids = createAsyncThunk(
         throw new Error(data.message || 'Failed to fetch nashids');
       }
 
-      const nashids = data.nashids.map(nashid => ({
-        id: nashid.nashidId, // Use nashidId instead of _id for numeric ID
-        title: nashid.title,
-        titleTransliteration: nashid.titleTransliteration || nashid.title,
-        artist: nashid.artist || 'Unknown Artist',
-        duration: nashid.duration || '0:00',
-        cover: nashid.coverImage || 'https://images.unsplash.com/photo-1465101162946-4377e57745c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        audioUrl: nashid.audioUrl || '',
-        category: nashid.category || 'spiritual',
-        language: nashid.language || 'ar',
-        releaseYear: nashid.releaseYear,
-        accessLevel: nashid.accessLevel || 'free'
-      }));
+      const nashids = data.nashids.map(nashid => {
+        // Validate nashidId exists
+        if (!nashid.nashidId) {
+          console.error('[Nashids] ⚠️ Nashid missing nashidId:', nashid.title, nashid._id);
+          throw new Error(`Nashid "${nashid.title}" is missing nashidId field. Run migration script.`);
+        }
+
+        return {
+          id: nashid.nashidId, // Use nashidId instead of _id for numeric ID
+          title: nashid.title,
+          titleTransliteration: nashid.titleTransliteration || nashid.title,
+          artist: nashid.artist || 'Unknown Artist',
+          duration: nashid.duration || '0:00',
+          cover: nashid.coverImage || 'https://images.unsplash.com/photo-1465101162946-4377e57745c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+          audioUrl: nashid.audioUrl || '',
+          category: nashid.category || 'spiritual',
+          language: nashid.language || 'ar',
+          releaseYear: nashid.releaseYear,
+          accessLevel: nashid.accessLevel || 'free'
+        };
+      });
 
       console.log('[Nashids] Found', nashids.length, 'nashids from database');
       console.log('[Nashids] Mapped nashids:', nashids);

@@ -717,24 +717,32 @@ export const fetchBooks = createAsyncThunk(
       console.log('[Books] Found', data.books.length, 'books from database');
 
       // Преобразуем данные из MongoDB формата в формат приложения
-      const books = data.books.map(book => ({
-        id: book.bookId, // Use bookId instead of _id for numeric ID
-        title: book.title,
-        author: book.author || '',
-        description: book.description,
-        cover: book.cover,
-        content: book.content,
-        isPro: book.isPro,
-        category: book.category,
-        genre: book.genre,
-        language: book.language,
-        isExclusive: book.isExclusive || false,
-        rating: book.rating || 0,
-        reactions: book.reactions || 0,
-        publishedDate: book.publishedDate,
-        isNew: book.isNew || false,
-        textExtracted: book.textExtracted || false
-      }));
+      const books = data.books.map(book => {
+        // Validate bookId exists
+        if (!book.bookId) {
+          console.error('[Books] ⚠️ Book missing bookId:', book.title, book._id);
+          throw new Error(`Book "${book.title}" is missing bookId field. Contact administrator.`);
+        }
+
+        return {
+          id: book.bookId, // Use bookId instead of _id for numeric ID
+          title: book.title,
+          author: book.author || '',
+          description: book.description,
+          cover: book.cover,
+          content: book.content,
+          isPro: book.isPro,
+          category: book.category,
+          genre: book.genre,
+          language: book.language,
+          isExclusive: book.isExclusive || false,
+          rating: book.rating || 0,
+          reactions: book.reactions || 0,
+          publishedDate: book.publishedDate,
+          isNew: book.isNew || false,
+          textExtracted: book.textExtracted || false
+        };
+      });
 
       console.log('[Books] Mapped books:', books);
       console.log('[Books] Successfully returning', books.length, 'books from database');
