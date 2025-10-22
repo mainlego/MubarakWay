@@ -107,10 +107,15 @@ export const fetchNashids = createAsyncThunk(
 
       console.log('[Nashids] Found', nashids.length, 'nashids from database');
       console.log('[Nashids] Mapped nashids:', nashids);
+      console.log('[Nashids] Successfully returning', nashids.length, 'nashids from database');
 
       return nashids;
     } catch (error) {
-      console.error('[Nashids] Fetch error:', error);
+      console.error('[Nashids] Fetch error:');
+      console.error('[Nashids] Error name:', error.name);
+      console.error('[Nashids] Error message:', error.message);
+      console.error('[Nashids] Error stack:', error.stack);
+      console.error('[Nashids] ⚠️ RETURNING ERROR - NO FALLBACK TO MOCK DATA');
       return rejectWithValue(error.message);
     }
   }

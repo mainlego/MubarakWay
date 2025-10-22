@@ -737,10 +737,14 @@ export const fetchBooks = createAsyncThunk(
       }));
 
       console.log('[Books] Mapped books:', books);
+      console.log('[Books] Successfully returning', books.length, 'books from database');
       return books;
     } catch (error) {
-      console.error('[Books] Error fetching from API:', error);
-      console.warn('[Books] Falling back to mock data');
+      console.error('[Books] Error fetching from API:');
+      console.error('[Books] Error name:', error.name);
+      console.error('[Books] Error message:', error.message);
+      console.error('[Books] Error stack:', error.stack);
+      console.warn('[Books] ⚠️ FALLING BACK TO MOCK DATA - THIS SHOULD NOT HAPPEN IN PRODUCTION!');
       // Возвращаем mock данные в случае ошибки для разработки
       return mockBooks;
     }
