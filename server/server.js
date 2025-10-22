@@ -22,11 +22,24 @@ const corsOptions = {
       'https://mubarakway-admin.onrender.com', // Admin panel
     ];
 
-    // Allow Telegram domains (web.telegram.org, etc.)
+    // Telegram Mini Apps specific domains
+    const telegramDomains = [
+      'https://web.telegram.org',
+      'https://k.web.telegram.org',
+      'https://z.web.telegram.org',
+      'https://a.web.telegram.org',
+    ];
+
+    // Allow:
+    // 1. No origin (Telegram Mini Apps часто не отправляют Origin)
+    // 2. Our domains
+    // 3. Any telegram.org subdomain
+    // 4. t.me links
     if (!origin ||
         allowedOrigins.includes(origin) ||
-        origin.includes('telegram.org') ||
-        origin.includes('t.me')) {
+        telegramDomains.includes(origin) ||
+        (origin && origin.includes('telegram.org')) ||
+        (origin && origin.includes('t.me'))) {
       callback(null, true);
     } else {
       console.log('⛔ CORS blocked origin:', origin);
@@ -95,12 +108,23 @@ app.use((req, res, next) => {
       'https://mubarakway-admin.onrender.com',
     ];
 
+    const telegramDomains = [
+      'https://web.telegram.org',
+      'https://k.web.telegram.org',
+      'https://z.web.telegram.org',
+      'https://a.web.telegram.org',
+    ];
+
     if (allowed.includes(origin) ||
+        telegramDomains.includes(origin) ||
         origin.includes('telegram.org') ||
         origin.includes('t.me')) {
       res.header('Access-Control-Allow-Origin', origin);
       res.header('Access-Control-Allow-Credentials', 'true');
     }
+  } else {
+    // Telegram Mini Apps могут не отправлять Origin - разрешаем
+    res.header('Access-Control-Allow-Origin', '*');
   }
 
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -130,7 +154,18 @@ app.use('/uploads', (req, res, next) => {
     'https://mubarakway-admin.onrender.com',
   ];
 
-  if (!origin || allowed.includes(origin) || origin.includes('telegram.org') || origin.includes('t.me')) {
+  const telegramDomains = [
+    'https://web.telegram.org',
+    'https://k.web.telegram.org',
+    'https://z.web.telegram.org',
+    'https://a.web.telegram.org',
+  ];
+
+  if (!origin ||
+      allowed.includes(origin) ||
+      telegramDomains.includes(origin) ||
+      origin.includes('telegram.org') ||
+      origin.includes('t.me')) {
     res.header('Access-Control-Allow-Origin', origin || '*');
     res.header('Access-Control-Allow-Credentials', 'true');
   }
