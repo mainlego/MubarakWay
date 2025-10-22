@@ -146,6 +146,39 @@ const TelegramLogin = () => {
               Ваши данные защищены и не передаются третьим лицам.
             </p>
           </div>
+
+          {/* Debug Mode Button (Development Only) */}
+          {import.meta.env.DEV && (
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  console.log('[DEBUG] Entering debug mode with test user');
+                  const testUser = {
+                    id: 123456789,
+                    first_name: 'Debug',
+                    last_name: 'User',
+                    username: 'debuguser',
+                    photo_url: '',
+                    auth_date: Math.floor(Date.now() / 1000),
+                    hash: 'debug_hash'
+                  };
+
+                  dispatch(loginUser(testUser))
+                    .unwrap()
+                    .then((userData) => {
+                      console.log('✅ Debug user logged in:', userData);
+                      localStorage.setItem('telegram_auth', JSON.stringify(testUser));
+                    })
+                    .catch((error) => {
+                      console.error('❌ Debug login failed:', error);
+                    });
+                }}
+                className="w-full py-3 px-4 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-200 rounded-lg text-sm font-medium transition-colors"
+              >
+                🔧 Режим отладки (только для разработки)
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
