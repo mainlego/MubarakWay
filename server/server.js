@@ -15,6 +15,7 @@ const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       'http://localhost:5173',
+      'http://localhost:5174', // Vite dev server alternative port
       'http://localhost:3000',
       'https://mubarakway-frontend.onrender.com',
       'https://mubarak-way.onrender.com',
@@ -87,6 +88,7 @@ app.use((req, res, next) => {
   if (origin) {
     const allowed = [
       'http://localhost:5173',
+      'http://localhost:5174',
       'http://localhost:3000',
       'https://mubarakway-frontend.onrender.com',
       'https://mubarak-way.onrender.com',
@@ -121,6 +123,7 @@ app.use('/uploads', (req, res, next) => {
   const origin = req.headers.origin;
   const allowed = [
     'http://localhost:5173',
+    'http://localhost:5174',
     'http://localhost:3000',
     'https://mubarakway-frontend.onrender.com',
     'https://mubarak-way.onrender.com',
