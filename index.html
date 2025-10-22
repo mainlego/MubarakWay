@@ -47,6 +47,50 @@
         console.log('[Version] New version detected! Clearing cache and reloading...');
         console.log('[Version] Old:', savedVersion, '→ New:', APP_VERSION);
 
+        // Show update notification to user
+        const updateNotification = document.createElement('div');
+        updateNotification.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 30px 40px;
+          border-radius: 20px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          z-index: 999999;
+          text-align: center;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+          max-width: 90%;
+          animation: fadeIn 0.3s ease-in-out;
+        `;
+        updateNotification.innerHTML = `
+          <div style="font-size: 48px; margin-bottom: 15px;">🚀</div>
+          <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px;">Обновление приложения</div>
+          <div style="font-size: 14px; opacity: 0.9; margin-bottom: 20px;">Устанавливаем новую версию...</div>
+          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 15px;">
+            <div style="width: 8px; height: 8px; background: white; border-radius: 50%; animation: pulse 1s infinite;"></div>
+            <div style="width: 8px; height: 8px; background: white; border-radius: 50%; animation: pulse 1s infinite 0.2s;"></div>
+            <div style="width: 8px; height: 8px; background: white; border-radius: 50%; animation: pulse 1s infinite 0.4s;"></div>
+          </div>
+        `;
+
+        // Add animations
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -60%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+          }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(updateNotification);
+
         // Clear Service Worker caches
         if ('caches' in window) {
           caches.keys().then(names => {
@@ -85,9 +129,11 @@
         // Save new version
         localStorage.setItem('app_version', APP_VERSION);
 
-        // Force reload without cache
+        // Force reload without cache after 1.5 seconds (let user see the notification)
         console.log('[Version] Reloading application...');
-        window.location.reload(true);
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 1500);
       } else if (!savedVersion) {
         // First time visitor
         console.log('[Version] First launch, setting version:', APP_VERSION);
