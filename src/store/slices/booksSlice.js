@@ -752,9 +752,9 @@ export const fetchBooks = createAsyncThunk(
       console.error('[Books] Error name:', error.name);
       console.error('[Books] Error message:', error.message);
       console.error('[Books] Error stack:', error.stack);
-      console.warn('[Books] ⚠️ FALLING BACK TO MOCK DATA - THIS SHOULD NOT HAPPEN IN PRODUCTION!');
-      // Возвращаем mock данные в случае ошибки для разработки
-      return mockBooks;
+      console.error('[Books] ❌ REJECTING - NO FALLBACK TO MOCK DATA IN PRODUCTION');
+      // НЕ возвращаем mock данные! Пусть показывается ошибка
+      return rejectWithValue(error.message);
     }
   }
 );
