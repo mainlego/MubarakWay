@@ -542,7 +542,11 @@ router.post('/nashids', authenticateAdmin, async (req, res) => {
       ...req.body,
       nashidId: nextNashidId,
       // Map coverImage to cover for backward compatibility
-      cover: req.body.coverImage || req.body.cover
+      cover: req.body.coverImage || req.body.cover,
+      // Set default duration if empty
+      duration: req.body.duration && req.body.duration.trim() !== ''
+        ? req.body.duration
+        : '0:00'
     };
 
     const nashid = new Nashid(nashidData);
@@ -578,7 +582,11 @@ router.put('/nashids/:id', authenticateAdmin, async (req, res) => {
     const updateData = {
       ...req.body,
       // Map coverImage to cover for backward compatibility
-      cover: req.body.coverImage || req.body.cover
+      cover: req.body.coverImage || req.body.cover,
+      // Set default duration if empty
+      duration: req.body.duration && req.body.duration.trim() !== ''
+        ? req.body.duration
+        : '0:00'
     };
 
     const nashid = await Nashid.findByIdAndUpdate(
