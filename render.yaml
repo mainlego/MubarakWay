@@ -27,7 +27,7 @@ services:
       - key: NODE_VERSION
         value: "20.17.0"
       - key: VITE_API_URL
-        value: https://mubarakway-backend.onrender.com
+        value: https://mubarakway-backend.onrender.com/api
       - key: VITE_QURAN_API_URL
         value: https://bot.e-replika.ru/api/v1
       - key: VITE_QURAN_API_TOKEN
