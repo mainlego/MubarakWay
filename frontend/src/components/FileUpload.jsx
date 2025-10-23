@@ -139,7 +139,7 @@ const FileUpload = ({
 
       const token = localStorage.getItem('adminToken');
 
-      const response = await axios.post(`${API_URL}/api/upload?category=${category}`, formData, {
+      const response = await axios.post(`${API_URL}/upload?category=${category}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
@@ -182,7 +182,7 @@ const FileUpload = ({
       const token = localStorage.getItem('adminToken');
 
       // Отправляем полный URL на сервер - он сам извлечёт путь
-      await axios.delete(`${API_URL}/api/upload`, {
+      await axios.delete(`${API_URL}/upload`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },
