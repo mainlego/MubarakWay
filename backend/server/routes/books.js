@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Book = require('../models/Book');
-// const pdf = require('pdf-parse'); // Commented out due to Node.js 18 compatibility issue
+const pdf = require('pdf-parse');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -315,14 +315,6 @@ router.post('/:id/extract-text', async (req, res) => {
     // Извлекаем текст
     console.log('🔍 Parsing PDF...');
 
-    // PDF parsing disabled due to Node.js 18 compatibility
-    res.status(501).json({
-      success: false,
-      message: 'PDF text extraction is temporarily disabled. Please upgrade to Node.js 20+',
-      error: 'pdf-parse requires Node.js 20+'
-    });
-
-    /* Original code - requires Node.js 20+
     const data = await pdf(dataBuffer);
 
     const extractedText = data.text;
@@ -344,7 +336,6 @@ router.post('/:id/extract-text', async (req, res) => {
       length: extractedText.length,
       pages: data.numpages
     });
-    */
 
   } catch (error) {
     console.error('❌ Extract text error:', error);
